@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include "hello.h"
 
-int main(int argc, char** argv) {
+int jz_say_hello() {
   puts("Hello, world!");
   return 0;
 }
