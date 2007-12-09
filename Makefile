@@ -12,15 +12,15 @@ default: jazz
 clean:
 	rm -f jazz libjazz.so* *.o
 
-jazz: main.o libjazz
-	$(CC) -L. -ljazz -o $@ main.o
+jazz: src/main.o libjazz
+	$(CC) -L. -ljazz -o $@ src/main.o
 
-main.o: main.c
+main.o: src/main.c
 
-libjazz: hello.o
+libjazz: src/hello.o
 	gcc -shared -Wl,-soname,$@.so.$(MAJOR_VERSION) -o $@.so.$(VERSION) $?
 	ln -s $@.so.$(VERSION) $@.so.$(MAJOR_VERSION).$(MINOR_VERSION)
 	ln -s $@.so.$(MAJOR_VERSION).$(MINOR_VERSION) $@.so.$(MAJOR_VERSION)
 	ln -s $@.so.$(MAJOR_VERSION) $@.so
 
-hello.o: hello.c hello.h
+src/hello.o: src/hello.c src/hello.h
