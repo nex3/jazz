@@ -2,7 +2,6 @@
 #define JZ_LEX_H
 
 #include <unicode/ustring.h>
-#include <stdbool.h>
 #include "string.h"
 
 void jz_lex_init();
