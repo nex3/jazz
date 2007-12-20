@@ -9,5 +9,6 @@ typedef struct {
 } jz_str;
 
 jz_str jz_str_new(int length, UChar* value);
+jz_str jz_str_substr(jz_str this, int start, int length);
 
 #endif
