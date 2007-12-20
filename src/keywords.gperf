@@ -1,4 +1,4 @@
-struct keyword { char* name; int token; }
+struct hash_result { char* name; int token; }
 %%
 {,    LCURLY
 },    RCURLY
