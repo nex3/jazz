@@ -35,10 +35,11 @@ int yylex() {
   try_re(state.whitespace_re);
 
   int res;
-  if (try_re(state.identifier_re)) return IDENTIFIER;
-  if (try_decimal_literal()) return NUMBER;
-  if ((res = try_punctuation())) return res;
-  return 0;
+  int to_ret = 0;
+  if (try_re(state.identifier_re)) to_ret = IDENTIFIER;
+  else if (try_decimal_literal()) to_ret = NUMBER;
+  else if ((res = try_punctuation())) to_ret = res;
+  return to_ret;
 }
 
 bool try_decimal_literal() {
@@ -54,6 +55,7 @@ int try_punctuation() {
   jz_str jz_match = get_match(state.punctuation_re, 0);
   char* match = jz_str_to_chars(jz_match);
   const hash_result* result = in_word_set(match, jz_match.length);
+  free(match);
   if (result) return result->token;
   
   printf("Lexer error: Unrecognized punctuation %s\n", match);
@@ -101,10 +103,10 @@ void jz_lex_set_code(jz_str code) {
 void jz_lex_init() {
   state.identifier_re      = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "+");
   state.whitespace_re      = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
-  state.punctuation_re     = create_re("(?:[\\{\\}\\(\\)\\[\\]\\.;,\\*%!~\\?:\\^\\/]|"
+  state.punctuation_re     = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,\\*%!~\\?:\\^\\/]|"
                                        ">=|<=|!==?|\\+=|-=|\\*=|%=|<<=|>>=|&=|\\|=|\\^=|\\/=|"
                                        "<<?|>{1,3}|={1,3}|\\+\\+?|--?|&&?|\\|\\|?)");
-  state.decimal_literal_re = create_re(DECIMAL_INTEGER_LITERAL_RE);
+  state.decimal_literal_re = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE);
 }
 
 URegularExpression* create_re(char* pattern) {
