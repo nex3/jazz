@@ -21,14 +21,14 @@ static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_
 %token <num> NUMBER
 
 /* Punctuation tokens */
-%token <str> LCURLY   RCURLY      LPAREN   RPAREN    LSQUARE      RSQUARE
-             DOT      SEMICOLON   COMMA    LESS_THAN GREATER_THAN GT_EQ
-             LT_EQ    EQ_EQ       NOT_EQ   EQ_EQ_EQ  NOT_EQ_EQ
-             PLUS     MINUS       TIMES    MOD       PLUS_PLUS    MINUS_MINUS
-             LT_LT    GT_GT       GT_GT_GT AND       OR           CARET
-             NOT      TILDE       AND_AND  OR_OR     QUESTION     COLON
-             EQUALS   PLUS_EQ     MINUS_EQ TIMES_EQ  MOD_EQ       LT_LT_EQ
-             GT_GT_EQ GT_GT_GT_EQ AND_EQ   OR_EQ     CARET_EQ
+%token <str> LCURLY   RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
+             DOT      SEMICOLON   COMMA     LESS_THAN GREATER_THAN GT_EQ
+             LT_EQ    EQ_EQ       NOT_EQ    EQ_EQ_EQ  NOT_EQ_EQ
+             PLUS     MINUS       TIMES     MOD       PLUS_PLUS    MINUS_MINUS
+             LT_LT    GT_GT       GT_GT_GT  BW_AND    BW_OR        XOR
+             NOT      BW_NOT      AND       OR        QUESTION     COLON
+             EQUALS   PLUS_EQ     MINUS_EQ  TIMES_EQ  MOD_EQ       LT_LT_EQ
+             GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <str> DIV DIV_EQ
 
 %type <str> twoids
