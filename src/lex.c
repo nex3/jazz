@@ -82,7 +82,7 @@ void jz_lex_set_code(jz_str code) {
 
 void jz_lex_init() {
   state.identifier_re      = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "+");
-  state.whitespace_re      = create_re("\\A[\\p{Zs}\t\x0B\f]");
+  state.whitespace_re      = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
   state.decimal_literal_re = create_re(DECIMAL_INTEGER_LITERAL_RE);
 }
 
