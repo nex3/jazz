@@ -13,9 +13,12 @@ static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_
 
 %union {
   jz_str str;
+  float num;
 }
 
 %token <str> IDENTIFIER
+
+%token <num> NUMBER
 
 /* Punctuation tokens */
 %token <str> LCURLY   RCURLY      LPAREN   RPAREN    LSQUARE      RSQUARE
