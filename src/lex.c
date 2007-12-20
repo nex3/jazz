@@ -15,8 +15,8 @@ static struct {
   URegularExpression* decimal_literal_re;
 } state;
 
-static int try_decimal_literal();
-static int try_re(URegularExpression* re, int type);
+static bool try_decimal_literal();
+static bool try_re(URegularExpression* re);
 static jz_str get_match(URegularExpression* re, int number);
 
 static URegularExpression* create_re(char* pattern);
@@ -26,23 +26,22 @@ static void check_error(UErrorCode error) {
 }
 
 int yylex() {
-  try_re(state.whitespace_re, true);
+  try_re(state.whitespace_re);
 
-  int res;
-  if ((res = try_re(state.identifier_re, IDENTIFIER))) return res;
-  if ((res = try_decimal_literal())) return res;
+  if (try_re(state.identifier_re)) return IDENTIFIER;
+  if (try_decimal_literal()) return NUMBER;
   return 0;
 }
 
-int try_decimal_literal() {
-  if (!try_re(state.decimal_literal_re, true)) return false;
+bool try_decimal_literal() {
+  if (!try_re(state.decimal_literal_re)) return false;
   char* num = jz_str_to_chars(get_match(state.decimal_literal_re, 0));
   yylval.num = (float)(atoi(num));
   free(num);
-  return NUMBER;
+  return true;
 }
 
-int try_re(URegularExpression* re, int type) {
+bool try_re(URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;  
 
   uregex_setText(re, state.code.value, state.code.length, &error);
@@ -57,7 +56,7 @@ int try_re(URegularExpression* re, int type) {
   state.code_prev = state.code;
   state.code.value  += change;
   state.code.length -= change;
-  return type;
+  return true;
 }
 
 jz_str get_match(URegularExpression* re, int number) {
