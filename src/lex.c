@@ -2,7 +2,7 @@
 #include "y.tab.h"
 #include <unicode/uregex.h>
 
-struct {
+static struct {
   jz_str code;
   URegularExpression* identifier_re;
   URegularExpression* whitespace_re;
