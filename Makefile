@@ -19,7 +19,7 @@ jazz: src/main.o libjazz
 main.o: src/main.c src/lex.h src/string.h
 
 libjazz: src/lex.o src/string.o src/y.tab.o
-	gcc -shared $(INCLUDES) -Wl,-soname,$@.so.$(MAJOR_VERSION) -o $@.so.$(VERSION) $?
+	$(CC) -shared $(INCLUDES) -Wl,-soname,$@.so.$(MAJOR_VERSION) -o $@.so.$(VERSION) $?
 	ln -sf $@.so.$(VERSION) $@.so.$(MAJOR_VERSION).$(MINOR_VERSION)
 	ln -sf $@.so.$(MAJOR_VERSION).$(MINOR_VERSION) $@.so.$(MAJOR_VERSION)
 	ln -sf $@.so.$(MAJOR_VERSION) $@.so
