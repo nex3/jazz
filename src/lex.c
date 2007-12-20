@@ -1,5 +1,6 @@
 #include "lex.h"
 #include "y.tab.h"
+#include "keywords.gp.c"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +46,7 @@ bool try_re(URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;  
 
   uregex_setText(re, state.code.value, state.code.length, &error);
+  check_error(error);
 
   UBool found = uregex_find(re, 0, &error);
   check_error(error);
