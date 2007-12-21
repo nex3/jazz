@@ -42,26 +42,26 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
               GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
-%type <node> expression additive_expression multiplicative_expression
+%type <node> expr additive_expr multiplicative_expr
 %type <node> number
 
-%start expression
+%start expr
 
 %%
 
-expression: additive_expression {
+expr: additive_expr {
   $$ = $1;
   root_node = $$;
  };
 
-additive_expression: multiplicative_expression { $$ = $1; }
-  | additive_expression PLUS  multiplicative_expression { $$ = binop_node(jz_op_plus,  $1, $3); }
-  | additive_expression MINUS multiplicative_expression { $$ = binop_node(jz_op_minus, $1, $3); };
+additive_expr: multiplicative_expr { $$ = $1; }
+  | additive_expr PLUS  multiplicative_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
+  | additive_expr MINUS multiplicative_expr { $$ = binop_node(jz_op_minus, $1, $3); };
 
-multiplicative_expression: number { $$ = $1; }
-  | multiplicative_expression TIMES number { $$ = binop_node(jz_op_times, $1, $3); }
-  | multiplicative_expression DIV   number { $$ = binop_node(jz_op_div,   $1, $3); }
-  | multiplicative_expression MOD   number { $$ = binop_node(jz_op_mod,   $1, $3); };
+multiplicative_expr: number { $$ = $1; }
+  | multiplicative_expr TIMES number { $$ = binop_node(jz_op_times, $1, $3); }
+  | multiplicative_expr DIV   number { $$ = binop_node(jz_op_div,   $1, $3); }
+  | multiplicative_expr MOD   number { $$ = binop_node(jz_op_mod,   $1, $3); };
 
 number: NUMBER {
   DECLARE_UNIONS(num, $1, node, NULL);
