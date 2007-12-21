@@ -11,8 +11,8 @@ typedef enum {
                      non-continuation parent node. */
   jz_parse_binop, /* A binary operator.
                      car.op_type indicates which operator it is,
-                     cdr.car.node is the left-hand argument,
-                     cdr.cdr.node is the right-hand argument. */
+                     cdar.node is the left-hand argument,
+                     cddr.node is the right-hand argument. */
   jz_parse_num    /* A number literal.
                      car.num is the value. */
 } jz_parse_type;
