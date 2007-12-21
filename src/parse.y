@@ -43,7 +43,7 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
 %token <none> DIV DIV_EQ
 
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
-             add_expr mult_expr
+             eq_expr add_expr mult_expr
 %type <node> number
 
 %start expr
@@ -85,8 +85,14 @@ bw_or_expr: xor_expr { $$ = $1; }
 xor_expr: bw_and_expr { $$ = $1; }
   | xor_expr XOR bw_and_expr { $$ = binop_node(jz_op_xor, $1, $3); }
 
-bw_and_expr: add_expr { $$ = $1; }
-  | bw_and_expr BW_AND add_expr { $$ = binop_node(jz_op_bw_and, $1, $3); }
+bw_and_expr: eq_expr { $$ = $1; }
+  | bw_and_expr BW_AND eq_expr { $$ = binop_node(jz_op_bw_and, $1, $3); }
+
+eq_expr: add_expr { $$ = $1; }
+  | eq_expr EQ_EQ     add_expr { $$ = binop_node(jz_op_equals,    $1, $3); }
+  | eq_expr NOT_EQ    add_expr { $$ = binop_node(jz_op_not_eq,    $1, $3); }
+  | eq_expr EQ_EQ_EQ  add_expr { $$ = binop_node(jz_op_eq_eq_eq,  $1, $3); }
+  | eq_expr NOT_EQ_EQ add_expr { $$ = binop_node(jz_op_not_eq_eq, $1, $3); }
 
 add_expr: mult_expr { $$ = $1; }
   | add_expr PLUS  mult_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
