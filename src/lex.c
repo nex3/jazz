@@ -8,7 +8,7 @@
 
 #include <unicode/uregex.h>
 
-// struct hash_result is defined in keywords.gperf
+/* Struct hash_result is defined in keywords.gperf. */
 typedef struct hash_result hash_result;
 
 static struct {
@@ -32,10 +32,11 @@ static void check_error(UErrorCode error) {
 }
 
 int yylex() {
-  try_re(state.whitespace_re);
-
   int res;
   int to_ret = 0;
+
+  try_re(state.whitespace_re);
+
   if (try_re(state.identifier_re)) to_ret = IDENTIFIER;
   else if (try_decimal_literal()) to_ret = NUMBER;
   else if ((res = try_punctuation())) to_ret = res;
@@ -43,18 +44,26 @@ int yylex() {
 }
 
 bool try_decimal_literal() {
+  char* num;
+
   if (!try_re(state.decimal_literal_re)) return false;
-  char* num = jz_str_to_chars(get_match(state.decimal_literal_re, 0));
+
+  num = jz_str_to_chars(get_match(state.decimal_literal_re, 0));
   yylval.num = (double)(atoi(num));
   free(num);
   return true;
 }
 
 int try_punctuation() {
+  jz_str jz_match;
+  char* match;
+  const hash_result* result;
+
   if (!try_re(state.punctuation_re)) return false;
-  jz_str jz_match = get_match(state.punctuation_re, 0);
-  char* match = jz_str_to_chars(jz_match);
-  const hash_result* result = in_word_set(match, jz_match.length);
+
+  jz_match = get_match(state.punctuation_re, 0);
+  match = jz_str_to_chars(jz_match);
+  result = in_word_set(match, jz_match.length);
   free(match);
   if (result) return result->token;
   
@@ -68,24 +77,31 @@ bool try_re(URegularExpression* re) {
   uregex_setText(re, state.code.value, state.code.length, &error);
   check_error(error);
 
-  UBool found = uregex_find(re, 0, &error);
-  check_error(error);
-  if (!found) return false;
+  {
+    UBool found = uregex_find(re, 0, &error);
+    check_error(error);
+    if (!found) return false;
+  }
 
-  int change = uregex_end(re, 0, &error);
-  check_error(error);
+  {
+    int change = uregex_end(re, 0, &error);
+    check_error(error);
 
-  state.code_prev = state.code;
-  state.code.value  += change;
-  state.code.length -= change;
+    state.code_prev = state.code;
+    state.code.value  += change;
+    state.code.length -= change;
+  }
   return true;
 }
 
 jz_str get_match(URegularExpression* re, int number) {
   UErrorCode error = U_ZERO_ERROR;
-  int start = uregex_start(re, number, &error);
+  int start;
+  int end;
+
+  start = uregex_start(re, number, &error);
   check_error(error);
-  int end   = uregex_end(re, number, &error);
+  end = uregex_end(re, number, &error);
   check_error(error);
 
   return jz_str_substr(state.code_prev, start, end);

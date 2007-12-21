@@ -42,9 +42,6 @@ static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_
 %%
 
 expression: additive_expression {
-  root_node = node_new(jz_parse_identifier,
-                       (jz_parse_value){.node = NULL},
-                       (jz_parse_value){.node = NULL});
   printf("Result: %f\n", $1);
  };
 
