@@ -15,7 +15,7 @@ static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_
 
 %union {
   jz_str str;
-  float num;
+  double num;
   char none;
 }
 

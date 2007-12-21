@@ -45,7 +45,7 @@ int yylex() {
 bool try_decimal_literal() {
   if (!try_re(state.decimal_literal_re)) return false;
   char* num = jz_str_to_chars(get_match(state.decimal_literal_re, 0));
-  yylval.num = (float)(atoi(num));
+  yylval.num = (double)(atoi(num));
   free(num);
   return true;
 }
