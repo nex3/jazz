@@ -86,7 +86,7 @@ jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* r
     cont = node_new(jz_parse_cont, car, cdr);
   }
   {
-    DECLARE_UNIONS(op_type, jz_op_mod, node, cont);
+    DECLARE_UNIONS(op_type, type, node, cont);
     return node_new(jz_parse_binop, car, cdr);
   }
 }
