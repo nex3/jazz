@@ -66,8 +66,8 @@ int try_punctuation() {
   result = in_word_set(match, jz_match.length);
   free(match);
   if (result) return result->token;
-  
-  printf("Lexer error: Unrecognized punctuation %s\n", match);
+
+  printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state.code.length);
   return false;
 }
 
