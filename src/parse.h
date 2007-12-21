@@ -23,12 +23,14 @@ typedef enum {
 } jz_parse_type;
 
 typedef enum {
+  jz_op_cond,
+  jz_op_or,
+  jz_op_and,
   jz_op_plus,
   jz_op_minus,
   jz_op_times,
   jz_op_div,
-  jz_op_mod,
-  jz_op_cond
+  jz_op_mod
 } jz_op_type;
 
 typedef union {
