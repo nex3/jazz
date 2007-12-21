@@ -13,6 +13,11 @@ typedef enum {
                      car.op_type indicates which operator it is,
                      cdar.node is the left-hand argument,
                      cddr.node is the right-hand argument. */
+  jz_parse_triop, /* A trinary operator.
+                     car.op_type indicates which operator it is,
+                     cdar.node is the first argument,
+                     cddar.node is the second argument, 
+                     cdddr.node is the third argument. */
   jz_parse_num    /* A number literal.
                      car.num is the value. */
 } jz_parse_type;
@@ -22,7 +27,8 @@ typedef enum {
   jz_op_minus,
   jz_op_times,
   jz_op_div,
-  jz_op_mod
+  jz_op_mod,
+  jz_op_cond
 } jz_op_type;
 
 typedef union {

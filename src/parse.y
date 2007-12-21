@@ -42,17 +42,35 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
               GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
-%type <node> expr additive_expr multiplicative_expr
+%type <node> expr conditional_expr additive_expr multiplicative_expr
 %type <node> number
 
 %start expr
 
 %%
 
-expr: additive_expr {
+expr: conditional_expr {
   $$ = $1;
   root_node = $$;
  };
+
+conditional_expr: additive_expr { $$ = $1; }
+  | additive_expr QUESTION expr COLON expr {
+    jz_parse_node* cont;
+
+    {
+      DECLARE_UNIONS(node, $3, node, $5);
+      cont = node_new(jz_parse_cont, car, cdr);
+    }
+    {
+      DECLARE_UNIONS(node, $1, node, cont);
+      cont = node_new(jz_parse_cont, car, cdr);
+    }
+    {
+      DECLARE_UNIONS(op_type, jz_op_cond, node, cont);
+      $$ = node_new(jz_parse_triop, car, cdr);
+    }
+ }
 
 additive_expr: multiplicative_expr { $$ = $1; }
   | additive_expr PLUS  multiplicative_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
