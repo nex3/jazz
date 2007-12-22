@@ -40,9 +40,11 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
   case jz_parse_num:
     compile_number(bytecode, node);
     break;
+
   case jz_parse_binop:
     compile_binop(bytecode, node);
     break;
+
   default:
     assert(0);
     break;
@@ -62,6 +64,19 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   case jz_op_plus:
     push_opcode(bytecode, jz_oc_add);
     break;
+
+  case jz_op_minus:
+    push_opcode(bytecode, jz_oc_sub);
+    break;
+
+  case jz_op_times:
+    push_opcode(bytecode, jz_oc_times);
+    break;
+
+  case jz_op_div:
+    push_opcode(bytecode, jz_oc_div);
+    break;
+
   default: assert(0);
   }
 

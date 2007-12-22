@@ -23,7 +23,25 @@ double jz_vm_run(jz_bytecode* bytecode) {
       break;
 
     case jz_oc_add:
-      res = stack[-1] + stack[-2];
+      res = stack[-2] + stack[-1];
+      stack--;
+      stack[-1] = res;
+      break;
+
+    case jz_oc_sub:
+      res = stack[-2] - stack[-1];
+      stack--;
+      stack[-1] = res;
+      break;
+
+    case jz_oc_times:
+      res = stack[-2] * stack[-1];
+      stack--;
+      stack[-1] = res;
+      break;
+
+    case jz_oc_div:
+      res = stack[-2] / stack[-1];
       stack--;
       stack[-1] = res;
       break;
