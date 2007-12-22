@@ -11,7 +11,7 @@
 
 double jz_vm_run(jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
-  double* stack = calloc(sizeof(double), bytecode->stack_size);
+  double* stack = calloc(sizeof(double), bytecode->stack_length);
   double* stack_bottom = stack;
   double res;
 
@@ -19,17 +19,17 @@ double jz_vm_run(jz_bytecode* bytecode) {
     switch (NEXT_OPCODE) {
     case jz_oc_push_double:
       PUSH(*(double*)(code));
-      code += sizeof(double)/sizeof(jz_opcode);
+      code += JZ_OCS_DOUBLE;
       break;
 
     case jz_oc_add:
       res = stack[-1] + stack[-2];
       stack--;
-      *stack = res;
+      stack[-1] = res;
       break;
 
     case jz_oc_ret:
-      res = *stack;
+      res = stack[-1];
       free(stack_bottom);
       return res;
     }

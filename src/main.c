@@ -1,6 +1,7 @@
 #include "lex.h"
 #include "parse.h"
 #include "string.h"
+#include "compile.h"
 #include "vm.h"
 
 #include <stdlib.h>
@@ -18,25 +19,16 @@ int main(int argc, char** argv) {
 
   {
     jz_str input = jz_str_new(len, str);
-    jz_parse_string(input);
-  }
+    jz_parse_node* root; 
+    jz_bytecode* bytecode;
 
-  {
-    jz_bytecode bytecode;
-    jz_opcode code[] = {
-      jz_oc_push_double,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      jz_oc_push_double,
-      0, 0, 0, 0, 0, 0, 0, 0,
-      jz_oc_add,
-      jz_oc_ret
-    };
-    bytecode.code = code;
-    bytecode.stack_size = 2;
+    root = jz_parse_string(input);
+    if (!root) exit(1);
 
-    *((double*)(code + 1)) = 12.0;
-    *((double*)(code + 10)) = 8.0;
-    printf("%f\n", jz_vm_run(&bytecode));
+    bytecode = jz_compile(root);
+    if (!bytecode) exit(1);
+
+    printf("%f\n", jz_vm_run(bytecode));
   }
 
   return 0;

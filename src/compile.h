@@ -6,7 +6,11 @@
 
 typedef struct {
   jz_opcode* code;
-  int stack_size;
+  jz_opcode* code_top;
+  size_t code_length;
+  size_t stack_length;
 } jz_bytecode;
+
+jz_bytecode* jz_compile(jz_parse_node* parse_tree);
 
 #endif
