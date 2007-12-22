@@ -9,8 +9,9 @@
 
 #define PUSH(val)  (*(stack++) = (val))
 
-double jz_vm_run(jz_opcode* code, int stack_size) {
-  double* stack = calloc(sizeof(double), stack_size);
+double jz_vm_run(jz_bytecode* bytecode) {
+  jz_opcode* code = bytecode->code;
+  double* stack = calloc(sizeof(double), bytecode->stack_size);
   double* stack_bottom = stack;
   double res;
 

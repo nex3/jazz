@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
   }
 
   {
+    jz_bytecode bytecode;
     jz_opcode code[] = {
       jz_oc_push_double,
       0, 0, 0, 0, 0, 0, 0, 0,
@@ -30,9 +31,12 @@ int main(int argc, char** argv) {
       jz_oc_add,
       jz_oc_ret
     };
+    bytecode.code = code;
+    bytecode.stack_size = 2;
+
     *((double*)(code + 1)) = 12.0;
     *((double*)(code + 10)) = 8.0;
-    printf("%f\n", jz_vm_run(code, 2));
+    printf("%f\n", jz_vm_run(&bytecode));
   }
 
   return 0;

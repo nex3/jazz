@@ -31,6 +31,6 @@ src/y.tab.o: src/y.tab.c src/y.tab.h
 src/y.tab.c src/y.tab.h: src/parse.y
 	cd src && yacc -d parse.y
 
-src/vm.o: src/vm.c src/vm.h
+src/vm.o: src/vm.c src/vm.h src/opcode.h src/compile.h
 src/lex.o: src/lex.c src/lex.h src/string.h src/y.tab.h src/keywords.gp.c
 src/string.o: src/string.c src/string.h
