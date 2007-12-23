@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     bytecode = jz_compile(root);
     if (!bytecode) exit(1);
 
-    printf("%f\n", jz_vm_run(bytecode));
+    printf("%f\n", jz_vm_run(bytecode).value.num);
   }
 
   return 0;

@@ -13,7 +13,7 @@
 
 static void compile_node(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
-static void compile_number(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_literal(jz_bytecode* bytecode, jz_parse_node* node);
 
 static void push_opcode(jz_bytecode* bytecode, jz_opcode code);
 static void push_multibyte_arg(jz_bytecode* bytecode, void* data, size_t size);
@@ -37,8 +37,8 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
 
 void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
   switch (node->type) {
-  case jz_parse_num:
-    compile_number(bytecode, node);
+  case jz_parse_literal:
+    compile_literal(bytecode, node);
     break;
 
   case jz_parse_binop:
@@ -83,10 +83,10 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   bytecode->stack_length = MAX(left_cap, right_cap + 1);
 }
 
-void compile_number(jz_bytecode* bytecode, jz_parse_node* node) {
+void compile_literal(jz_bytecode* bytecode, jz_parse_node* node) {
   bytecode->stack_length = 1;
-  push_opcode(bytecode, jz_oc_push_double);
-  push_multibyte_arg(bytecode, &(node->car.num), JZ_OCS_DOUBLE);
+  push_opcode(bytecode, jz_oc_push_literal);
+  push_multibyte_arg(bytecode, &(node->car.val), JZ_OCS_TVALUE);
 }
 
 void push_opcode(jz_bytecode* bytecode, jz_opcode code) {

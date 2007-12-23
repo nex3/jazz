@@ -115,8 +115,8 @@ mult_expr: number { $$ = $1; }
   | mult_expr MOD   number { $$ = binop_node(jz_op_mod,   $1, $3); };
 
 number: NUMBER {
-  DECLARE_UNIONS(num, $1, node, NULL);
-  $$ = node_new(jz_parse_num, car, cdr);
+  DECLARE_UNIONS(val, jz_wrap_num($1), node, NULL);
+  $$ = node_new(jz_parse_literal, car, cdr);
  };
 
 %%
