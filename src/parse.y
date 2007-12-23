@@ -2,6 +2,7 @@
 #include "parse.h"
 #include "lex.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 
 static jz_parse_node* root_node = NULL;
@@ -24,6 +25,7 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
   struct jz_parse_node* node;
   jz_str str;
   double num;
+  char boolean;
   char none;
 }
 
@@ -47,7 +49,9 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
 
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
-%type <node> number
+
+%type <node> literal number boolean
+%type <boolean> bool_val
 
 %start expr
 
@@ -112,15 +116,26 @@ add_expr: mult_expr { $$ = $1; }
   | add_expr PLUS  mult_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
   | add_expr MINUS mult_expr { $$ = binop_node(jz_op_minus, $1, $3); };
 
-mult_expr: number { $$ = $1; }
-  | mult_expr TIMES number { $$ = binop_node(jz_op_times, $1, $3); }
-  | mult_expr DIV   number { $$ = binop_node(jz_op_div,   $1, $3); }
-  | mult_expr MOD   number { $$ = binop_node(jz_op_mod,   $1, $3); };
+mult_expr: literal { $$ = $1; }
+  | mult_expr TIMES literal { $$ = binop_node(jz_op_times, $1, $3); }
+  | mult_expr DIV   literal { $$ = binop_node(jz_op_div,   $1, $3); }
+  | mult_expr MOD   literal { $$ = binop_node(jz_op_mod,   $1, $3); };
+
+literal: number { $$ = $1; }
+  | boolean { $$ = $1; }
 
 number: NUMBER {
   DECLARE_UNIONS(val, jz_wrap_num($1), node, NULL);
   $$ = node_new(jz_parse_literal, car, cdr);
  };
+
+boolean: bool_val {
+  DECLARE_UNIONS(val, jz_wrap_bool($1), node, NULL);
+  $$ = node_new(jz_parse_literal, car, cdr);
+ };
+
+bool_val: TRUE_VAL { $$ = true; }
+  | FALSE_VAL { $$ = false; }
 
 %%
 
