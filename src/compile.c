@@ -16,8 +16,8 @@
 
 static void compile_node(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
-static void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op);
 static void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op);
 static void compile_triop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_literal(jz_bytecode* bytecode, jz_parse_node* node);
 
@@ -67,6 +67,23 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
 
 void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   switch (node->car.op_type) {
+  case jz_op_and:
+  case jz_op_or:
+    compile_logical_binop(bytecode, node);
+    break;
+
+  case jz_op_bw_or:
+    compile_simple_binop(bytecode, node, jz_oc_bw_or);
+    break;
+
+  case jz_op_xor:
+    compile_simple_binop(bytecode, node, jz_oc_xor);
+    break;
+
+  case jz_op_bw_and:
+    compile_simple_binop(bytecode, node, jz_oc_bw_and);
+    break;
+
   case jz_op_plus:
     compile_simple_binop(bytecode, node, jz_oc_add);
     break;
@@ -83,26 +100,8 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_simple_binop(bytecode, node, jz_oc_div);
     break;
 
-  case jz_op_and:
-  case jz_op_or:
-    compile_logical_binop(bytecode, node);
-    break;
-
   default: assert(0);
   }
-}
-
-void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op) {
-  int left_cap, right_cap;
-
-  compile_node(bytecode, CDAR(node).node);
-  left_cap = bytecode->stack_length;
-
-  compile_node(bytecode, CDDR(node).node);
-  right_cap = bytecode->stack_length;
-  push_opcode(bytecode, op);
-
-  bytecode->stack_length = MAX(left_cap, right_cap + 1);
 }
 
 void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
@@ -123,6 +122,19 @@ void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   jump_to_top_from(bytecode, jump);
 
   bytecode->stack_length = MAX(left_cap, right_cap) + 1;
+}
+
+void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op) {
+  int left_cap, right_cap;
+
+  compile_node(bytecode, CDAR(node).node);
+  left_cap = bytecode->stack_length;
+
+  compile_node(bytecode, CDDR(node).node);
+  right_cap = bytecode->stack_length;
+  push_opcode(bytecode, op);
+
+  bytecode->stack_length = MAX(left_cap, right_cap + 1);
 }
 
 void compile_triop(jz_bytecode* bytecode, jz_parse_node* node) {

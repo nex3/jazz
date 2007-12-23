@@ -53,6 +53,21 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_bw_or:
+      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) | jz_to_int32(stack[-1]));
+      stack--;
+      break;
+
+    case jz_oc_xor:
+      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) ^ jz_to_int32(stack[-1]));
+      stack--;
+      break;
+
+    case jz_oc_bw_and:
+      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) & jz_to_int32(stack[-1]));
+      stack--;
+      break;
+
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;
@@ -119,6 +134,18 @@ void print_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_dup:
       name = "dup";
+      break;
+
+    case jz_oc_bw_or:
+      name = "bw_or";
+      break;
+
+    case jz_oc_xor:
+      name = "xor";
+      break;
+
+    case jz_oc_bw_and:
+      name = "bw_and";
       break;
 
     case jz_oc_add:
