@@ -51,6 +51,8 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
 
+%type <node> unary_exp
+
 %type <node> literal number boolean
 %type <boolean> bool_val
 
@@ -123,10 +125,13 @@ add_expr: mult_expr { $$ = $1; }
   | add_expr PLUS  mult_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
   | add_expr MINUS mult_expr { $$ = binop_node(jz_op_minus, $1, $3); };
 
-mult_expr: literal { $$ = $1; }
-  | mult_expr TIMES literal { $$ = binop_node(jz_op_times, $1, $3); }
-  | mult_expr DIV   literal { $$ = binop_node(jz_op_div,   $1, $3); }
-  | mult_expr MOD   literal { $$ = binop_node(jz_op_mod,   $1, $3); };
+mult_expr: unary_exp { $$ = $1; }
+  | mult_expr TIMES unary_exp { $$ = binop_node(jz_op_times, $1, $3); }
+  | mult_expr DIV   unary_exp { $$ = binop_node(jz_op_div,   $1, $3); }
+  | mult_expr MOD   unary_exp { $$ = binop_node(jz_op_mod,   $1, $3); };
+
+unary_exp: literal { $$ = $1; }
+  | NOT unary_exp { $$ = unop_node(jz_op_not, $2); }
 
 literal: number { $$ = $1; }
   | boolean { $$ = $1; }
