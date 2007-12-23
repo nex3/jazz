@@ -86,3 +86,18 @@ unsigned int jz_to_uint32(jz_tvalue val) {
   /* return num % 2**32 */
   return (int)(num - num * floor(num / pow(2.0, 32.0)));
 }
+
+double jz_num_mod(jz_tvalue val1, jz_tvalue val2) {
+  double dividend = jz_to_num(val1);
+  double divisor = jz_to_num(val2);
+
+  if (JZ_NUM_IS_NAN(dividend) || JZ_NUM_IS_NAN(divisor) ||
+      JZ_NUM_IS_INF(dividend) || divisor == 0.0)
+    return JZ_NAN;
+  else if (JZ_NUM_IS_INF(divisor) || dividend == 0.0)
+    return dividend;
+  else if (SIGN(dividend) == SIGN(divisor))
+    return dividend - divisor * floor(dividend / divisor);
+  else
+    return dividend - divisor * ceil(dividend / divisor);
+}

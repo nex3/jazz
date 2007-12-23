@@ -148,6 +148,10 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_simple_binop(bytecode, node, jz_oc_div);
     break;
 
+  case jz_op_mod:
+    compile_simple_binop(bytecode, node, jz_oc_mod);
+    break;
+
   default: assert(0);
   }
 }

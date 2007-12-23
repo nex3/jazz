@@ -40,4 +40,6 @@ bool jz_to_bool(jz_tvalue val);
 int jz_to_int32(jz_tvalue val);
 unsigned int jz_to_uint32(jz_tvalue val);
 
+double jz_num_mod(jz_tvalue val1, jz_tvalue val2);
+
 #endif

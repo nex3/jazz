@@ -29,6 +29,7 @@ typedef enum {
   jz_oc_sub,
   jz_oc_times,
   jz_oc_div,
+  jz_oc_mod,
   jz_oc_not,
   jz_oc_ret
 } jz_oc_type;

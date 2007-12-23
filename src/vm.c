@@ -156,6 +156,11 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
+    case jz_oc_mod:
+      stack[-2] = jz_wrap_num(jz_num_mod(stack[-2], stack[-1]));
+      stack--;
+      break;
+
     case jz_oc_not:
       stack[-1] = jz_wrap_bool(!jz_to_bool(stack[-1]));
       break;
@@ -266,6 +271,10 @@ void print_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_div:
       name = "div";
+      break;
+
+    case jz_oc_mod:
+      name = "mod";
       break;
 
     case jz_oc_not:
