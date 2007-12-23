@@ -220,6 +220,38 @@ void print_bytecode(jz_bytecode* bytecode) {
       name = "equal";
       break;
 
+    case jz_oc_strict_equal:
+      name = "strict_equal";
+      break;
+
+    case jz_oc_lt:
+      name = "lt";
+      break;
+
+    case jz_oc_gt:
+      name = "gt";
+      break;
+
+    case jz_oc_lte:
+      name = "lte";
+      break;
+
+    case jz_oc_gte:
+      name = "gte";
+      break;
+
+    case jz_oc_lshift:
+      name = "lshift";
+      break;
+
+    case jz_oc_rshift:
+      name = "rshift";
+      break;
+
+    case jz_oc_urshift:
+      name = "urshift";
+      break;
+
     case jz_oc_add:
       name = "add";
       break;
