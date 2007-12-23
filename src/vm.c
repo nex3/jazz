@@ -68,6 +68,11 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
+    case jz_oc_equal:
+      stack[-2] = jz_wrap_bool(jz_values_equal(stack[-2], stack[-1]));
+      stack--;
+      break;
+
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;
@@ -146,6 +151,10 @@ void print_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_bw_and:
       name = "bw_and";
+      break;
+
+    case jz_oc_equal:
+      name = "equal";
       break;
 
     case jz_oc_add:

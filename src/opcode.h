@@ -16,6 +16,7 @@ typedef enum {
   jz_oc_bw_or,
   jz_oc_xor,
   jz_oc_bw_and,
+  jz_oc_equal,
   jz_oc_add,
   jz_oc_sub,
   jz_oc_times,

@@ -84,6 +84,12 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_simple_binop(bytecode, node, jz_oc_bw_and);
     break;
 
+  case jz_op_equals:
+    compile_simple_binop(bytecode, node, jz_oc_equal);
+    break;
+
+    /* TODO: != should be implemented in parser */
+
   case jz_op_plus:
     compile_simple_binop(bytecode, node, jz_oc_add);
     break;

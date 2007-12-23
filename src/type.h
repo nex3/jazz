@@ -21,6 +21,8 @@ typedef struct {
 #define JZ_NUM_IS_NAN(num) ((num) != (num))
 #define JZ_NUM_IS_INF(num) ((num) == (num) + 1)
 
+bool jz_values_equal(jz_tvalue v1, jz_tvalue v2);
+
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_bool(bool b);
 
