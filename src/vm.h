@@ -1,7 +1,7 @@
 #ifndef JZ_VM_H
 #define JZ_VM_H
 
-#include "object.h"
+#include "type.h"
 #include "opcode.h"
 #include "compile.h"
 

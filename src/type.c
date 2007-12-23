@@ -1,4 +1,4 @@
-#include "object.h"
+#include "type.h"
 
 jz_tvalue jz_wrap_num(double num) {
   jz_tvalue tvalue;

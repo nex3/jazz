@@ -18,7 +18,7 @@ jazz: src/main.o libjazz
 
 main.o: src/main.c src/lex.h src/string.h src/vm.h src/compile.h
 
-libjazz: src/lex.o src/string.o src/y.tab.o src/vm.o src/compile.o src/object.o
+libjazz: src/lex.o src/string.o src/y.tab.o src/vm.o src/compile.o src/type.o
 	$(CC) -shared $(INCLUDES) -Wl,-soname,$@.so.$(MAJOR_VERSION) -o $@.so.$(VERSION) $?
 	ln -sf $@.so.$(VERSION) $@.so.$(MAJOR_VERSION).$(MINOR_VERSION)
 	ln -sf $@.so.$(MAJOR_VERSION).$(MINOR_VERSION) $@.so.$(MAJOR_VERSION)
@@ -31,8 +31,8 @@ src/y.tab.o: src/y.tab.c src/y.tab.h
 src/y.tab.c src/y.tab.h: src/parse.y src/parse.h src/opcode.h
 	cd src && yacc -d parse.y
 
-src/object.o: src/object.c src/object.h
-src/compile.o: src/compile.c src/compile.h src/parse.h src/opcode.h src/object.h
-src/vm.o: src/vm.c src/vm.h src/opcode.h src/object.h src/compile.h
+src/type.o: src/type.c src/type.h
+src/compile.o: src/compile.c src/compile.h src/parse.h src/opcode.h src/type.h
+src/vm.o: src/vm.c src/vm.h src/opcode.h src/type.h src/compile.h
 src/lex.o: src/lex.c src/lex.h src/string.h src/y.tab.h src/keywords.gp.c
 src/string.o: src/string.c src/string.h

@@ -2,7 +2,7 @@
 #define JZ_PARSE_H
 
 #include "string.h"
-#include "object.h"
+#include "type.h"
 
 typedef struct jz_parse_node jz_parse_node;
 
