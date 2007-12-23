@@ -3,24 +3,49 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <assert.h>
 
 #define NEXT_OPCODE (*((code)++))
 #define OC_ARG      ((jz_oc_arg)(*code))
+#define READ_ARG_INTO(type, var)                \
+  type var = *(type*)(code);                    \
+  code += sizeof(type)/sizeof(jz_opcode);
 
+#define POP        (*(--stack))
 #define PUSH(val)  (*(stack++) = (val))
+
+#ifdef JZ_DEBUG_BYTECODE
+static void print_bytecode(bytecode);
+#endif
 
 jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
-  jz_tvalue res;
+
+#ifdef JZ_DEBUG_BYTECODE
+  print_bytecode(bytecode);
+#endif
 
   while (true) {
     switch (NEXT_OPCODE) {
-    case jz_oc_push_literal:
-      PUSH(*(jz_tvalue*)(code));
-      code += JZ_OCS_TVALUE;
+    case jz_oc_push_literal: {
+      READ_ARG_INTO(jz_tvalue, literal);
+      PUSH(literal);
       break;
+    }
+
+    case jz_oc_jump: {
+      READ_ARG_INTO(size_t, jump);
+      code += jump;
+      break;
+    }
+
+    case jz_oc_jump_if: {
+      READ_ARG_INTO(size_t, jump);
+      if (!jz_to_bool(POP)) code += jump;
+      break;
+    }
 
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
@@ -42,10 +67,69 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
-    case jz_oc_ret:
+    case jz_oc_ret: {
+      jz_tvalue res;
+
       res = stack[-1];
       free(stack_bottom);
       return res;
     }
+
+    default:
+      fprintf(stderr, "Unknown opcode %d\n", code[-1]);
+      exit(1);
+    }
   }
 }
+
+#ifdef JZ_DEBUG_BYTECODE
+void debug_bytecode(jz_bytecode* bytecode) {
+  jz_opcode* code;
+
+  printf("Bytecode:\n");
+  for (code = bytecode->code; code - bytecode->code < bytecode->code_length; code++) {
+    char* name = "???";
+    size_t argsize = 0;
+
+    switch (*code) {
+    case jz_oc_push_literal:
+      name = "push_literal";
+      argsize = JZ_OCS_TVALUE;
+      break;
+
+    case jz_oc_jump:
+      name = "jump";
+      argsize = JZ_OCS_SIZET;
+      break;
+
+    case jz_oc_jump_if:
+      name = "jump_if";
+      argsize = JZ_OCS_SIZET;
+      break;
+
+    case jz_oc_add:
+      name = "add";
+      break;
+
+    case jz_oc_sub:
+      name = "sub";
+      break;
+
+    case jz_oc_times:
+      name = "times";
+      break;
+
+    case jz_oc_div:
+      name = "div";
+      break;
+
+    case jz_oc_ret:
+      name = "ret";
+      break;
+    }
+
+    printf("%d: %s (%d)\n", code - bytecode->code, name, argsize);
+    code += argsize;
+  }
+}
+#endif

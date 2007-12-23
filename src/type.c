@@ -23,3 +23,13 @@ double jz_to_num(jz_tvalue val) {
   default: assert(0);
   }
 }
+
+bool jz_to_bool(jz_tvalue val) {
+  switch (val.type) {
+  case jz_bool: return val.value.b;
+  case jz_num:
+    if (JZ_NUM_IS_NAN(val.value.num)) return false;
+    else return (bool)(val.value.num);
+  default: assert(0);
+  }
+}

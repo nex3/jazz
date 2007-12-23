@@ -18,9 +18,12 @@ typedef struct {
   jz_value value;
 } jz_tvalue;
 
+#define JZ_NUM_IS_NAN(num) ((num) != (num))
+
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_bool(bool b);
 
 double jz_to_num(jz_tvalue val);
+bool jz_to_bool(jz_tvalue val);
 
 #endif

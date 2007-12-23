@@ -10,6 +10,8 @@ typedef char jz_oc_arg;
 
 typedef enum {
   jz_oc_push_literal,
+  jz_oc_jump,
+  jz_oc_jump_if,
   jz_oc_add,
   jz_oc_sub,
   jz_oc_times,
@@ -18,5 +20,6 @@ typedef enum {
 } jz_oc_type;
 
 #define JZ_OCS_TVALUE (sizeof(jz_tvalue)/sizeof(jz_opcode))
+#define JZ_OCS_SIZET  (sizeof(size_t)/sizeof(jz_opcode))
 
 #endif
