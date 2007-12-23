@@ -131,7 +131,10 @@ mult_expr: unary_exp { $$ = $1; }
   | mult_expr MOD   unary_exp { $$ = binop_node(jz_op_mod,   $1, $3); };
 
 unary_exp: literal { $$ = $1; }
-  | NOT unary_exp { $$ = unop_node(jz_op_not, $2); }
+  | PLUS   unary_exp { $$ = unop_node(jz_op_plus,   $2); }
+  | MINUS  unary_exp { $$ = unop_node(jz_op_minus,  $2); }
+  | BW_NOT unary_exp { $$ = unop_node(jz_op_bw_not, $2); }
+  | NOT    unary_exp { $$ = unop_node(jz_op_not,    $2); }
 
 literal: number { $$ = $1; }
   | boolean { $$ = $1; }

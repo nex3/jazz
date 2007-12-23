@@ -49,6 +49,7 @@ typedef enum {
   jz_op_times,
   jz_op_div,
   jz_op_mod,
+  jz_op_bw_not,
   jz_op_not
 } jz_op_type;
 
