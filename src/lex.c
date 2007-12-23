@@ -46,6 +46,10 @@ int yylex() {
   else if (try_decimal_literal()) to_ret = NUMBER;
   else if ((res = try_punctuation())) to_ret = res;
 
+#if JZ_DEBUG_LEX
+  printf("Token: %d\n", to_ret);
+#endif
+
   return to_ret;
 }
 
