@@ -15,6 +15,7 @@
 #define CDDDR(node) (CDDR(node).node->cdr)
 
 static void compile_node(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_unop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op);
@@ -51,6 +52,10 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_literal(bytecode, node);
     break;
 
+  case jz_parse_unop:
+    compile_unop(bytecode, node);
+    break;
+
   case jz_parse_binop:
     compile_binop(bytecode, node);
     break;
@@ -63,6 +68,13 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
     assert(0);
     break;
   }
+}
+
+void compile_unop(jz_bytecode* bytecode, jz_parse_node* node) {
+  assert(node->car.op_type == jz_op_not);
+
+  compile_node(bytecode, node->cdr.node);
+  push_opcode(bytecode, jz_oc_not);
 }
 
 void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
@@ -87,8 +99,6 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   case jz_op_equals:
     compile_simple_binop(bytecode, node, jz_oc_equal);
     break;
-
-    /* TODO: != should be implemented in parser */
 
   case jz_op_plus:
     compile_simple_binop(bytecode, node, jz_oc_add);

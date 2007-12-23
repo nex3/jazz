@@ -10,6 +10,9 @@ typedef enum {
   jz_parse_cont,   /* A continuation node.
                       Semantics are defined by the first
                       non-continuation parent node. */
+  jz_parse_unop,   /* A unary operator.
+                      car.op_type indicates which operator it is,
+                      cdr.node is the argument. */
   jz_parse_binop,  /* A binary operator.
                       car.op_type indicates which operator it is,
                       cdar.node is the left-hand argument,
@@ -45,7 +48,8 @@ typedef enum {
   jz_op_minus,
   jz_op_times,
   jz_op_div,
-  jz_op_mod
+  jz_op_mod,
+  jz_op_not
 } jz_op_type;
 
 typedef union {

@@ -17,6 +17,7 @@ static void yyerror(const char* msg);
 static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
 
 static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right);
+static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %}
 
 %error-verbose
@@ -97,9 +98,15 @@ bw_and_expr: eq_expr { $$ = $1; }
 
 eq_expr: rel_expr { $$ = $1; }
   | eq_expr EQ_EQ     rel_expr { $$ = binop_node(jz_op_equals,    $1, $3); }
-  | eq_expr NOT_EQ    rel_expr { $$ = binop_node(jz_op_not_eq,    $1, $3); }
   | eq_expr EQ_EQ_EQ  rel_expr { $$ = binop_node(jz_op_eq_eq_eq,  $1, $3); }
-  | eq_expr NOT_EQ_EQ rel_expr { $$ = binop_node(jz_op_not_eq_eq, $1, $3); }
+  | eq_expr NOT_EQ    rel_expr {
+    $$ = binop_node(jz_op_equals, $1, $3);
+    $$ = unop_node(jz_op_not, $$);
+ }
+  | eq_expr NOT_EQ_EQ rel_expr {
+    $$ = binop_node(jz_op_eq_eq_eq, $1, $3);
+    $$ = unop_node(jz_op_not, $$);
+ }
 
 rel_expr: shift_expr { $$ = $1; }
   | rel_expr LESS_THAN    shift_expr { $$ = binop_node(jz_op_lt,    $1, $3); }
@@ -158,6 +165,11 @@ jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* r
     DECLARE_UNIONS(op_type, type, node, cont);
     return node_new(jz_parse_binop, car, cdr);
   }
+}
+
+jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next) {
+  DECLARE_UNIONS(op_type, type, node, next);
+  return node_new(jz_parse_unop, car, cdr);
 }
 
 jz_parse_node* jz_parse_string(jz_str code) {
