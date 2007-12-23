@@ -31,6 +31,9 @@ static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_
 
 %token <num> NUMBER
 
+/* Keyword Tokens */
+%token <none> TRUE_VAL FALSE_VAL
+
 /* Punctuation tokens */
 %token <none> LCURLY   RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
               DOT      SEMICOLON   COMMA     LESS_THAN GREATER_THAN GT_EQ

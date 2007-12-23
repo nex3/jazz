@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include <unicode/uregex.h>
 
@@ -22,14 +23,18 @@ static struct {
 
 static bool try_decimal_literal();
 static int try_punctuation();
+static int try_identifier();
 static bool try_re(URegularExpression* re);
 static jz_str get_match(URegularExpression* re, int number);
 
 static URegularExpression* create_re(char* pattern);
 
-static void check_error(UErrorCode error) {
-  if (U_FAILURE(error)) fprintf(stderr, "ICU Error: %s\n", u_errorName(error));
-}
+#define CHECK_ICU_ERROR(error) {                                        \
+    if (U_FAILURE(error)) {                                             \
+      fprintf(stderr, "ICU Error: %s\n", u_errorName(error));           \
+      assert(0);                                                        \
+    }                                                                   \
+  }
 
 int yylex() {
   int res;
@@ -37,9 +42,10 @@ int yylex() {
 
   try_re(state.whitespace_re);
 
-  if (try_re(state.identifier_re)) to_ret = IDENTIFIER;
+  if ((res = try_identifier())) to_ret = res;
   else if (try_decimal_literal()) to_ret = NUMBER;
   else if ((res = try_punctuation())) to_ret = res;
+
   return to_ret;
 }
 
@@ -71,21 +77,37 @@ int try_punctuation() {
   return false;
 }
 
+int try_identifier() {
+  jz_str jz_match;
+  char* match;
+  const hash_result* result;
+
+  if (!try_re(state.identifier_re)) return false;
+
+  jz_match = get_match(state.identifier_re, 0);
+  match = jz_str_to_chars(jz_match);
+  result = in_word_set(match, jz_match.length);
+  free(match);
+  if (result) return result->token;
+
+  return IDENTIFIER;
+}
+
 bool try_re(URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;  
 
   uregex_setText(re, state.code.value, state.code.length, &error);
-  check_error(error);
+  CHECK_ICU_ERROR(error);
 
   {
     UBool found = uregex_find(re, 0, &error);
-    check_error(error);
+    CHECK_ICU_ERROR(error);
     if (!found) return false;
   }
 
   {
     int change = uregex_end(re, 0, &error);
-    check_error(error);
+    CHECK_ICU_ERROR(error);
 
     state.code_prev = state.code;
     state.code.value  += change;
@@ -100,9 +122,9 @@ jz_str get_match(URegularExpression* re, int number) {
   int end;
 
   start = uregex_start(re, number, &error);
-  check_error(error);
+  CHECK_ICU_ERROR(error);
   end = uregex_end(re, number, &error);
-  check_error(error);
+  CHECK_ICU_ERROR(error);
 
   return jz_str_substr(state.code_prev, start, end);
 }
@@ -128,6 +150,6 @@ void jz_lex_init() {
 URegularExpression* create_re(char* pattern) {
   UErrorCode error = U_ZERO_ERROR;
   URegularExpression* re = uregex_openC(pattern, 0, NULL, &error);
-  check_error(error);
+  CHECK_ICU_ERROR(error);
   return re;
 }
