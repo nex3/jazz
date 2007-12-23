@@ -74,11 +74,15 @@ bool jz_to_bool(jz_tvalue val) {
 }
 
 int jz_to_int32(jz_tvalue val) {
+  int num = jz_to_uint32(val);
+  if (num >= pow(2, 31)) num *= -1;
+  return num;
+}
+
+unsigned int jz_to_uint32(jz_tvalue val) {
   double num = jz_to_num(val);
   if (!((int)num) || JZ_NUM_IS_NAN(num) || JZ_NUM_IS_INF(num)) return 0;
   num = SIGN(num) * floor(ABS(num));
-  /* num = num % 2**32 */
-  num = num - num * floor(num / pow(2.0, 32.0));
-  if (num >= pow(2.0, 31.0)) num *= -1;
-  return (int)num;
+  /* return num % 2**32 */
+  return (int)(num - num * floor(num / pow(2.0, 32.0)));
 }

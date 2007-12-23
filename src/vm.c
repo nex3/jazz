@@ -118,6 +118,24 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_lshift:
+      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) <<
+                              (jz_to_uint32(stack[-1]) & 0x1F));
+      stack--;
+      break;
+
+    case jz_oc_rshift:
+      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) >>
+                              (jz_to_uint32(stack[-1]) & 0x1F));
+      stack--;
+      break;
+
+    case jz_oc_urshift:
+      stack[-2] = jz_wrap_num((unsigned int)jz_to_int32(stack[-2]) >>
+                              (jz_to_uint32(stack[-1]) & 0x1F));
+      stack--;
+      break;
+
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;

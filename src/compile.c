@@ -120,6 +120,18 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_simple_binop(bytecode, node, jz_oc_gte);
     break;
 
+  case jz_op_lt_lt:
+    compile_simple_binop(bytecode, node, jz_oc_lshift);
+    break;
+
+  case jz_op_gt_gt:
+    compile_simple_binop(bytecode, node, jz_oc_rshift);
+    break;
+
+  case jz_op_gt_gt_gt:
+    compile_simple_binop(bytecode, node, jz_oc_urshift);
+    break;
+
   case jz_op_plus:
     compile_simple_binop(bytecode, node, jz_oc_add);
     break;

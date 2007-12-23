@@ -38,5 +38,6 @@ jz_tvalue jz_wrap_bool(bool b);
 double jz_to_num(jz_tvalue val);
 bool jz_to_bool(jz_tvalue val);
 int jz_to_int32(jz_tvalue val);
+unsigned int jz_to_uint32(jz_tvalue val);
 
 #endif
