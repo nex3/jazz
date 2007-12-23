@@ -23,27 +23,23 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
 
     case jz_oc_add:
-      res = jz_wrap_num(stack[-2].value.num + stack[-1].value.num);
+      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;
-      stack[-1] = res;
       break;
 
     case jz_oc_sub:
-      res = jz_wrap_num(stack[-2].value.num - stack[-1].value.num);
+      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) - jz_to_num(stack[-1]));
       stack--;
-      stack[-1] = res;
       break;
 
     case jz_oc_times:
-      res = jz_wrap_num(stack[-2].value.num * stack[-1].value.num);
+      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) * jz_to_num(stack[-1]));
       stack--;
-      stack[-1] = res;
       break;
 
     case jz_oc_div:
-      res = jz_wrap_num(stack[-2].value.num / stack[-1].value.num);
+      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) / jz_to_num(stack[-1]));
       stack--;
-      stack[-1] = res;
       break;
 
     case jz_oc_ret:

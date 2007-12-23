@@ -21,4 +21,6 @@ typedef struct {
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_bool(bool b);
 
+double jz_to_num(jz_tvalue val);
+
 #endif
