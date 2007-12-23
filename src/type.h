@@ -18,10 +18,19 @@ typedef struct {
   jz_value value;
 } jz_tvalue;
 
-#define JZ_NUM_IS_NAN(num) ((num) != (num))
-#define JZ_NUM_IS_INF(num) ((num) == (num) + 1)
+#define JZ_NEG_0   (-0.0)
+#define JZ_INF     (1.0/0.0)
+#define JZ_NEG_INF (-1.0/0.0)
+#define JZ_NAN     (0.0/0.0)
+
+#define JZ_NUM_IS_NAN(num)     ((num) != (num))
+#define JZ_NUM_IS_INF(num)     ((num) == (num) + 1)
+#define JZ_NUM_IS_POS_0(num)   (1.0/(num) == JZ_INF)
+#define JZ_NUM_IS_NEG_0(num)   (1.0/(num) == JZ_NEG_INF)
 
 bool jz_values_equal(jz_tvalue v1, jz_tvalue v2);
+bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2);
+double jz_values_comp(jz_tvalue v1, jz_tvalue v2);
 
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_bool(bool b);

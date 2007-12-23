@@ -3,6 +3,7 @@
 #include "string.h"
 #include "compile.h"
 #include "vm.h"
+#include "type.h"
 
 #include <stdlib.h>
 #include <unicode/ustdio.h>

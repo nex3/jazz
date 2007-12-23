@@ -73,6 +73,51 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
+    case jz_oc_strict_equal:
+      stack[-2] = jz_wrap_bool(jz_values_strict_equal(stack[-2], stack[-1]));
+      stack--;
+      break;
+
+    case jz_oc_lt: {
+      double comp = jz_values_comp(stack[-2], stack[-1]);
+
+      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
+      else stack[-2] = jz_wrap_bool(comp < 0);
+
+      stack--;
+      break;
+    }
+
+    case jz_oc_gt: {
+      double comp = jz_values_comp(stack[-2], stack[-1]);
+
+      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
+      else stack[-2] = jz_wrap_bool(comp > 0);
+
+      stack--;
+      break;
+    }
+
+    case jz_oc_lte: {
+      double comp = jz_values_comp(stack[-2], stack[-1]);
+
+      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
+      else stack[-2] = jz_wrap_bool(comp <= 0);
+
+      stack--;
+      break;
+    }
+
+    case jz_oc_gte: {
+      double comp = jz_values_comp(stack[-2], stack[-1]);
+
+      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
+      else stack[-2] = jz_wrap_bool(comp >= 0);
+
+      stack--;
+      break;
+    }
+
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;

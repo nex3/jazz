@@ -7,22 +7,38 @@
 #define SIGN(x) ((x) < 0 ? -1 : 1)
 
 bool jz_values_equal(jz_tvalue v1, jz_tvalue v2) {
-  if (v1.type == v2.type) {
-    if (v1.type == jz_bool) return v1.value.b == v2.value.b;
-    else {
-      double num1 = v1.value.num;
-      double num2 = v2.value.num;
-
-      assert(v1.type == jz_num);
-      /* If both are positive or negative zero, return true */
-      if (!((int)num1) && !((int)num2)) return true;
-      return num1 == num2;
-    }
-  }
-
+  if (v1.type == v2.type) return jz_values_strict_equal(v1, v2);
   if (v1.type == jz_bool) return jz_values_equal(jz_wrap_num(jz_to_num(v1)), v2);
   if (v2.type == jz_bool) return jz_values_equal(v1, jz_wrap_num(jz_to_num(v2)));
   else return false;
+}
+
+bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2) {
+  if (v1.type != v2.type) return false;
+  if (v1.type == jz_bool) return v1.value.b == v2.value.b;
+  else {
+    double num1 = v1.value.num;
+    double num2 = v2.value.num;
+    
+    assert(v1.type == jz_num);   
+    return num1 == num2;
+  }
+}
+
+double jz_values_comp(jz_tvalue v1, jz_tvalue v2) {
+  double num1 = jz_to_num(v1);
+  double num2 = jz_to_num(v2);
+
+  if (JZ_NUM_IS_NAN(num1) || JZ_NUM_IS_NAN(num2))
+    return num1;
+
+  if (JZ_NUM_IS_INF(num1) || JZ_NUM_IS_INF(num2)) {
+    if (num1 == num2) return 0;
+    else if (num1 < num2) return -1;
+    else return 1;
+  }
+
+  return num1 - num2;
 }
 
 jz_tvalue jz_wrap_num(double num) {

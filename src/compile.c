@@ -100,6 +100,26 @@ void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_simple_binop(bytecode, node, jz_oc_equal);
     break;
 
+  case jz_op_eq_eq_eq:
+    compile_simple_binop(bytecode, node, jz_oc_strict_equal);
+    break;
+
+  case jz_op_lt:
+    compile_simple_binop(bytecode, node, jz_oc_lt);
+    break;
+
+  case jz_op_gt:
+    compile_simple_binop(bytecode, node, jz_oc_gt);
+    break;
+
+  case jz_op_lt_eq:
+    compile_simple_binop(bytecode, node, jz_oc_lte);
+    break;
+
+  case jz_op_gt_eq:
+    compile_simple_binop(bytecode, node, jz_oc_gte);
+    break;
+
   case jz_op_plus:
     compile_simple_binop(bytecode, node, jz_oc_add);
     break;
