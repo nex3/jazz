@@ -4,7 +4,7 @@ MINOR_VERSION=$(shell cat VERSION | sed -r 's/^([0-9]+)\.([0-9]+)\.([0-9]+)/\2/'
 MINI_VERSION= $(shell cat VERSION | sed -r 's/^([0-9]+)\.([0-9]+)\.([0-9]+)/\3/')
 
 CC= gcc
-CFLAGS= -g -fPIC -ansi -Wall -pedantic
+CFLAGS= -g -fPIC -ansi -Wall -pedantic -DJZ_DEBUG_BYTECODE=0
 LDFLAGS=
 INCLUDES= -licui18n -licuio
 

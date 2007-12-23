@@ -12,10 +12,12 @@ typedef enum {
   jz_oc_push_literal,
   jz_oc_jump,
   jz_oc_jump_if,
+  jz_oc_dup,
   jz_oc_add,
   jz_oc_sub,
   jz_oc_times,
   jz_oc_div,
+  jz_oc_not,
   jz_oc_ret
 } jz_oc_type;
 

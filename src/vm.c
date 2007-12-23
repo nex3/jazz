@@ -14,8 +14,8 @@
 #define POP        (*(--stack))
 #define PUSH(val)  (*(stack++) = (val))
 
-#ifdef JZ_DEBUG_BYTECODE
-static void print_bytecode(bytecode);
+#if JZ_DEBUG_BYTECODE
+static void print_bytecode(jz_bytecode* bytecode);
 #endif
 
 jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
@@ -23,7 +23,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
 
-#ifdef JZ_DEBUG_BYTECODE
+#if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
 #endif
 
@@ -47,6 +47,12 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_dup: {
+      *stack = stack[-1];
+      stack++;
+      break;
+    }
+
     case jz_oc_add:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;
@@ -67,6 +73,10 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
+    case jz_oc_not:
+      stack[-1] = jz_wrap_bool(!jz_to_bool(stack[-1]));
+      break;
+
     case jz_oc_ret: {
       jz_tvalue res;
 
@@ -82,8 +92,8 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
   }
 }
 
-#ifdef JZ_DEBUG_BYTECODE
-void debug_bytecode(jz_bytecode* bytecode) {
+#if JZ_DEBUG_BYTECODE
+void print_bytecode(jz_bytecode* bytecode) {
   jz_opcode* code;
 
   printf("Bytecode:\n");
@@ -107,6 +117,10 @@ void debug_bytecode(jz_bytecode* bytecode) {
       argsize = JZ_OCS_SIZET;
       break;
 
+    case jz_oc_dup:
+      name = "dup";
+      break;
+
     case jz_oc_add:
       name = "add";
       break;
@@ -121,6 +135,10 @@ void debug_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_div:
       name = "div";
+      break;
+
+    case jz_oc_not:
+      name = "not";
       break;
 
     case jz_oc_ret:
