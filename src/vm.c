@@ -161,6 +161,18 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
+    case jz_oc_to_num:
+      stack[-1] = jz_wrap_num(jz_to_num(stack[-1]));
+      break;
+
+    case jz_oc_neg:
+      stack[-1] = jz_wrap_num(-jz_to_num(stack[-1]));
+      break;
+
+    case jz_oc_bw_not:
+      stack[-1] = jz_wrap_num(~jz_to_int32(stack[-1]));
+      break;
+
     case jz_oc_not:
       stack[-1] = jz_wrap_bool(!jz_to_bool(stack[-1]));
       break;

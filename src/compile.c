@@ -71,10 +71,29 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
 }
 
 void compile_unop(jz_bytecode* bytecode, jz_parse_node* node) {
-  assert(node->car.op_type == jz_op_not);
-
   compile_node(bytecode, node->cdr.node);
-  push_opcode(bytecode, jz_oc_not);
+
+  switch (node->car.op_type) {
+  case jz_op_plus:
+    push_opcode(bytecode, jz_oc_to_num);
+    break;
+
+  case jz_op_minus:
+    push_opcode(bytecode, jz_oc_neg);
+    break;
+
+  case jz_op_bw_not:
+    push_opcode(bytecode, jz_oc_bw_not);
+    break;
+
+  case jz_op_not:
+    push_opcode(bytecode, jz_oc_not);
+    break;
+
+  default:
+    printf("Unrecognized unary operator %d\n", node->car.op_type);
+    exit(1);
+  }
 }
 
 void compile_binop(jz_bytecode* bytecode, jz_parse_node* node) {
