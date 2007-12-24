@@ -19,11 +19,13 @@ static struct {
   URegularExpression* identifier_re;
   URegularExpression* whitespace_re;
   URegularExpression* punctuation_re;
+  URegularExpression* hex_literal_re;
   URegularExpression* decimal_literal_re1;
   URegularExpression* decimal_literal_re2;
   URegularExpression* decimal_literal_re3;
 } state;
 
+static bool try_hex_literal();
 static bool try_decimal_literal();
 static int try_punctuation();
 static int try_identifier();
@@ -46,6 +48,7 @@ int yylex() {
   try_re(state.whitespace_re);
 
   if ((res = try_identifier())) to_ret = res;
+  else if (try_hex_literal()) to_ret = NUMBER;
   else if (try_decimal_literal()) to_ret = NUMBER;
   else if ((res = try_punctuation())) to_ret = res;
 
@@ -83,6 +86,19 @@ bool try_decimal_literal() {
     free(num);
     free(dec);
     free(exp);
+    return true;
+  }
+}
+
+bool try_hex_literal() {
+  if (!try_re(state.hex_literal_re)) return false;
+
+  {
+    char *num = jz_str_to_chars(get_match(state.hex_literal_re, 0));
+    unsigned int hex;
+    sscanf(num + 2, "%x", &hex);
+    yylval.num = (double)hex;
+    free(num);
     return true;
   }
 }
@@ -173,6 +189,7 @@ void jz_lex_init() {
   state.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                        ">=|<=|!=?=?|\\+=?|-=?|\\*=?|%=?|<<=|>>=|&=?|\\|=?|\\^=?|\\/=?|"
                                        "<<?|>{1,3}|={1,3}|\\+\\+|--|&&|\\|\\|)");
+  state.hex_literal_re      = create_re("\\A0[xX][0-9a-fA-F]+");
   state.decimal_literal_re1 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
   state.decimal_literal_re2 = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
   state.decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
