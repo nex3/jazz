@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include <assert.h>
 
 #include <unicode/uregex.h>
@@ -18,7 +19,9 @@ static struct {
   URegularExpression* identifier_re;
   URegularExpression* whitespace_re;
   URegularExpression* punctuation_re;
-  URegularExpression* decimal_literal_re;
+  URegularExpression* decimal_literal_re1;
+  URegularExpression* decimal_literal_re2;
+  URegularExpression* decimal_literal_re3;
 } state;
 
 static bool try_decimal_literal();
@@ -54,14 +57,34 @@ int yylex() {
 }
 
 bool try_decimal_literal() {
-  char* num;
+  URegularExpression* matched;
 
-  if (!try_re(state.decimal_literal_re)) return false;
+  if (try_re(state.decimal_literal_re1))
+    matched = state.decimal_literal_re1;
+  else if (try_re(state.decimal_literal_re2))
+    matched = state.decimal_literal_re2;
+  else if (try_re(state.decimal_literal_re3))
+    matched = state.decimal_literal_re3;
+  else return false;
 
-  num = jz_str_to_chars(get_match(state.decimal_literal_re, 0));
-  yylval.num = (double)(atoi(num));
-  free(num);
-  return true;
+  {
+    char *num, *dec, *exp;
+
+    num = jz_str_to_chars(get_match(matched, 1));
+    dec = jz_str_to_chars(get_match(matched, 2));
+    exp = jz_str_to_chars(get_match(matched, 3));
+
+    yylval.num = (*num) ? atof(num) : 0.0;
+
+    /* dec[0] is always '.' */
+    if (dec[1]) yylval.num += atof(dec);
+    if (*exp)   yylval.num *= pow(10.0, atof(exp));
+
+    free(num);
+    free(dec);
+    free(exp);
+    return true;
+  }
 }
 
 int try_punctuation() {
@@ -130,12 +153,14 @@ jz_str get_match(URegularExpression* re, int number) {
   end = uregex_end(re, number, &error);
   CHECK_ICU_ERROR(error);
 
-  return jz_str_substr(state.code_prev, start, end);
+  if (start == -1) return jz_str_null();
+  return jz_str_substr(state.code_prev, start, end - start);
 }
 
 #define IDENTIFIER_START_RE         "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\$_]"
 #define IDENTIFIER_PART_RE          "(?:" IDENTIFIER_START_RE "|[\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}])"
-#define DECIMAL_INTEGER_LITERAL_RE  "(?:0|[1-9][0-9]*)"
+#define DECIMAL_INTEGER_LITERAL_RE  "(0|[1-9][0-9]*)"
+#define EXPONENT_PART_RE            "(?:[eE]([\\+\\-]?[0-9]+))"
 
 void jz_lex_set_code(jz_str code) {
   state.code = code;
@@ -143,12 +168,14 @@ void jz_lex_set_code(jz_str code) {
 }
 
 void jz_lex_init() {
-  state.identifier_re      = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "+");
-  state.whitespace_re      = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
-  state.punctuation_re     = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
+  state.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "+");
+  state.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
+  state.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                        ">=|<=|!=?=?|\\+=?|-=?|\\*=?|%=?|<<=|>>=|&=?|\\|=?|\\^=?|\\/=?|"
                                        "<<?|>{1,3}|={1,3}|\\+\\+|--|&&|\\|\\|)");
-  state.decimal_literal_re = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE);
+  state.decimal_literal_re1 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
+  state.decimal_literal_re2 = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
+  state.decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
 }
 
 URegularExpression* create_re(char* pattern) {
