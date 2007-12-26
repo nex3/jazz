@@ -51,31 +51,31 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
 }
 
 void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
+  int old_cap;
+
   assert(node->type == jz_parse_statements);
 
   if (node->cdr.node != NULL)
     compile_statements(bytecode, node->cdr.node);
-  else {
-    int old_cap = bytecode->stack_length;
 
-    node = node->car.node;
-    assert(node->type == jz_parse_statement);
+  old_cap = bytecode->stack_length;
+  node = node->car.node;
+  assert(node->type == jz_parse_statement);
     
-    switch (node->car.st_type) {
-    case jz_st_empty: break;
+  switch (node->car.st_type) {
+  case jz_st_empty: break;
 
-    case jz_st_return:
-      compile_return(bytecode, node->cdr.node);
-      break;
+  case jz_st_return:
+    compile_return(bytecode, node->cdr.node);
+    break;
       
-    case jz_st_expr:
-      compile_expr(bytecode, node->cdr.node);
-      push_opcode(bytecode, jz_oc_pop);
-      break;
-    }
-
-    bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
+  case jz_st_expr:
+    compile_expr(bytecode, node->cdr.node);
+    push_opcode(bytecode, jz_oc_pop);
+    break;
   }
+
+  bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
 }
 
 void compile_return(jz_bytecode* bytecode, jz_parse_node* node) {
