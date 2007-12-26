@@ -73,6 +73,10 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_expr(bytecode, node->cdr.node);
     push_opcode(bytecode, jz_oc_pop);
     break;
+
+  default:
+    printf("Unknown statement type %d\n", node->car.st_type);
+    exit(1);
   }
 
   bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
