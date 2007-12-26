@@ -9,12 +9,15 @@
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
+#define CAAR(node) ((node)->car.node->car)
+#define CADR(node) ((node)->car.node->cdr)
 #define CDAR(node) ((node)->cdr.node->car)
 #define CDDR(node) ((node)->cdr.node->cdr)
 #define CDDAR(node) (CDDR(node).node->car)
 #define CDDDR(node) (CDDR(node).node->cdr)
 
-static void compile_node(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_statements(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_expr(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_unop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node);
@@ -38,18 +41,46 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
   bytecode->code_length = CODE_LENGTH_START;
   bytecode->stack_length = 0;
 
-  compile_node(bytecode, parse_tree);
-  push_opcode(bytecode, jz_oc_ret);
+  compile_statements(bytecode, parse_tree);
+  push_opcode(bytecode, jz_oc_end);
 
   bytecode->code_length = bytecode->code_top - bytecode->code;
   bytecode->code_top = bytecode->code;
   return bytecode;
 }
 
-void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
+void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
+  assert(node->type == jz_parse_statements);
+
+  if (node->cdr.node != NULL)
+    compile_statements(bytecode, node->cdr.node);
+  else {
+    int old_cap = bytecode->stack_length;
+
+    node = node->car.node;
+    assert(node->type == jz_parse_statement);
+    
+    switch (node->car.st_type) {
+    case jz_st_empty: break;
+      
+    case jz_st_expr:
+      compile_expr(bytecode, node->cdr.node);
+      push_opcode(bytecode, jz_oc_pop);
+      break;
+    }
+
+    bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
+  }
+}
+
+void compile_expr(jz_bytecode* bytecode, jz_parse_node* node) {
   switch (node->type) {
   case jz_parse_literal:
     compile_literal(bytecode, node);
+    break;
+
+  case jz_parse_statements:
+    compile_statements(bytecode, node);
     break;
 
   case jz_parse_unop:
@@ -71,7 +102,7 @@ void compile_node(jz_bytecode* bytecode, jz_parse_node* node) {
 }
 
 void compile_unop(jz_bytecode* bytecode, jz_parse_node* node) {
-  compile_node(bytecode, node->cdr.node);
+  compile_expr(bytecode, node->cdr.node);
 
   switch (node->car.op_type) {
   case jz_op_plus:
@@ -179,7 +210,7 @@ void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   int left_cap, right_cap;
   size_t jump;
 
-  compile_node(bytecode, CDAR(node).node);
+  compile_expr(bytecode, CDAR(node).node);
   left_cap = bytecode->stack_length;
   push_opcode(bytecode, jz_oc_dup);
 
@@ -188,7 +219,7 @@ void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
   push_opcode(bytecode, jz_oc_jump_if);
   jump = push_placeholder(bytecode, JZ_OCS_SIZET);
 
-  compile_node(bytecode, CDDR(node).node);
+  compile_expr(bytecode, CDDR(node).node);
   right_cap = bytecode->stack_length;
   jump_to_top_from(bytecode, jump);
 
@@ -198,10 +229,10 @@ void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
 void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode op) {
   int left_cap, right_cap;
 
-  compile_node(bytecode, CDAR(node).node);
+  compile_expr(bytecode, CDAR(node).node);
   left_cap = bytecode->stack_length;
 
-  compile_node(bytecode, CDDR(node).node);
+  compile_expr(bytecode, CDDR(node).node);
   right_cap = bytecode->stack_length;
   push_opcode(bytecode, op);
 
@@ -214,20 +245,20 @@ void compile_triop(jz_bytecode* bytecode, jz_parse_node* node) {
 
   assert(node->car.op_type == jz_op_cond);
 
-  compile_node(bytecode, CDAR(node).node);
+  compile_expr(bytecode, CDAR(node).node);
   cap1 = bytecode->stack_length;
 
   push_opcode(bytecode, jz_oc_jump_if);
   cond_jump = push_placeholder(bytecode, JZ_OCS_SIZET);
 
-  compile_node(bytecode, CDDAR(node).node);
+  compile_expr(bytecode, CDDAR(node).node);
   cap2 = bytecode->stack_length;
 
   push_opcode(bytecode, jz_oc_jump);
   branch1_jump = push_placeholder(bytecode, JZ_OCS_SIZET);
   jump_to_top_from(bytecode, cond_jump);
 
-  compile_node(bytecode, CDDDR(node).node);
+  compile_expr(bytecode, CDDDR(node).node);
   cap3 = bytecode->stack_length;
   jump_to_top_from(bytecode, branch1_jump);
 

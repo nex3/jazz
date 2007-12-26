@@ -7,23 +7,34 @@
 typedef struct jz_parse_node jz_parse_node;
 
 typedef enum {
-  jz_parse_cont,   /* A continuation node.
-                      Semantics are defined by the first
-                      non-continuation parent node. */
-  jz_parse_unop,   /* A unary operator.
-                      car.op_type indicates which operator it is,
-                      cdr.node is the argument. */
-  jz_parse_binop,  /* A binary operator.
-                      car.op_type indicates which operator it is,
-                      cdar.node is the left-hand argument,
-                      cddr.node is the right-hand argument. */
-  jz_parse_triop,  /* A trinary operator.
-                      car.op_type indicates which operator it is,
-                      cdar.node is the first argument,
-                      cddar.node is the second argument, 
-                      cdddr.node is the third argument. */
-  jz_parse_literal /* A literal value.
-                     car.val is the value. */
+  jz_parse_cont,       /* A continuation node.
+                          Semantics are defined by the first
+                          non-continuation parent node. */
+
+  jz_parse_statements, /* The beginning node of a list of statements.
+                          Each node's car.node is a jz_parse_statement,
+                          and cdr.node is the next link in the list.
+                          The last link's cdr.node is NULL.
+                          Note that because the grammar is left-recursive,
+                          the top node is actually the last statement. */
+
+  jz_parse_statement,  /* A statement.
+                          car.st_type is the type of statement.
+                          cdr is defined per-statement-type. */
+  jz_parse_unop,       /* A unary operator.
+                          car.op_type indicates which operator it is,
+                          cdr.node is the argument. */
+  jz_parse_binop,      /* A binary operator.
+                          car.op_type indicates which operator it is,
+                          cdar.node is the left-hand argument,
+                          cddr.node is the right-hand argument. */
+  jz_parse_triop,      /* A trinary operator.
+                          car.op_type indicates which operator it is,
+                          cdar.node is the first argument,
+                          cddar.node is the second argument, 
+                          cdddr.node is the third argument. */
+  jz_parse_literal     /* A literal value.
+                          car.val is the value. */
 } jz_parse_type;
 
 typedef enum {
@@ -53,10 +64,16 @@ typedef enum {
   jz_op_not
 } jz_op_type;
 
+typedef enum {
+  jz_st_empty, /* cdr isn't used. */
+  jz_st_expr   /* cdr.node is the root node of the expression. */
+} jz_st_type;
+
 typedef union {
   jz_parse_node* node;
   jz_tvalue val;
   jz_op_type op_type;
+  jz_st_type st_type;
 } jz_parse_value;
 
 struct jz_parse_node {

@@ -48,6 +48,9 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
               GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
+%type <node> program source_elements
+%type <node> statement expr_statement empty_statement
+
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
 
@@ -56,14 +59,38 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %type <node> literal number boolean
 %type <boolean> bool_val
 
-%start expr
+%start program
 
 %%
 
-expr: cond_expr {
+program: source_elements {
   $$ = $1;
   root_node = $$;
- };
+ }
+
+source_elements: statement {
+  DECLARE_UNIONS(node, $1, node, NULL);
+  $$ = node_new(jz_parse_statements, car, cdr);
+ }
+  | source_elements statement {
+    DECLARE_UNIONS(node, $2, node, $1);
+    $$ = node_new(jz_parse_statements, car, cdr);
+ }
+
+statement: expr_statement { $$ = $1; }
+  | empty_statement { $$ = $1; }
+
+expr_statement: expr SEMICOLON {
+  DECLARE_UNIONS(st_type, jz_st_expr, node, $1);
+  $$ = node_new(jz_parse_statement, car, cdr);
+ }
+
+empty_statement: SEMICOLON {
+  DECLARE_UNIONS(st_type, jz_st_empty, node, NULL);
+  $$ = node_new(jz_parse_statement, car, cdr);
+ }
+
+expr: cond_expr { $$ = $1; }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION expr COLON expr {

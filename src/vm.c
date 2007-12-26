@@ -47,6 +47,10 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_pop:
+      stack--;
+      break;
+
     case jz_oc_dup: {
       *stack = stack[-1];
       stack++;
@@ -185,6 +189,11 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       return res;
     }
 
+    case jz_oc_end:
+      free(stack_bottom);
+      fprintf(stderr, "Gotta make this return undefined.\n");
+      return jz_wrap_bool(false);
+
     default:
       fprintf(stderr, "Unknown opcode %d\n", code[-1]);
       exit(1);
@@ -215,6 +224,10 @@ void print_bytecode(jz_bytecode* bytecode) {
     case jz_oc_jump_if:
       name = "jump_if";
       argsize = JZ_OCS_SIZET;
+      break;
+
+    case jz_oc_pop:
+      name = "pop";
       break;
 
     case jz_oc_dup:
@@ -295,6 +308,10 @@ void print_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_ret:
       name = "ret";
+      break;
+
+    case jz_oc_end:
+      name = "end";
       break;
     }
 

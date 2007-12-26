@@ -12,6 +12,7 @@ typedef enum {
   jz_oc_push_literal,
   jz_oc_jump,
   jz_oc_jump_if,
+  jz_oc_pop,
   jz_oc_dup,
   jz_oc_bw_or,
   jz_oc_xor,
@@ -34,7 +35,8 @@ typedef enum {
   jz_oc_neg,
   jz_oc_bw_not,
   jz_oc_not,
-  jz_oc_ret
+  jz_oc_ret,
+  jz_oc_end
 } jz_oc_type;
 
 #define JZ_OCS_TVALUE (sizeof(jz_tvalue)/sizeof(jz_opcode))
