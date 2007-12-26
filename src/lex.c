@@ -18,6 +18,7 @@ static struct {
   jz_str code_prev;
   URegularExpression* identifier_re;
   URegularExpression* whitespace_re;
+  URegularExpression* line_terminator_re;
   URegularExpression* punctuation_re;
   URegularExpression* hex_literal_re;
   URegularExpression* decimal_literal_re1;
@@ -25,6 +26,7 @@ static struct {
   URegularExpression* decimal_literal_re3;
 } state;
 
+static bool try_filler();
 static bool try_hex_literal();
 static bool try_decimal_literal();
 static int try_punctuation();
@@ -45,7 +47,7 @@ int yylex() {
   int res;
   int to_ret = 0;
 
-  try_re(state.whitespace_re);
+  while (try_filler());
 
   if ((res = try_identifier())) to_ret = res;
   else if (try_hex_literal()) to_ret = NUMBER;
@@ -57,6 +59,12 @@ int yylex() {
 #endif
 
   return to_ret;
+}
+
+bool try_filler() {
+  if (try_re(state.whitespace_re)) return true;
+  if (try_re(state.line_terminator_re)) return true;
+  return false;
 }
 
 bool try_decimal_literal() {
@@ -186,6 +194,7 @@ void jz_lex_set_code(jz_str code) {
 void jz_lex_init() {
   state.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
   state.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
+  state.line_terminator_re  = create_re("\\A[\\n\\r\\u2028\\u2029]");
   state.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                        ">=|<=|!=?=?|\\+=?|-=?|\\*=?|%=?|<<=|>>=|&=?|\\|=?|\\^=?|\\/=?|"
                                        "<<?|>{1,3}|={1,3}|\\+\\+|--|&&|\\|\\|)");
