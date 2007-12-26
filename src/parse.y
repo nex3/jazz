@@ -35,7 +35,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
-%token <none> TRUE_VAL FALSE_VAL
+%token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
 %token <none> RETURN
@@ -59,7 +59,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 
 %type <node> unary_expr primary_expr
 
-%type <node> literal number boolean
+%type <node> literal number boolean undefined
 %type <boolean> bool_val
 
 %start program
@@ -180,7 +180,8 @@ primary_expr: literal { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
 
 literal: number { $$ = $1; }
-  | boolean { $$ = $1; }
+  | boolean     { $$ = $1; }
+  | undefined   { $$ = $1; }
 
 number: NUMBER {
   DECLARE_UNIONS(val, jz_wrap_num($1), node, NULL);
@@ -191,6 +192,11 @@ boolean: bool_val {
   DECLARE_UNIONS(val, jz_wrap_bool($1), node, NULL);
   $$ = node_new(jz_parse_literal, car, cdr);
  };
+
+undefined: UNDEF_VAL {
+  DECLARE_UNIONS(val, jz_undef_val(), node, NULL);
+  $$ = node_new(jz_parse_literal, car, cdr);
+ }
 
 bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }

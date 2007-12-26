@@ -191,8 +191,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
 
     case jz_oc_end:
       free(stack_bottom);
-      fprintf(stderr, "Gotta make this return undefined.\n");
-      return jz_wrap_bool(false);
+      return jz_undef_val();
 
     default:
       fprintf(stderr, "Unknown opcode %d\n", code[-1]);

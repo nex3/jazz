@@ -14,8 +14,9 @@ bool jz_values_equal(jz_tvalue v1, jz_tvalue v2) {
 }
 
 bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2) {
-  if (v1.type != v2.type) return false;
-  if (v1.type == jz_bool) return v1.value.b == v2.value.b;
+  if (v1.type != v2.type)  return false;
+  if (v1.type == jz_bool)  return v1.value.b == v2.value.b;
+  if (v1.type == jz_undef) return true;
   else {
     double num1 = v1.value.num;
     double num2 = v2.value.num;
@@ -55,10 +56,17 @@ jz_tvalue jz_wrap_bool(bool b) {
   return tvalue;
 }
 
+jz_tvalue jz_undef_val() {
+  jz_tvalue tvalue;
+  tvalue.type = jz_undef;
+  return tvalue;
+}
+
 double jz_to_num(jz_tvalue val) {
   switch (val.type) {
-  case jz_bool: return (double)(val.value.b);
-  case jz_num:  return val.value.num;
+  case jz_bool:  return (double)(val.value.b);
+  case jz_num:   return val.value.num;
+  case jz_undef: return JZ_NAN;
   default: assert(0);
   }
 }
@@ -69,6 +77,7 @@ bool jz_to_bool(jz_tvalue val) {
   case jz_num:
     if (JZ_NUM_IS_NAN(val.value.num)) return false;
     else return (bool)(val.value.num);
+  case jz_undef: return false;
   default: assert(0);
   }
 }

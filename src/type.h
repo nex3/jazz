@@ -5,7 +5,8 @@
 
 enum {
   jz_num,
-  jz_bool
+  jz_bool,
+  jz_undef
 } jz_type_type;
 
 typedef union {
@@ -34,6 +35,7 @@ double jz_values_comp(jz_tvalue v1, jz_tvalue v2);
 
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_bool(bool b);
+jz_tvalue jz_undef_val();
 
 double jz_to_num(jz_tvalue val);
 bool jz_to_bool(jz_tvalue val);
