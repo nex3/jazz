@@ -17,6 +17,7 @@
 #define CDDDR(node) (CDDR(node).node->cdr)
 
 static void compile_statements(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_return(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_expr(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_unop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
@@ -62,6 +63,10 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
     
     switch (node->car.st_type) {
     case jz_st_empty: break;
+
+    case jz_st_return:
+      compile_return(bytecode, node->cdr.node);
+      break;
       
     case jz_st_expr:
       compile_expr(bytecode, node->cdr.node);
@@ -70,6 +75,15 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
     }
 
     bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
+  }
+}
+
+void compile_return(jz_bytecode* bytecode, jz_parse_node* node) {
+  if (node == NULL)
+    push_opcode(bytecode, jz_oc_end);
+  else {
+    compile_expr(bytecode, node);
+    push_opcode(bytecode, jz_oc_ret);
   }
 }
 

@@ -66,7 +66,9 @@ typedef enum {
 
 typedef enum {
   jz_st_empty, /* cdr isn't used. */
-  jz_st_expr   /* cdr.node is the root node of the expression. */
+  jz_st_expr,  /* cdr.node is the root node of the expression. */
+  jz_st_return /* cdr.node is the root node of the expression to be returned,
+                  or NULL if there is no expression being returned. */
 } jz_st_type;
 
 typedef union {

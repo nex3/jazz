@@ -34,8 +34,11 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 
 %token <num> NUMBER
 
-/* Keyword Tokens */
+/* Constant Literal Tokens */
 %token <none> TRUE_VAL FALSE_VAL
+
+/* Keyword Tokens */
+%token <none> RETURN
 
 /* Punctuation tokens */
 %token <none> LCURLY   RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -49,7 +52,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> DIV DIV_EQ
 
 %type <node> program source_elements
-%type <node> statement expr_statement empty_statement
+%type <node> statement expr_statement return_statement empty_statement
 
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
@@ -79,10 +82,20 @@ source_elements: statement {
 
 statement: expr_statement { $$ = $1; }
   | empty_statement { $$ = $1; }
+  | return_statement { $$ = $1; }
 
 expr_statement: expr SEMICOLON {
   DECLARE_UNIONS(st_type, jz_st_expr, node, $1);
   $$ = node_new(jz_parse_statement, car, cdr);
+ }
+
+return_statement: RETURN expr SEMICOLON {
+  DECLARE_UNIONS(st_type, jz_st_return, node, $2);
+  $$ = node_new(jz_parse_statement, car, cdr);
+ }
+  | RETURN SEMICOLON {
+    DECLARE_UNIONS(st_type, jz_st_return, node, NULL);
+    $$ = node_new(jz_parse_statement, car, cdr);
  }
 
 empty_statement: SEMICOLON {
