@@ -21,6 +21,12 @@ typedef enum {
   jz_parse_statement,  /* A statement.
                           car.st_type is the type of statement.
                           cdr is defined per-statement-type. */
+  jz_parse_vars,       /* A list of variable declarations.
+                          car.node is a jz_parse_var. */
+  jz_parse_var,        /* A single variable initialization.
+                          car.str is the name of the variable.
+                          cdr.node is the initializer of the variable,
+                          or NULL if there is no initializer. */
   jz_parse_exprs,      /* A list of expressions.
                           car.node is the root node of an expression. */
   jz_parse_unop,       /* A unary operator.
@@ -68,6 +74,7 @@ typedef enum {
 
 typedef enum {
   jz_st_empty, /* cdr isn't used. */
+  jz_st_var,   /* cdr.node is a jz_parse_vars. */
   jz_st_expr,  /* cdr.node is a jz_parse_exprs. */
   jz_st_return /* cdr.node is the jz_parse_exprs to be returned,
                   or NULL if there is no expression being returned. */
@@ -76,6 +83,7 @@ typedef enum {
 typedef union {
   jz_parse_node* node;
   jz_tvalue val;
+  jz_str* str;
   jz_op_type op_type;
   jz_st_type st_type;
 } jz_parse_value;

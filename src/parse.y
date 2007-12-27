@@ -13,6 +13,11 @@ static jz_parse_node* root_node = NULL;
   car.car_member = car_val;                                      \
   cdr.cdr_member = cdr_val;
 
+#define DECLARE_LIST_END(type, target, node_var)        \
+  DECLARE_UNIONS(node, node_var, node, NULL);   \
+  target = node_new(type, car, cdr);
+
+
 static void yyerror(const char* msg);
 static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
 
@@ -38,7 +43,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN
+%token <none> RETURN VAR
 
 /* Punctuation tokens */
 %token <none> LCURLY   RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -52,7 +57,9 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> DIV DIV_EQ
 
 %type <node> program source_elements
-%type <node> statement expr_statement return_statement empty_statement
+%type <node> statement expr_statement var_statement empty_statement return_statement
+
+%type <node> var_decl_list var_decl
 
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
@@ -71,18 +78,37 @@ program: source_elements {
   root_node = $$;
  }
 
-source_elements: statement {
-  DECLARE_UNIONS(node, $1, node, NULL);
-  $$ = node_new(jz_parse_statements, car, cdr);
- }
+source_elements: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
   | source_elements statement {
     DECLARE_UNIONS(node, $2, node, $1);
     $$ = node_new(jz_parse_statements, car, cdr);
  }
 
 statement: expr_statement { $$ = $1; }
+  | var_statement { $$ = $1; }
   | empty_statement { $$ = $1; }
   | return_statement { $$ = $1; }
+
+var_statement: VAR var_decl_list SEMICOLON {
+  DECLARE_UNIONS(st_type, jz_st_var, node, $2);
+  $$ = node_new(jz_parse_statement, car, cdr);
+ }
+
+var_decl_list: var_decl { DECLARE_LIST_END(jz_parse_vars, $$, $1); }
+  | var_decl_list COMMA var_decl {
+    DECLARE_UNIONS(node, $3, node, $1);
+    $$ = node_new(jz_parse_vars, car, cdr);
+ }
+
+var_decl: IDENTIFIER {
+  DECLARE_UNIONS(str, jz_str_dup($1), node, NULL);
+  $$ = node_new(jz_parse_vars, car, cdr);
+ }
+  | IDENTIFIER EQUALS cond_expr {
+    DECLARE_UNIONS(str, jz_str_dup($1), node, $3);
+    fprintf(stderr, "var_decl should use assginment_expr, not cond_expr.\n");
+    $$ = node_new(jz_parse_vars, car, cdr);
+ }
 
 expr_statement: expr SEMICOLON {
   DECLARE_UNIONS(st_type, jz_st_expr, node, $1);
@@ -103,10 +129,7 @@ empty_statement: SEMICOLON {
   $$ = node_new(jz_parse_statement, car, cdr);
  }
 
-expr: cond_expr {
-  DECLARE_UNIONS(node, $1, node, NULL);
-  $$ = node_new(jz_parse_exprs, car, cdr);
- }
+expr: cond_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
   | expr COMMA cond_expr {
     DECLARE_UNIONS(node, $3, node, $1);
     $$ = node_new(jz_parse_exprs, car, cdr);

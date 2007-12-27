@@ -157,6 +157,7 @@ int try_identifier() {
   free(match);
   if (result) return result->token;
 
+  yylval.str = jz_match;
   return IDENTIFIER;
 }
 

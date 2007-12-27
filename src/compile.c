@@ -12,7 +12,9 @@
 #define CDDDR(node) (CDDR(node).node->cdr)
 
 static void compile_statements(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_vars(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_return(jz_bytecode* bytecode, jz_parse_node* node);
+
 static void compile_exprs(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_exprs_helper(jz_bytecode* bytecode, jz_parse_node* node, bool first);
 static void compile_expr(jz_bytecode* bytecode, jz_parse_node* node);
@@ -57,6 +59,10 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
   switch (node->car.st_type) {
   case jz_st_empty: break;
 
+  case jz_st_var:
+    compile_vars(bytecode, node->cdr.node);
+    break;
+
   case jz_st_return:
     compile_return(bytecode, node->cdr.node);
     break;
@@ -72,6 +78,17 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
   }
 
   bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
+}
+
+void compile_vars(jz_bytecode* bytecode, jz_parse_node* node) {
+/*   int old_cap; */
+
+/*   assert(node->type == jz_parse_vars);   */
+
+/*   if (node->cdr.node != NULL) */
+/*     compile_vars(bytecode, node->cdr.node); */
+
+/*   old_cap = bytecode->stack_length; */  
 }
 
 void compile_return(jz_bytecode* bytecode, jz_parse_node* node) {
