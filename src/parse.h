@@ -21,7 +21,7 @@ typedef enum {
   jz_parse_statement,  /* A statement.
                           car.st_type is the type of statement.
                           cdr is defined per-statement-type. */
-  jz_parse_exprs,      /* The beginning node of a list of expressions.
+  jz_parse_exprs,      /* A list of expressions.
                           car.node is the root node of an expression. */
   jz_parse_unop,       /* A unary operator.
                           car.op_type indicates which operator it is,
