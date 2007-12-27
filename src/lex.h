@@ -5,7 +5,7 @@
 #include "string.h"
 
 void jz_lex_init();
-void jz_lex_set_code(jz_str code);
+void jz_lex_set_code(jz_str* code);
 
 int yylex();
 

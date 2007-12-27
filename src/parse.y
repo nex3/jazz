@@ -24,7 +24,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 
 %union {
   struct jz_parse_node* node;
-  jz_str str;
+  jz_str* str;
   double num;
   char boolean;
   char none;
@@ -236,7 +236,7 @@ jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next) {
   return node_new(jz_parse_unop, car, cdr);
 }
 
-jz_parse_node* jz_parse_string(jz_str code) {
+jz_parse_node* jz_parse_string(jz_str* code) {
   jz_lex_set_code(code);
 
   /* yyparse returns 0 to indicate success. */

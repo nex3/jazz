@@ -86,6 +86,6 @@ struct jz_parse_node {
   jz_parse_value cdr;
 };
 
-jz_parse_node* jz_parse_string(jz_str code);
+jz_parse_node* jz_parse_string(jz_str* code);
 
 #endif

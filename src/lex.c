@@ -14,8 +14,8 @@
 typedef struct hash_result hash_result;
 
 static struct {
-  jz_str code;
-  jz_str code_prev;
+  jz_str* code;
+  jz_str* code_prev;
   URegularExpression* identifier_re;
   URegularExpression* whitespace_re;
   URegularExpression* line_terminator_re;
@@ -32,7 +32,7 @@ static bool try_decimal_literal();
 static int try_punctuation();
 static int try_identifier();
 static bool try_re(URegularExpression* re);
-static jz_str get_match(URegularExpression* re, int number);
+static jz_str* get_match(URegularExpression* re, int number);
 
 static URegularExpression* create_re(char* pattern);
 
@@ -79,11 +79,20 @@ bool try_decimal_literal() {
   else return false;
 
   {
+    jz_str* match;
     char *num, *dec, *exp;
 
-    num = jz_str_to_chars(get_match(matched, 1));
-    dec = jz_str_to_chars(get_match(matched, 2));
-    exp = jz_str_to_chars(get_match(matched, 3));
+    match = get_match(matched, 1);
+    num = jz_str_to_chars(match);
+    free(match);
+
+    match = get_match(matched, 2);
+    dec = jz_str_to_chars(match);
+    free(match);
+
+    match = get_match(matched, 3);
+    exp = jz_str_to_chars(match);
+    free(match);
 
     yylval.num = (*num) ? atof(num) : 0.0;
 
@@ -102,8 +111,11 @@ bool try_hex_literal() {
   if (!try_re(state.hex_literal_re)) return false;
 
   {
-    char *num = jz_str_to_chars(get_match(state.hex_literal_re, 0));
+    jz_str* match = get_match(state.hex_literal_re, 0);
+    char *num = jz_str_to_chars(match);
     unsigned int hex;
+    free(match);
+
     sscanf(num + 2, "%x", &hex);
     yylval.num = (double)hex;
     free(num);
@@ -112,7 +124,7 @@ bool try_hex_literal() {
 }
 
 int try_punctuation() {
-  jz_str jz_match;
+  jz_str* jz_match;
   char* match;
   const hash_result* result;
 
@@ -120,16 +132,19 @@ int try_punctuation() {
 
   jz_match = get_match(state.punctuation_re, 0);
   match = jz_str_to_chars(jz_match);
-  result = in_word_set(match, jz_match.length);
+  result = in_word_set(match, jz_match->length);
+
+  free(jz_match);
   free(match);
+
   if (result) return result->token;
 
-  printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state.code.length);
+  printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state.code->length);
   return false;
 }
 
 int try_identifier() {
-  jz_str jz_match;
+  jz_str* jz_match;
   char* match;
   const hash_result* result;
 
@@ -137,7 +152,8 @@ int try_identifier() {
 
   jz_match = get_match(state.identifier_re, 0);
   match = jz_str_to_chars(jz_match);
-  result = in_word_set(match, jz_match.length);
+  result = in_word_set(match, jz_match->length);
+  free(jz_match);
   free(match);
   if (result) return result->token;
 
@@ -147,7 +163,7 @@ int try_identifier() {
 bool try_re(URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;  
 
-  uregex_setText(re, state.code.value, state.code.length, &error);
+  uregex_setText(re, state.code->value, state.code->length, &error);
   CHECK_ICU_ERROR(error);
 
   {
@@ -160,14 +176,15 @@ bool try_re(URegularExpression* re) {
     int change = uregex_end(re, 0, &error);
     CHECK_ICU_ERROR(error);
 
-    state.code_prev = state.code;
-    state.code.value  += change;
-    state.code.length -= change;
+    free(state.code_prev);
+    state.code_prev = jz_str_dup(state.code);
+    state.code->value  += change;
+    state.code->length -= change;
   }
   return true;
 }
 
-jz_str get_match(URegularExpression* re, int number) {
+jz_str* get_match(URegularExpression* re, int number) {
   UErrorCode error = U_ZERO_ERROR;
   int start;
   int end;
@@ -177,7 +194,7 @@ jz_str get_match(URegularExpression* re, int number) {
   end = uregex_end(re, number, &error);
   CHECK_ICU_ERROR(error);
 
-  if (start == -1) return jz_str_null();
+  if (start == -1) return NULL;
   return jz_str_substr(state.code_prev, start, end - start);
 }
 
@@ -186,9 +203,9 @@ jz_str get_match(URegularExpression* re, int number) {
 #define DECIMAL_INTEGER_LITERAL_RE  "(0|[1-9][0-9]*)"
 #define EXPONENT_PART_RE            "(?:[eE]([\\+\\-]?[0-9]+))"
 
-void jz_lex_set_code(jz_str code) {
+void jz_lex_set_code(jz_str* code) {
   state.code = code;
-  state.code_prev = code;
+  state.code_prev = jz_str_dup(code);
 }
 
 void jz_lex_init() {
