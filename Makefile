@@ -8,6 +8,9 @@ CFLAGS= -g -fPIC -ansi -Wall -pedantic -DJZ_DEBUG_LEX=0 -DJZ_DEBUG_BYTECODE=0
 LDFLAGS=
 INCLUDES= -licui18n -licuio
 
+YACC= bison
+YFLAGS= -y-d
+
 default: jazz
 
 clean:
@@ -29,7 +32,7 @@ src/keywords.gp.c: src/keywords.gperf
 
 src/y.tab.o: src/y.tab.c src/y.tab.h
 src/y.tab.c src/y.tab.h: src/parse.y src/parse.h src/opcode.h
-	cd src && yacc -d parse.y
+	cd src && $(YACC) $(YFLAGS) parse.y
 
 src/type.o: src/type.c src/type.h
 src/compile.o: src/compile.c src/compile.h src/parse.h src/opcode.h src/type.h
