@@ -1,11 +1,6 @@
 #include "compile.h"
 
-#include <string.h>
 #include <stdio.h>
-#include <assert.h>
-
-#define CODE_LENGTH_START 100
-#define CODE_LENGTH_MULT  1.5
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
@@ -30,25 +25,20 @@ static void compile_literal(jz_bytecode* bytecode, jz_parse_node* node);
 
 static void jump_to_top_from(jz_bytecode* bytecode, size_t index);
 
-static void push_opcode(jz_bytecode* bytecode, jz_opcode code);
 static void push_multibyte_arg(jz_bytecode* bytecode, void* data, size_t size);
 static size_t push_placeholder(jz_bytecode* bytecode, size_t size);
 
-static void resize_code(jz_bytecode* bytecode);
+JZ_DEFINE_VECTOR(jz_opcode, 20)
 
 jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
   jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
 
-  bytecode->code = calloc(sizeof(jz_opcode), CODE_LENGTH_START);
-  bytecode->code_top = bytecode->code;
-  bytecode->code_length = CODE_LENGTH_START;
+  bytecode->code = jz_opcode_vector_new();
   bytecode->stack_length = 0;
 
   compile_statements(bytecode, parse_tree);
-  push_opcode(bytecode, jz_oc_end);
+  jz_opcode_vector_append(bytecode->code, jz_oc_end);
 
-  bytecode->code_length = bytecode->code_top - bytecode->code;
-  bytecode->code_top = bytecode->code;
   return bytecode;
 }
 
@@ -73,7 +63,7 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
       
   case jz_st_expr:
     compile_exprs(bytecode, node->cdr.node);
-    push_opcode(bytecode, jz_oc_pop);
+    jz_opcode_vector_append(bytecode->code, jz_oc_pop);
     break;
 
   default:
@@ -86,10 +76,10 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
 
 void compile_return(jz_bytecode* bytecode, jz_parse_node* node) {
   if (node == NULL)
-    push_opcode(bytecode, jz_oc_end);
+    jz_opcode_vector_append(bytecode->code, jz_oc_end);
   else {
     compile_exprs(bytecode, node);
-    push_opcode(bytecode, jz_oc_ret);
+    jz_opcode_vector_append(bytecode->code, jz_oc_ret);
   }
 }
 
@@ -110,7 +100,7 @@ void compile_exprs_helper(jz_bytecode* bytecode, jz_parse_node* node, bool first
 
   /* Discard the return value of all expressions in a list but the last. */
   if (!first)
-    push_opcode(bytecode, jz_oc_pop);
+    jz_opcode_vector_append(bytecode->code, jz_oc_pop);
 
   bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
 }
@@ -148,19 +138,19 @@ void compile_unop(jz_bytecode* bytecode, jz_parse_node* node) {
 
   switch (node->car.op_type) {
   case jz_op_plus:
-    push_opcode(bytecode, jz_oc_to_num);
+    jz_opcode_vector_append(bytecode->code, jz_oc_to_num);
     break;
 
   case jz_op_minus:
-    push_opcode(bytecode, jz_oc_neg);
+    jz_opcode_vector_append(bytecode->code, jz_oc_neg);
     break;
 
   case jz_op_bw_not:
-    push_opcode(bytecode, jz_oc_bw_not);
+    jz_opcode_vector_append(bytecode->code, jz_oc_bw_not);
     break;
 
   case jz_op_not:
-    push_opcode(bytecode, jz_oc_not);
+    jz_opcode_vector_append(bytecode->code, jz_oc_not);
     break;
 
   default:
@@ -254,11 +244,11 @@ void compile_logical_binop(jz_bytecode* bytecode, jz_parse_node* node) {
 
   compile_expr(bytecode, CDAR(node).node);
   left_cap = bytecode->stack_length;
-  push_opcode(bytecode, jz_oc_dup);
+  jz_opcode_vector_append(bytecode->code, jz_oc_dup);
 
-  if (node->car.op_type == jz_op_or) push_opcode(bytecode, jz_oc_not);
+  if (node->car.op_type == jz_op_or) jz_opcode_vector_append(bytecode->code, jz_oc_not);
 
-  push_opcode(bytecode, jz_oc_jump_if);
+  jz_opcode_vector_append(bytecode->code, jz_oc_jump_if);
   jump = push_placeholder(bytecode, JZ_OCS_SIZET);
 
   compile_expr(bytecode, CDDR(node).node);
@@ -276,7 +266,7 @@ void compile_simple_binop(jz_bytecode* bytecode, jz_parse_node* node, jz_opcode 
 
   compile_expr(bytecode, CDDR(node).node);
   right_cap = bytecode->stack_length;
-  push_opcode(bytecode, op);
+  jz_opcode_vector_append(bytecode->code, op);
 
   bytecode->stack_length = MAX(left_cap, right_cap + 1);
 }
@@ -290,13 +280,13 @@ void compile_triop(jz_bytecode* bytecode, jz_parse_node* node) {
   compile_expr(bytecode, CDAR(node).node);
   cap1 = bytecode->stack_length;
 
-  push_opcode(bytecode, jz_oc_jump_if);
+  jz_opcode_vector_append(bytecode->code, jz_oc_jump_if);
   cond_jump = push_placeholder(bytecode, JZ_OCS_SIZET);
 
   compile_expr(bytecode, CDDAR(node).node);
   cap2 = bytecode->stack_length;
 
-  push_opcode(bytecode, jz_oc_jump);
+  jz_opcode_vector_append(bytecode->code, jz_oc_jump);
   branch1_jump = push_placeholder(bytecode, JZ_OCS_SIZET);
   jump_to_top_from(bytecode, cond_jump);
 
@@ -309,50 +299,32 @@ void compile_triop(jz_bytecode* bytecode, jz_parse_node* node) {
 
 void compile_literal(jz_bytecode* bytecode, jz_parse_node* node) {
   bytecode->stack_length = 1;
-  push_opcode(bytecode, jz_oc_push_literal);
+  jz_opcode_vector_append(bytecode->code, jz_oc_push_literal);
   push_multibyte_arg(bytecode, &(node->car.val), JZ_OCS_TVALUE);
 }
 
 void jump_to_top_from(jz_bytecode* bytecode, size_t index) {
-  *((size_t*)(bytecode->code + index)) =
-    bytecode->code_top - bytecode->code - index - JZ_OCS_SIZET;
-}
-
-void push_opcode(jz_bytecode* bytecode, jz_opcode code) {
-  if (bytecode->code_top - bytecode->code == bytecode->code_length)
-    resize_code(bytecode);
-  assert(bytecode->code_top - bytecode->code < bytecode->code_length);
-
-  *(bytecode->code_top) = code;
-  bytecode->code_top++;
+  *((size_t*)(bytecode->code->values + index)) =
+    bytecode->code->next - bytecode->code->values - index - JZ_OCS_SIZET;
 }
 
 void push_multibyte_arg(jz_bytecode* bytecode, void* data, size_t size) {
-  while (bytecode->code_top - bytecode->code + size >= bytecode->code_length)
-    resize_code(bytecode);
+  jz_opcode_vector* vector = bytecode->code;
 
-  memcpy(bytecode->code_top, data, size);
-  bytecode->code_top += size;
+  while (vector->next - vector->values + size >= vector->capacity)
+    jz_opcode_vector_resize(vector);
+
+  memcpy(vector->next, data, size);
+  vector->next += size;
 }
 
 size_t push_placeholder(jz_bytecode* bytecode, size_t size) {
-  size_t index = bytecode->code_top - bytecode->code;
+  jz_opcode_vector* vector = bytecode->code;
+  size_t index = vector->next - vector->values;
 
-  while (index + size >= bytecode->code_length)
-    resize_code(bytecode);
+  while (index + size >= vector->capacity)
+    jz_opcode_vector_resize(vector);
 
-  bytecode->code_top += size;
+  vector->next += size;
   return index;
-}
-
-void resize_code(jz_bytecode* bytecode) {
-  jz_opcode* old_code = bytecode->code;
-  jz_opcode* old_top = bytecode->code_top;
-  size_t old_length = bytecode->code_length;
-
-  bytecode->code_length *= CODE_LENGTH_MULT;
-  bytecode->code = calloc(sizeof(jz_opcode), bytecode->code_length);
-  memcpy(bytecode->code, old_code, old_length);
-  bytecode->code_top = bytecode->code + (old_top - old_code);
-  free(old_code);
 }

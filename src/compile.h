@@ -3,11 +3,12 @@
 
 #include "parse.h"
 #include "opcode.h"
+#include "vector.h"
+
+JZ_DECLARE_VECTOR(jz_opcode)
 
 typedef struct {
-  jz_opcode* code;
-  jz_opcode* code_top;
-  size_t code_length;
+  jz_opcode_vector* code;
   size_t stack_length;
 } jz_bytecode;
 
