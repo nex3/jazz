@@ -9,7 +9,7 @@ LDFLAGS=
 INCLUDES= -licui18n -licuio
 
 YACC= bison
-YFLAGS= -y-d
+YFLAGS= -y -d
 
 default: jazz
 
