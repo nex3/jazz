@@ -8,7 +8,8 @@
 JZ_DECLARE_VECTOR(jz_opcode)
 
 typedef struct {
-  jz_opcode_vector* code;
+  jz_opcode* code;
+  size_t code_length;
   size_t stack_length;
 } jz_bytecode;
 

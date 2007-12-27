@@ -39,19 +39,6 @@
     vector->next++;                                                     \
   }                                                                     \
                                                                         \
-  size_t type ## _vector_compress(type ## _vector* vector) {            \
-    type* old_values = vector->values;                                  \
-    size_t length = vector->next - vector->values;                      \
-                                                                        \
-    vector->capacity = length;                                          \
-    vector->values = calloc(sizeof(type), length);                      \
-    memcpy(vector->values, old_values, length);                         \
-    vector->next = vector->values + length;                             \
-    free(old_values);                                                   \
-                                                                        \
-    return length;                                                      \
-  }                                                                     \
-                                                                        \
   void type ## _vector_resize(type ## _vector* vector) {                \
     type* old_values = vector->values;                                  \
     type* old_next = vector->next;                                      \

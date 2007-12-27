@@ -19,7 +19,7 @@ static void print_bytecode(jz_bytecode* bytecode);
 #endif
 
 jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
-  jz_opcode* code = bytecode->code->values;
+  jz_opcode* code = bytecode->code;
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
 
@@ -205,8 +205,8 @@ void print_bytecode(jz_bytecode* bytecode) {
   jz_opcode* code;
 
   printf("Bytecode:\n");
-  for (code = bytecode->code->values;
-       code - bytecode->code->values < bytecode->code->capacity; code++) {
+  for (code = bytecode->code;
+       code - bytecode->code < bytecode->code_length; code++) {
     char* name = "???";
     size_t argsize = 0;
 
@@ -315,7 +315,7 @@ void print_bytecode(jz_bytecode* bytecode) {
       break;
     }
 
-    printf("%d: %s (%d)\n", code - bytecode->code->values, name, argsize);
+    printf("%d: %s (%d)\n", code - bytecode->code, name, argsize);
     code += argsize;
   }
 }
