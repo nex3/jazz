@@ -18,6 +18,8 @@
 
 static void compile_statements(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_return(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_exprs(jz_bytecode* bytecode, jz_parse_node* node);
+static void compile_exprs_helper(jz_bytecode* bytecode, jz_parse_node* node, bool first);
 static void compile_expr(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_unop(jz_bytecode* bytecode, jz_parse_node* node);
 static void compile_binop(jz_bytecode* bytecode, jz_parse_node* node);
@@ -70,7 +72,7 @@ void compile_statements(jz_bytecode* bytecode, jz_parse_node* node) {
     break;
       
   case jz_st_expr:
-    compile_expr(bytecode, node->cdr.node);
+    compile_exprs(bytecode, node->cdr.node);
     push_opcode(bytecode, jz_oc_pop);
     break;
 
@@ -86,9 +88,31 @@ void compile_return(jz_bytecode* bytecode, jz_parse_node* node) {
   if (node == NULL)
     push_opcode(bytecode, jz_oc_end);
   else {
-    compile_expr(bytecode, node);
+    compile_exprs(bytecode, node);
     push_opcode(bytecode, jz_oc_ret);
   }
+}
+
+void compile_exprs(jz_bytecode* bytecode, jz_parse_node* node) {
+  compile_exprs_helper(bytecode, node, true);
+}
+
+void compile_exprs_helper(jz_bytecode* bytecode, jz_parse_node* node, bool first) {
+  int old_cap;
+
+  assert(node->type == jz_parse_exprs);
+
+  if (node->cdr.node != NULL)
+    compile_exprs_helper(bytecode, node->cdr.node, false);
+
+  old_cap = bytecode->stack_length;
+  compile_expr(bytecode, node->car.node);
+
+  /* Discard the return value of all expressions in a list but the last. */
+  if (!first)
+    push_opcode(bytecode, jz_oc_pop);
+
+  bytecode->stack_length = MAX(old_cap, bytecode->stack_length);
 }
 
 void compile_expr(jz_bytecode* bytecode, jz_parse_node* node) {
@@ -97,8 +121,8 @@ void compile_expr(jz_bytecode* bytecode, jz_parse_node* node) {
     compile_literal(bytecode, node);
     break;
 
-  case jz_parse_statements:
-    compile_statements(bytecode, node);
+  case jz_parse_exprs:
+    compile_exprs(bytecode, node);
     break;
 
   case jz_parse_unop:
@@ -114,8 +138,8 @@ void compile_expr(jz_bytecode* bytecode, jz_parse_node* node) {
     break;
 
   default:
-    assert(0);
-    break;
+    printf("Unrecognized expression node type %d\n", node->type);
+    exit(1);
   }
 }
 

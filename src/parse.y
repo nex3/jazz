@@ -103,10 +103,17 @@ empty_statement: SEMICOLON {
   $$ = node_new(jz_parse_statement, car, cdr);
  }
 
-expr: cond_expr { $$ = $1; }
+expr: cond_expr {
+  DECLARE_UNIONS(node, $1, node, NULL);
+  $$ = node_new(jz_parse_exprs, car, cdr);
+ }
+  | expr COMMA cond_expr {
+    DECLARE_UNIONS(node, $3, node, $1);
+    $$ = node_new(jz_parse_exprs, car, cdr);
+ }
 
 cond_expr: or_expr { $$ = $1; }
-  | or_expr QUESTION expr COLON expr {
+  | or_expr QUESTION cond_expr COLON cond_expr {
     jz_parse_node* cont;
 
     {
