@@ -32,12 +32,13 @@ static void compile_return(comp_state* state, jz_parse_node* node);
 static void compile_exprs(comp_state* state, jz_parse_node* node);
 static void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first);
 static void compile_expr(comp_state* state, jz_parse_node* node);
+static void compile_identifier(comp_state* state, jz_parse_node* node);
+static void compile_literal(comp_state* state, jz_parse_node* node);
 static void compile_unop(comp_state* state, jz_parse_node* node);
 static void compile_binop(comp_state* state, jz_parse_node* node);
 static void compile_logical_binop(comp_state* state, jz_parse_node* node);
 static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
 static void compile_triop(comp_state* state, jz_parse_node* node);
-static void compile_literal(comp_state* state, jz_parse_node* node);
 
 static unsigned char add_lvar(comp_state* state, jz_str* name);
 static lvar_node* get_lvar(comp_state* state, jz_str* name);
@@ -164,6 +165,10 @@ void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first) {
 
 void compile_expr(comp_state* state, jz_parse_node* node) {
   switch (node->type) {
+  case jz_parse_identifier:
+    compile_identifier(state, node);
+    break;
+
   case jz_parse_literal:
     compile_literal(state, node);
     break;
@@ -188,6 +193,25 @@ void compile_expr(comp_state* state, jz_parse_node* node) {
     printf("Unrecognized expression node type %d\n", node->type);
     exit(1);
   }
+}
+
+void compile_identifier(comp_state* state, jz_parse_node* node) {
+  lvar_node* local = get_lvar(state, node->car.str);
+
+  if (local == NULL) {
+    fprintf(stderr, "Undefined variable %s\n", jz_str_to_chars(node->car.str));
+    exit(1);
+  }
+
+  state->stack_length = 1;
+  jz_opcode_vector_append(state->code, jz_oc_retrieve);
+  jz_opcode_vector_append(state->code, local->index);
+}
+
+void compile_literal(comp_state* state, jz_parse_node* node) {
+  state->stack_length = 1;
+  jz_opcode_vector_append(state->code, jz_oc_push_literal);
+  push_multibyte_arg(state, &(node->car.val), JZ_OCS_TVALUE);
 }
 
 void compile_unop(comp_state* state, jz_parse_node* node) {
@@ -352,12 +376,6 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   jump_to_top_from(state, branch1_jump);
 
   state->stack_length = MAX(MAX(cap1, cap2), cap3);
-}
-
-void compile_literal(comp_state* state, jz_parse_node* node) {
-  state->stack_length = 1;
-  jz_opcode_vector_append(state->code, jz_oc_push_literal);
-  push_multibyte_arg(state, &(node->car.val), JZ_OCS_TVALUE);
 }
 
 unsigned char add_lvar(comp_state* state, jz_str* name) {

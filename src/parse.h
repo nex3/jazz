@@ -41,8 +41,10 @@ typedef enum {
                           cdar.node is the first argument,
                           cddar.node is the second argument, 
                           cdddr.node is the third argument. */
-  jz_parse_literal     /* A literal value.
+  jz_parse_literal,    /* A literal value.
                           car.val is the value. */
+  jz_parse_identifier  /* An identifier.
+                          car.str is the name. */
 } jz_parse_type;
 
 typedef enum {

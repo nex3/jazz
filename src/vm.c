@@ -54,6 +54,12 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_retrieve: {
+      READ_ARG_INTO(unsigned char, index);
+      PUSH(locals[index]);
+      break;
+    }
+
     case jz_oc_pop:
       stack--;
       break;
@@ -235,6 +241,11 @@ void print_bytecode(jz_bytecode* bytecode) {
 
     case jz_oc_store:
       name = "store";
+      argsize = 1;
+      break;
+
+    case jz_oc_retrieve:
+      name = "retrieve";
       argsize = 1;
       break;
 

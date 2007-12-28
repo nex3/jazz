@@ -64,7 +64,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
              eq_expr rel_expr shift_expr add_expr mult_expr
 
-%type <node> unary_expr primary_expr
+%type <node> unary_expr primary_expr identifier
 
 %type <node> literal number boolean undefined
 %type <boolean> bool_val
@@ -206,8 +206,14 @@ unary_expr: primary_expr { $$ = $1; }
   | BW_NOT unary_expr { $$ = unop_node(jz_op_bw_not, $2); }
   | NOT    unary_expr { $$ = unop_node(jz_op_not,    $2); }
 
-primary_expr: literal { $$ = $1; }
+primary_expr: identifier { $$ = $1; }
+  | literal { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
+
+identifier: IDENTIFIER {
+  DECLARE_UNIONS(str, jz_str_dup($1), node, NULL);
+  $$ = node_new(jz_parse_identifier, car, cdr);
+ }
 
 literal: number { $$ = $1; }
   | boolean     { $$ = $1; }
