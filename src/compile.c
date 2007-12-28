@@ -2,9 +2,18 @@
 
 #include <stdio.h>
 
+typedef struct lvar_node lvar_node;
+
+struct lvar_node {
+  lvar_node* next;
+  jz_str* name;
+  unsigned char index;
+};
+
 typedef struct {
   jz_opcode_vector* code;
   size_t stack_length;
+  lvar_node* locals;
 } comp_state;
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -30,10 +39,15 @@ static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opco
 static void compile_triop(comp_state* state, jz_parse_node* node);
 static void compile_literal(comp_state* state, jz_parse_node* node);
 
+static unsigned char add_lvar(comp_state* state, jz_str* name);
+static lvar_node* get_lvar(comp_state* state, jz_str* name);
+
 static void jump_to_top_from(comp_state* state, size_t index);
 
 static void push_multibyte_arg(comp_state* state, void* data, size_t size);
 static size_t push_placeholder(comp_state* state, size_t size);
+
+static void free_comp_state(comp_state* state);
 
 JZ_DEFINE_VECTOR(jz_opcode, 20)
 
@@ -49,11 +63,13 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
   {
     jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
     bytecode->stack_length = state->stack_length;
+    bytecode->locals_length =
+      state->locals == NULL ? 0 : state->locals->index + 1;
     bytecode->code_length = state->code->next - state->code->values;
     bytecode->code = calloc(sizeof(jz_opcode), bytecode->code_length);
     memcpy(bytecode->code, state->code->values, bytecode->code_length);
 
-    free(state);
+    free_comp_state(state);
     return bytecode;
   }
 }
@@ -95,14 +111,24 @@ void compile_statements(comp_state* state, jz_parse_node* node) {
 }
 
 void compile_vars(comp_state* state, jz_parse_node* node) {
-/*   int old_cap; */
+  assert(node->type == jz_parse_vars);
 
-/*   assert(node->type == jz_parse_vars);   */
+  if (node->cdr.node != NULL)
+    compile_vars(state, node->cdr.node);
 
-/*   if (node->cdr.node != NULL) */
-/*     compile_vars(state, node->cdr.node); */
+  {
+    int old_cap = state->stack_length;
+    unsigned char index = add_lvar(state, CAAR(node).str);
+    jz_parse_node* expr = CADR(node).node;
 
-/*   old_cap = state->stack_length; */  
+    if (expr == NULL) return;
+
+    compile_expr(state, expr);
+    jz_opcode_vector_append(state->code, jz_oc_store);
+    jz_opcode_vector_append(state->code, index);
+
+    state->stack_length = MAX(old_cap, state->stack_length);
+  }
 }
 
 void compile_return(comp_state* state, jz_parse_node* node) {
@@ -334,6 +360,31 @@ void compile_literal(comp_state* state, jz_parse_node* node) {
   push_multibyte_arg(state, &(node->car.val), JZ_OCS_TVALUE);
 }
 
+unsigned char add_lvar(comp_state* state, jz_str* name) {
+  lvar_node* node;
+
+  if ((node = get_lvar(state, name))) return node->index;
+
+  node = malloc(sizeof(lvar_node));
+  node->next = state->locals;
+  node->name = name;
+  node->index = state->locals == NULL ? 0 : state->locals->index + 1;
+  state->locals = node;
+
+  return node->index;
+}
+
+lvar_node* get_lvar(comp_state* state, jz_str* name) {
+  lvar_node* node = state->locals;
+
+  while (node != NULL) {
+    if (jz_str_equal(name, node->name)) return node;
+    node = node->next;
+  }
+
+  return NULL;
+}
+
 void jump_to_top_from(comp_state* state, size_t index) {
   *((size_t*)(state->code->values + index)) =
     state->code->next - state->code->values - index - JZ_OCS_SIZET;
@@ -358,4 +409,15 @@ size_t push_placeholder(comp_state* state, size_t size) {
 
   vector->next += size;
   return index;
+}
+
+void free_comp_state(comp_state* state) {
+  while (state->locals != NULL) {
+    lvar_node* old_locals = state->locals;
+    state->locals = state->locals->next;
+    free(old_locals);
+  }
+
+  jz_opcode_vector_free(state->code);
+  free(state);
 }

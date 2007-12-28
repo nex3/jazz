@@ -11,6 +11,7 @@ typedef struct {
   jz_opcode* code;
   size_t code_length;
   size_t stack_length;
+  size_t locals_length;
 } jz_bytecode;
 
 jz_bytecode* jz_compile(jz_parse_node* parse_tree);

@@ -22,6 +22,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
+  jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
@@ -44,6 +45,12 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
     case jz_oc_jump_if: {
       READ_ARG_INTO(size_t, jump);
       if (!jz_to_bool(POP)) code += jump;
+      break;
+    }
+
+    case jz_oc_store: {
+      READ_ARG_INTO(unsigned char, index);
+      locals[index] = POP;
       break;
     }
 
@@ -224,6 +231,11 @@ void print_bytecode(jz_bytecode* bytecode) {
     case jz_oc_jump_if:
       name = "jump_if";
       argsize = JZ_OCS_SIZET;
+      break;
+
+    case jz_oc_store:
+      name = "store";
+      argsize = 1;
       break;
 
     case jz_oc_pop:

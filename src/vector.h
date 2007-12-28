@@ -18,6 +18,7 @@
   type ## _vector* type ## _vector_new();                               \
   void type ## _vector_append(type ## _vector* vector, type val);       \
   size_t type ## _vector_compress(type ## _vector* vector);             \
+  void type ## _vector_free(type ## _vector* vector);                   \
                                                                         \
   void type ## _vector_resize(type ## _vector* vector);                 \
 
@@ -37,6 +38,11 @@
                                                                         \
     *(vector->next) = val;                                              \
     vector->next++;                                                     \
+  }                                                                     \
+                                                                        \
+  void type ## _vector_free(type ## _vector* vector) {                  \
+    free(vector->values);                                               \
+    free(vector);                                                       \
   }                                                                     \
                                                                         \
   void type ## _vector_resize(type ## _vector* vector) {                \

@@ -20,6 +20,12 @@ jz_str* jz_str_substr(jz_str* this, int start, int length) {
   return jz_str_new(length, this->value + start);
 }
 
+bool jz_str_equal(const jz_str* s1, const jz_str* s2) {
+  if (s1->length != s2->length) return false;
+
+  return u_strncmp(s1->value, s2->value, s1->length) == 0;
+}
+
 char* jz_str_to_chars(jz_str* this) {
   char* to_ret;
   UErrorCode error = U_ZERO_ERROR;

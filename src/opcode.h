@@ -12,6 +12,7 @@ typedef enum {
   jz_oc_push_literal,
   jz_oc_jump,
   jz_oc_jump_if,
+  jz_oc_store,
   jz_oc_pop,
   jz_oc_dup,
   jz_oc_bw_or,
