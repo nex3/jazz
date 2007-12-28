@@ -6,7 +6,7 @@ MINI_VERSION= $(shell cat VERSION | sed -r 's/^([0-9]+)\.([0-9]+)\.([0-9]+)/\3/'
 CC= gcc
 CFLAGS= -g -fPIC -ansi -Wall -pedantic -DJZ_DEBUG_LEX=0 -DJZ_DEBUG_BYTECODE=0
 LDFLAGS=
-INCLUDES= -licui18n -licuio
+INCLUDES= -licuio
 
 YACC= bison
 YFLAGS= -y -d
