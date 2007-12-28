@@ -122,9 +122,16 @@ void compile_vars(comp_state* state, jz_parse_node* node) {
     unsigned char index = add_lvar(state, CAAR(node).str);
     jz_parse_node* expr = CADR(node).node;
 
-    if (expr == NULL) return;
+    if (expr != NULL)
+      compile_expr(state, expr);
+    else {
+      jz_tvalue undef = jz_undef_val();
 
-    compile_expr(state, expr);
+      state->stack_length = 1;
+      jz_opcode_vector_append(state->code, jz_oc_push_literal);
+      push_multibyte_arg(state, &undef, JZ_OCS_TVALUE);
+    }
+
     jz_opcode_vector_append(state->code, jz_oc_store);
     jz_opcode_vector_append(state->code, index);
 
