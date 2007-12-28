@@ -153,7 +153,6 @@ int try_identifier() {
   jz_match = get_match(state.identifier_re, 0);
   match = jz_str_to_chars(jz_match);
   result = in_word_set(match, jz_match->length);
-  free(jz_match);
   free(match);
   if (result) return result->token;
 
