@@ -22,6 +22,7 @@ typedef struct {
 #define CADR(node) ((node)->car.node->cdr)
 #define CDAR(node) ((node)->cdr.node->car)
 #define CDDR(node) ((node)->cdr.node->cdr)
+#define CDAAR(node) (CDAR(node).node->car)
 #define CDDAR(node) (CDDR(node).node->car)
 #define CDDDR(node) (CDDR(node).node->cdr)
 
@@ -38,6 +39,7 @@ static void compile_unop(comp_state* state, jz_parse_node* node);
 static void compile_binop(comp_state* state, jz_parse_node* node);
 static void compile_logical_binop(comp_state* state, jz_parse_node* node);
 static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
+static void compile_assign_binop(comp_state* state, jz_parse_node* node);
 static void compile_triop(comp_state* state, jz_parse_node* node);
 
 static unsigned char add_lvar(comp_state* state, jz_str* name);
@@ -323,7 +325,13 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
     compile_simple_binop(state, node, jz_oc_mod);
     break;
 
-  default: assert(0);
+  case jz_op_assign:
+    compile_assign_binop(state, node);
+    break;
+
+  default:
+    fprintf(stderr, "Unknown operator %d\n", node->car.op_type);
+    exit(1);
   }
 }
 
@@ -358,6 +366,18 @@ void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
   jz_opcode_vector_append(state->code, op);
 
   state->stack_length = MAX(left_cap, right_cap + 1);
+}
+
+void compile_assign_binop(comp_state* state, jz_parse_node* node) {
+  if (CDAR(node).node->type != jz_parse_identifier) {
+    fprintf(stderr, "Invalid left-hand side of assignment.\n");
+    exit(1);
+  }
+
+  compile_expr(state, CDDR(node).node);
+  jz_opcode_vector_append(state->code, jz_oc_dup);
+  jz_opcode_vector_append(state->code, jz_oc_store);
+  jz_opcode_vector_append(state->code, get_lvar(state, CDAAR(node).str)->index);
 }
 
 void compile_triop(comp_state* state, jz_parse_node* node) {

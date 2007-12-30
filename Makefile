@@ -37,6 +37,8 @@ src/y.tab.c src/y.tab.h: src/parse.y src/parse.h src/opcode.h
 src/type.o: src/type.c src/type.h
 src/compile.o: src/compile.c src/compile.h src/parse.h src/opcode.h src/type.h \
   src/vector.h
-src/vm.o: src/vm.c src/vm.h src/opcode.h src/type.h src/compile.h src/vector.h
-src/lex.o: src/lex.c src/lex.h src/string.h src/y.tab.h src/keywords.gp.c
+src/vm.o: src/vm.c src/vm.h src/opcode.h src/type.h src/compile.h src/vector.h \
+  Makefile
+src/lex.o: src/lex.c src/lex.h src/string.h src/y.tab.h src/keywords.gp.c \
+  Makefile
 src/string.o: src/string.c src/string.h

@@ -14,7 +14,7 @@ static jz_parse_node* root_node = NULL;
   cdr.cdr_member = cdr_val;
 
 #define DECLARE_LIST_END(type, target, node_var)        \
-  DECLARE_UNIONS(node, node_var, node, NULL);   \
+  DECLARE_UNIONS(node, node_var, node, NULL);           \
   target = node_new(type, car, cdr);
 
 
@@ -136,6 +136,7 @@ expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
  }
 
 assign_expr: cond_expr { $$ = $1; }
+  | left_hand_expr EQUALS assign_expr { $$ = binop_node(jz_op_assign, $1, $3); }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {
