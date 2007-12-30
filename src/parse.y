@@ -53,7 +53,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN VAR IF ELSE
+%token <none> RETURN VAR IF ELSE DO WHILE
 
 /* Punctuation tokens */
 %token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -69,6 +69,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %type <node> program source_elements source_element
              statement block statement_list var_statement var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
+             iter_statement do_while_statement
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
@@ -93,12 +94,13 @@ source_elements: source_element { DECLARE_LIST_END(jz_parse_statements, $$, $1);
 
 source_element: statement { $$ = $1; }
 
-statement: block { $$ = $1; }
-  | expr_statement { $$ = $1; }
-  | var_statement { $$ = $1; }
-  | empty_statement { $$ = $1; }
+statement: block     { $$ = $1; }
+  | expr_statement   { $$ = $1; }
+  | var_statement    { $$ = $1; }
+  | empty_statement  { $$ = $1; }
   | return_statement { $$ = $1; }
-  | if_statement { $$ = $1; }
+  | if_statement     { $$ = $1; }
+  | iter_statement   { $$ = $1; }
 
 block: LCURLY statement_list RCURLY { $$ = $2; }
 
@@ -162,6 +164,13 @@ expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
   | expr COMMA assign_expr {
     DECLARE_UNIONS(node, $3, node, $1);
     $$ = node_new(jz_parse_exprs, car, cdr);
+ }
+
+iter_statement: do_while_statement { $$ = $1; }
+
+do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
+  DECLARE_UNIONS(node, $5, node, $2);
+  $$ = node_new(jz_parse_do_while, car, cdr);
  }
 
 assign_expr: cond_expr { $$ = $1; }
