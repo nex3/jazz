@@ -57,6 +57,7 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
 
   state->code = jz_opcode_vector_new();
   state->stack_length = 0;
+  state->locals = NULL;
 
   compile_statements(state, parse_tree);
   jz_opcode_vector_append(state->code, jz_oc_end);

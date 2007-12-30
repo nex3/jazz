@@ -199,11 +199,13 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
 
       res = stack[-1];
       free(stack_bottom);
+      free(locals);
       return res;
     }
 
     case jz_oc_end:
       free(stack_bottom);
+      free(locals);
       return jz_undef_val();
 
     default:

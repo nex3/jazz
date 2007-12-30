@@ -1,10 +1,24 @@
 #include "string.h"
+
 #include <stdlib.h>
+#include <string.h>
 
 jz_str* jz_str_new(int length, UChar* value) {
   jz_str* to_ret = malloc(sizeof(jz_str));
   to_ret->length = length;
   to_ret->value = value;
+  return to_ret;
+}
+
+jz_str* jz_str_deep_new(int length, UChar* value) {
+  jz_str* to_ret;
+
+  if (length == 0) return jz_str_null();
+
+  to_ret = malloc(sizeof(jz_str));
+  to_ret->length = length;
+  to_ret->value = calloc(sizeof(UChar), length);
+  memcpy(to_ret->value, value, length * sizeof(UChar));
   return to_ret;
 }
 
@@ -16,8 +30,13 @@ jz_str* jz_str_dup(jz_str* this) {
   return jz_str_new(this->length, this->value);
 }
 
-jz_str* jz_str_substr(jz_str* this, int start, int length) {
-  return jz_str_new(length, this->value + start);
+jz_str* jz_str_deep_dup(jz_str* this) {
+  return jz_str_deep_new(this->length, this->value);
+}
+
+jz_str* jz_str_substr(jz_str* this, int start, int end) {
+  if (end <= start) return jz_str_null();
+  return jz_str_new(end - start, this->value + start);
 }
 
 bool jz_str_equal(const jz_str* s1, const jz_str* s2) {

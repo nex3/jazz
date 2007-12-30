@@ -96,8 +96,8 @@ bool try_decimal_literal() {
 
     yylval.num = (*num) ? atof(num) : 0.0;
 
-    /* dec[0] is always '.' */
-    if (dec[1]) yylval.num += atof(dec);
+    /* dec[0] is always '.' if it's not '\0' */
+    if (dec[0] && dec[1]) yylval.num += atof(dec);
     if (*exp)   yylval.num *= pow(10.0, atof(exp));
 
     free(num);
@@ -154,7 +154,11 @@ int try_identifier() {
   match = jz_str_to_chars(jz_match);
   result = in_word_set(match, jz_match->length);
   free(match);
-  if (result) return result->token;
+
+  if (result) {
+    free(jz_match);
+    return result->token;
+  }
 
   yylval.str = jz_match;
   return IDENTIFIER;
@@ -195,7 +199,7 @@ jz_str* get_match(URegularExpression* re, int number) {
   CHECK_ICU_ERROR(error);
 
   if (start == -1) return NULL;
-  return jz_str_substr(state.code_prev, start, end - start);
+  return jz_str_substr(state.code_prev, start, end);
 }
 
 #define IDENTIFIER_START_RE         "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\$_]"

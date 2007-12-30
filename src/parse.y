@@ -101,11 +101,13 @@ var_decl_list: var_decl { DECLARE_LIST_END(jz_parse_vars, $$, $1); }
  }
 
 var_decl: IDENTIFIER {
-  DECLARE_UNIONS(str, jz_str_dup($1), node, NULL);
+  DECLARE_UNIONS(str, jz_str_deep_dup($1), node, NULL);
+  free($1);
   $$ = node_new(jz_parse_vars, car, cdr);
  }
   | IDENTIFIER EQUALS cond_expr {
-    DECLARE_UNIONS(str, jz_str_dup($1), node, $3);
+    DECLARE_UNIONS(str, jz_str_deep_dup($1), node, $3);
+    free($1);
     fprintf(stderr, "var_decl should use assginment_expr, not cond_expr.\n");
     $$ = node_new(jz_parse_vars, car, cdr);
  }
@@ -211,7 +213,8 @@ primary_expr: identifier { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {
-  DECLARE_UNIONS(str, jz_str_dup($1), node, NULL);
+  DECLARE_UNIONS(str, jz_str_deep_dup($1), node, NULL);
+  free($1);
   $$ = node_new(jz_parse_identifier, car, cdr);
  }
 
