@@ -92,26 +92,25 @@ void compile_statements(comp_state* state, jz_parse_node* node) {
 
   old_cap = state->stack_length;
   node = node->car.node;
-  assert(node->type == jz_parse_statement);
     
-  switch (node->car.st_type) {
-  case jz_st_empty: break;
+  switch (node->type) {
+  case jz_parse_empty: break;
 
-  case jz_st_var:
-    compile_vars(state, node->cdr.node);
+  case jz_parse_vars:
+    compile_vars(state, node);
     break;
 
-  case jz_st_return:
-    compile_return(state, node->cdr.node);
+  case jz_parse_return:
+    compile_return(state, node->car.node);
     break;
       
-  case jz_st_expr:
-    compile_exprs(state, node->cdr.node);
+  case jz_parse_exprs:
+    compile_exprs(state, node);
     push_opcode(jz_oc_pop);
     break;
 
   default:
-    printf("Unknown statement type %d\n", node->car.st_type);
+    printf("Unknown statement type %d\n", node->type);
     exit(1);
   }
 

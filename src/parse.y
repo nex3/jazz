@@ -88,10 +88,7 @@ statement: expr_statement { $$ = $1; }
   | empty_statement { $$ = $1; }
   | return_statement { $$ = $1; }
 
-var_statement: VAR var_decl_list SEMICOLON {
-  DECLARE_UNIONS(st_type, jz_st_var, node, $2);
-  $$ = node_new(jz_parse_statement, car, cdr);
- }
+var_statement: VAR var_decl_list SEMICOLON { $$ = $2; }
 
 var_decl_list: var_decl { DECLARE_LIST_END(jz_parse_vars, $$, $1); }
   | var_decl_list COMMA var_decl {
@@ -110,23 +107,20 @@ var_decl: IDENTIFIER {
     $$ = node_new(jz_parse_vars, car, cdr);
  }
 
-expr_statement: expr SEMICOLON {
-  DECLARE_UNIONS(st_type, jz_st_expr, node, $1);
-  $$ = node_new(jz_parse_statement, car, cdr);
- }
+expr_statement: expr SEMICOLON { $$ = $1; }
 
 return_statement: RETURN expr SEMICOLON {
-  DECLARE_UNIONS(st_type, jz_st_return, node, $2);
-  $$ = node_new(jz_parse_statement, car, cdr);
+  DECLARE_UNIONS(node, $2, node, NULL);
+  $$ = node_new(jz_parse_return, car, cdr);
  }
   | RETURN SEMICOLON {
-    DECLARE_UNIONS(st_type, jz_st_return, node, NULL);
-    $$ = node_new(jz_parse_statement, car, cdr);
+    DECLARE_UNIONS(node, NULL, node, NULL);
+    $$ = node_new(jz_parse_return, car, cdr);
  }
 
 empty_statement: SEMICOLON {
-  DECLARE_UNIONS(st_type, jz_st_empty, node, NULL);
-  $$ = node_new(jz_parse_statement, car, cdr);
+  DECLARE_UNIONS(node, NULL, node, NULL);
+  $$ = node_new(jz_parse_empty, car, cdr);
  }
 
 expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
