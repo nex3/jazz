@@ -56,17 +56,14 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
               GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
-%type <node> program source_elements
-%type <node> statement expr_statement var_statement empty_statement return_statement
+%type <node> program source_elements source_element
+             statement var_statement var_decl_list var_decl
+             expr_statement return_statement empty_statement
+             expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
+             bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
+             unary_expr postfix_expr left_hand_expr new_expr member_expr
+             primary_expr identifier literal number boolean undefined
 
-%type <node> var_decl_list var_decl
-
-%type <node> expr cond_expr or_expr and_expr bw_or_expr bw_and_expr xor_expr
-             eq_expr rel_expr shift_expr add_expr mult_expr
-
-%type <node> unary_expr primary_expr identifier
-
-%type <node> literal number boolean undefined
 %type <boolean> bool_val
 
 %start program
@@ -78,11 +75,13 @@ program: source_elements {
   root_node = $$;
  }
 
-source_elements: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
-  | source_elements statement {
+source_elements: source_element { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
+  | source_elements source_element {
     DECLARE_UNIONS(node, $2, node, $1);
     $$ = node_new(jz_parse_statements, car, cdr);
  }
+
+source_element: statement { $$ = $1; }
 
 statement: expr_statement { $$ = $1; }
   | var_statement { $$ = $1; }
@@ -105,10 +104,9 @@ var_decl: IDENTIFIER {
   free($1);
   $$ = node_new(jz_parse_vars, car, cdr);
  }
-  | IDENTIFIER EQUALS cond_expr {
+  | IDENTIFIER EQUALS assign_expr {
     DECLARE_UNIONS(str, jz_str_deep_dup($1), node, $3);
     free($1);
-    fprintf(stderr, "var_decl should use assginment_expr, not cond_expr.\n");
     $$ = node_new(jz_parse_vars, car, cdr);
  }
 
@@ -131,11 +129,13 @@ empty_statement: SEMICOLON {
   $$ = node_new(jz_parse_statement, car, cdr);
  }
 
-expr: cond_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
-  | expr COMMA cond_expr {
+expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
+  | expr COMMA assign_expr {
     DECLARE_UNIONS(node, $3, node, $1);
     $$ = node_new(jz_parse_exprs, car, cdr);
  }
+
+assign_expr: cond_expr { $$ = $1; }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {
@@ -202,11 +202,16 @@ mult_expr: unary_expr { $$ = $1; }
   | mult_expr DIV   unary_expr { $$ = binop_node(jz_op_div,   $1, $3); }
   | mult_expr MOD   unary_expr { $$ = binop_node(jz_op_mod,   $1, $3); };
 
-unary_expr: primary_expr { $$ = $1; }
+unary_expr: postfix_expr { $$ = $1; }
   | PLUS   unary_expr { $$ = unop_node(jz_op_plus,   $2); }
   | MINUS  unary_expr { $$ = unop_node(jz_op_minus,  $2); }
   | BW_NOT unary_expr { $$ = unop_node(jz_op_bw_not, $2); }
   | NOT    unary_expr { $$ = unop_node(jz_op_not,    $2); }
+
+postfix_expr: left_hand_expr { $$ = $1; }
+left_hand_expr: new_expr { $$ = $1; }
+new_expr: member_expr { $$ = $1; }
+member_expr: primary_expr { $$ = $1; }
 
 primary_expr: identifier { $$ = $1; }
   | literal { $$ = $1; }
