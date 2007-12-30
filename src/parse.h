@@ -26,6 +26,12 @@ typedef enum {
                           or NULL if there is no expression being returned. */
   jz_parse_empty,      /* An empty statement.
                           car and cdr aren't used. */
+  jz_parse_if,         /* An if statement.
+                          car.node is the conditional expression.
+                          cdar.node is the statement to evaluate
+                          if the conditional evaluates to true.
+                          cddr.node is the statement to evaluate otherwise,
+                          or NULL if none was given. */
 
   jz_parse_vars,       /* A list of variable declarations.
                           car.node is a jz_parse_var. */
@@ -33,6 +39,7 @@ typedef enum {
                           car.str is the name of the variable.
                           cdr.node is the initializer of the variable,
                           or NULL if there is no initializer. */
+
   jz_parse_exprs,      /* A list of expressions.
                           car.node is the root node of an expression. */
   jz_parse_unop,       /* A unary operator.

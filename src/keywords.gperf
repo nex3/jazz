@@ -13,6 +13,7 @@ undefined, UNDEF_VAL
 #
 return, RETURN
 var,    VAR
+if,     IF
 #
 # Operators
 #
