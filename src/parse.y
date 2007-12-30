@@ -53,7 +53,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
               LSHIFT    RSHIFT      URSHIFT   BW_AND    BW_OR        XOR
               NOT       BW_NOT      AND       OR        QUESTION     COLON
               EQUALS    PLUS_EQ     MINUS_EQ  TIMES_EQ  MOD_EQ       LSHIFT_EQ
-              RSHIFT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
+              RSHIFT_EQ URSHIFT_EQ  BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
 %type <node> program source_elements source_element
@@ -136,7 +136,30 @@ expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
  }
 
 assign_expr: cond_expr { $$ = $1; }
-  | left_hand_expr EQUALS assign_expr { $$ = binop_node(jz_op_assign, $1, $3); }
+  | left_hand_expr EQUALS     assign_expr
+     { $$ = binop_node(jz_op_assign,     $1, $3); }
+  | left_hand_expr TIMES_EQ   assign_expr
+     { $$ = binop_node(jz_op_times_eq,   $1, $3); }
+  | left_hand_expr DIV_EQ     assign_expr
+     { $$ = binop_node(jz_op_div_eq,     $1, $3); }
+  | left_hand_expr MOD_EQ     assign_expr
+     { $$ = binop_node(jz_op_mod_eq,     $1, $3); }
+  | left_hand_expr PLUS_EQ    assign_expr
+     { $$ = binop_node(jz_op_add_eq,     $1, $3); }
+  | left_hand_expr MINUS_EQ   assign_expr
+     { $$ = binop_node(jz_op_sub_eq,     $1, $3); }
+  | left_hand_expr LSHIFT_EQ  assign_expr
+     { $$ = binop_node(jz_op_lshift_eq,  $1, $3); }
+  | left_hand_expr RSHIFT_EQ  assign_expr
+     { $$ = binop_node(jz_op_rshift_eq,  $1, $3); }
+  | left_hand_expr URSHIFT_EQ assign_expr
+     { $$ = binop_node(jz_op_urshift_eq, $1, $3); }
+  | left_hand_expr BW_AND_EQ  assign_expr
+     { $$ = binop_node(jz_op_bw_and_eq,  $1, $3); }
+  | left_hand_expr XOR_EQ     assign_expr
+     { $$ = binop_node(jz_op_xor_eq,     $1, $3); }
+  | left_hand_expr BW_OR_EQ   assign_expr
+     { $$ = binop_node(jz_op_bw_or_eq,   $1, $3); }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {

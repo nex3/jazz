@@ -71,6 +71,17 @@ typedef enum {
   jz_op_div,
   jz_op_mod,
   jz_op_assign,
+  jz_op_times_eq,
+  jz_op_div_eq,
+  jz_op_mod_eq,
+  jz_op_add_eq,
+  jz_op_sub_eq,
+  jz_op_lshift_eq,
+  jz_op_rshift_eq,
+  jz_op_urshift_eq,
+  jz_op_bw_and_eq,
+  jz_op_xor_eq,
+  jz_op_bw_or_eq,
   jz_op_bw_not,
   jz_op_not
 } jz_op_type;

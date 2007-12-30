@@ -39,7 +39,7 @@ static void compile_unop(comp_state* state, jz_parse_node* node);
 static void compile_binop(comp_state* state, jz_parse_node* node);
 static void compile_logical_binop(comp_state* state, jz_parse_node* node);
 static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
-static void compile_assign_binop(comp_state* state, jz_parse_node* node);
+static void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
 static void compile_triop(comp_state* state, jz_parse_node* node);
 
 static unsigned char add_lvar(comp_state* state, jz_str* name);
@@ -250,6 +250,18 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
   }
 }
 
+#define SIMPLE_BINOP_CASE(op)                           \
+  case jz_op_ ## op: {                                  \
+    compile_simple_binop(state, node, jz_oc_ ## op);    \
+    break;                                              \
+  }
+
+#define ASSIGN_BINOP_CASE(op)                           \
+  case jz_op_ ## op ## _eq: {                           \
+    compile_assign_binop(state, node, jz_oc_ ## op);    \
+    break;                                              \
+  }
+
 void compile_binop(comp_state* state, jz_parse_node* node) {
   switch (node->car.op_type) {
   case jz_op_and:
@@ -257,77 +269,39 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
     compile_logical_binop(state, node);
     break;
 
-  case jz_op_bw_or:
-    compile_simple_binop(state, node, jz_oc_bw_or);
-    break;
-
-  case jz_op_xor:
-    compile_simple_binop(state, node, jz_oc_xor);
-    break;
-
-  case jz_op_bw_and:
-    compile_simple_binop(state, node, jz_oc_bw_and);
-    break;
-
-  case jz_op_equals:
-    compile_simple_binop(state, node, jz_oc_equals);
-    break;
-
-  case jz_op_strict_eq:
-    compile_simple_binop(state, node, jz_oc_strict_eq);
-    break;
-
-  case jz_op_lt:
-    compile_simple_binop(state, node, jz_oc_lt);
-    break;
-
-  case jz_op_gt:
-    compile_simple_binop(state, node, jz_oc_gt);
-    break;
-
-  case jz_op_lt_eq:
-    compile_simple_binop(state, node, jz_oc_lt_eq);
-    break;
-
-  case jz_op_gt_eq:
-    compile_simple_binop(state, node, jz_oc_gt_eq);
-    break;
-
-  case jz_op_lshift:
-    compile_simple_binop(state, node, jz_oc_lshift);
-    break;
-
-  case jz_op_rshift:
-    compile_simple_binop(state, node, jz_oc_rshift);
-    break;
-
-  case jz_op_urshift:
-    compile_simple_binop(state, node, jz_oc_urshift);
-    break;
-
-  case jz_op_add:
-    compile_simple_binop(state, node, jz_oc_add);
-    break;
-
-  case jz_op_sub:
-    compile_simple_binop(state, node, jz_oc_sub);
-    break;
-
-  case jz_op_times:
-    compile_simple_binop(state, node, jz_oc_times);
-    break;
-
-  case jz_op_div:
-    compile_simple_binop(state, node, jz_oc_div);
-    break;
-
-  case jz_op_mod:
-    compile_simple_binop(state, node, jz_oc_mod);
-    break;
+  SIMPLE_BINOP_CASE(bw_or)
+  SIMPLE_BINOP_CASE(xor)
+  SIMPLE_BINOP_CASE(bw_and)
+  SIMPLE_BINOP_CASE(equals)
+  SIMPLE_BINOP_CASE(strict_eq)
+  SIMPLE_BINOP_CASE(lt)
+  SIMPLE_BINOP_CASE(gt)
+  SIMPLE_BINOP_CASE(lt_eq)
+  SIMPLE_BINOP_CASE(gt_eq)
+  SIMPLE_BINOP_CASE(lshift)
+  SIMPLE_BINOP_CASE(rshift)
+  SIMPLE_BINOP_CASE(urshift)
+  SIMPLE_BINOP_CASE(add)
+  SIMPLE_BINOP_CASE(sub)
+  SIMPLE_BINOP_CASE(times)
+  SIMPLE_BINOP_CASE(div)
+  SIMPLE_BINOP_CASE(mod)
 
   case jz_op_assign:
-    compile_assign_binop(state, node);
+    compile_assign_binop(state, node, jz_oc_noop);
     break;
+
+  ASSIGN_BINOP_CASE(times)
+  ASSIGN_BINOP_CASE(div)
+  ASSIGN_BINOP_CASE(mod)
+  ASSIGN_BINOP_CASE(add)
+  ASSIGN_BINOP_CASE(sub)
+  ASSIGN_BINOP_CASE(lshift)
+  ASSIGN_BINOP_CASE(rshift)
+  ASSIGN_BINOP_CASE(urshift)
+  ASSIGN_BINOP_CASE(bw_and)
+  ASSIGN_BINOP_CASE(xor)
+  ASSIGN_BINOP_CASE(bw_or)
 
   default:
     fprintf(stderr, "Unknown operator %d\n", node->car.op_type);
@@ -368,13 +342,22 @@ void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
   state->stack_length = MAX(left_cap, right_cap + 1);
 }
 
-void compile_assign_binop(comp_state* state, jz_parse_node* node) {
+void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) {
   if (CDAR(node).node->type != jz_parse_identifier) {
     fprintf(stderr, "Invalid left-hand side of assignment.\n");
     exit(1);
   }
 
-  compile_expr(state, CDDR(node).node);
+  /* Noop signals that this is just a plain assignment.
+     Otherwise we want to run an operation before assigning. */
+  if (op != jz_oc_noop) {
+    compile_identifier(state, CDAR(node).node);
+    compile_expr(state, CDDR(node).node);
+    jz_opcode_vector_append(state->code, op);
+
+    state->stack_length++;
+  } else compile_expr(state, CDDR(node).node);
+
   jz_opcode_vector_append(state->code, jz_oc_dup);
   jz_opcode_vector_append(state->code, jz_oc_store);
   jz_opcode_vector_append(state->code, get_lvar(state, CDAAR(node).str)->index);

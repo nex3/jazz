@@ -38,7 +38,8 @@ typedef enum {
   jz_oc_bw_not,
   jz_oc_not,
   jz_oc_ret,
-  jz_oc_end
+  jz_oc_end,
+  jz_oc_noop
 } jz_oc_type;
 
 #define JZ_OCS_TVALUE (sizeof(jz_tvalue)/sizeof(jz_opcode))
