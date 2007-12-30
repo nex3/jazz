@@ -85,12 +85,12 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       stack--;
       break;
 
-    case jz_oc_equal:
+    case jz_oc_equals:
       stack[-2] = jz_wrap_bool(jz_values_equal(stack[-2], stack[-1]));
       stack--;
       break;
 
-    case jz_oc_strict_equal:
+    case jz_oc_strict_eq:
       stack[-2] = jz_wrap_bool(jz_values_strict_equal(stack[-2], stack[-1]));
       stack--;
       break;
@@ -115,7 +115,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
-    case jz_oc_lte: {
+    case jz_oc_lt_eq: {
       double comp = jz_values_comp(stack[-2], stack[-1]);
 
       if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
@@ -125,7 +125,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
-    case jz_oc_gte: {
+    case jz_oc_gt_eq: {
       double comp = jz_values_comp(stack[-2], stack[-1]);
 
       if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
@@ -271,12 +271,12 @@ void print_bytecode(jz_bytecode* bytecode) {
       name = "bw_and";
       break;
 
-    case jz_oc_equal:
-      name = "equal";
+    case jz_oc_equals:
+      name = "equals";
       break;
 
-    case jz_oc_strict_equal:
-      name = "strict_equal";
+    case jz_oc_strict_eq:
+      name = "strict_eq";
       break;
 
     case jz_oc_lt:
@@ -287,12 +287,12 @@ void print_bytecode(jz_bytecode* bytecode) {
       name = "gt";
       break;
 
-    case jz_oc_lte:
-      name = "lte";
+    case jz_oc_lt_eq:
+      name = "lt_eq";
       break;
 
-    case jz_oc_gte:
-      name = "gte";
+    case jz_oc_gt_eq:
+      name = "gt_eq";
       break;
 
     case jz_oc_lshift:

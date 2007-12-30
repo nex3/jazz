@@ -228,11 +228,11 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
   compile_expr(state, node->cdr.node);
 
   switch (node->car.op_type) {
-  case jz_op_plus:
+  case jz_op_add:
     jz_opcode_vector_append(state->code, jz_oc_to_num);
     break;
 
-  case jz_op_minus:
+  case jz_op_sub:
     jz_opcode_vector_append(state->code, jz_oc_neg);
     break;
 
@@ -270,11 +270,11 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
     break;
 
   case jz_op_equals:
-    compile_simple_binop(state, node, jz_oc_equal);
+    compile_simple_binop(state, node, jz_oc_equals);
     break;
 
-  case jz_op_eq_eq_eq:
-    compile_simple_binop(state, node, jz_oc_strict_equal);
+  case jz_op_strict_eq:
+    compile_simple_binop(state, node, jz_oc_strict_eq);
     break;
 
   case jz_op_lt:
@@ -286,30 +286,30 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
     break;
 
   case jz_op_lt_eq:
-    compile_simple_binop(state, node, jz_oc_lte);
+    compile_simple_binop(state, node, jz_oc_lt_eq);
     break;
 
   case jz_op_gt_eq:
-    compile_simple_binop(state, node, jz_oc_gte);
+    compile_simple_binop(state, node, jz_oc_gt_eq);
     break;
 
-  case jz_op_lt_lt:
+  case jz_op_lshift:
     compile_simple_binop(state, node, jz_oc_lshift);
     break;
 
-  case jz_op_gt_gt:
+  case jz_op_rshift:
     compile_simple_binop(state, node, jz_oc_rshift);
     break;
 
-  case jz_op_gt_gt_gt:
+  case jz_op_urshift:
     compile_simple_binop(state, node, jz_oc_urshift);
     break;
 
-  case jz_op_plus:
+  case jz_op_add:
     compile_simple_binop(state, node, jz_oc_add);
     break;
 
-  case jz_op_minus:
+  case jz_op_sub:
     compile_simple_binop(state, node, jz_oc_sub);
     break;
 

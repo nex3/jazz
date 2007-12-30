@@ -46,14 +46,14 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> RETURN VAR
 
 /* Punctuation tokens */
-%token <none> LCURLY   RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
-              DOT      SEMICOLON   COMMA     LESS_THAN GREATER_THAN GT_EQ
-              LT_EQ    EQ_EQ       NOT_EQ    EQ_EQ_EQ  NOT_EQ_EQ
-              PLUS     MINUS       TIMES     MOD       PLUS_PLUS    MINUS_MINUS
-              LT_LT    GT_GT       GT_GT_GT  BW_AND    BW_OR        XOR
-              NOT      BW_NOT      AND       OR        QUESTION     COLON
-              EQUALS   PLUS_EQ     MINUS_EQ  TIMES_EQ  MOD_EQ       LT_LT_EQ
-              GT_GT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
+%token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
+              DOT       SEMICOLON   COMMA     LESS_THAN GREATER_THAN GT_EQ
+              LT_EQ     EQ_EQ       NOT_EQ    STRICT_EQ NOT_STRICT_EQ
+              PLUS      MINUS       TIMES     MOD       PLUS_PLUS    MINUS_MINUS
+              LSHIFT    RSHIFT      URSHIFT   BW_AND    BW_OR        XOR
+              NOT       BW_NOT      AND       OR        QUESTION     COLON
+              EQUALS    PLUS_EQ     MINUS_EQ  TIMES_EQ  MOD_EQ       LSHIFT_EQ
+              RSHIFT_EQ GT_GT_GT_EQ BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
 %type <node> program source_elements source_element
@@ -173,13 +173,13 @@ bw_and_expr: eq_expr { $$ = $1; }
 
 eq_expr: rel_expr { $$ = $1; }
   | eq_expr EQ_EQ     rel_expr { $$ = binop_node(jz_op_equals,    $1, $3); }
-  | eq_expr EQ_EQ_EQ  rel_expr { $$ = binop_node(jz_op_eq_eq_eq,  $1, $3); }
+  | eq_expr STRICT_EQ rel_expr { $$ = binop_node(jz_op_strict_eq,  $1, $3); }
   | eq_expr NOT_EQ    rel_expr {
     $$ = binop_node(jz_op_equals, $1, $3);
     $$ = unop_node(jz_op_not, $$);
  }
-  | eq_expr NOT_EQ_EQ rel_expr {
-    $$ = binop_node(jz_op_eq_eq_eq, $1, $3);
+  | eq_expr NOT_STRICT_EQ rel_expr {
+    $$ = binop_node(jz_op_strict_eq, $1, $3);
     $$ = unop_node(jz_op_not, $$);
  }
 
@@ -190,13 +190,13 @@ rel_expr: shift_expr { $$ = $1; }
   | rel_expr GT_EQ        shift_expr { $$ = binop_node(jz_op_gt_eq, $1, $3); }
 
 shift_expr: add_expr { $$ = $1; }
-  | shift_expr LT_LT    add_expr { $$ = binop_node(jz_op_lt_lt,    $1, $3); }
-  | shift_expr GT_GT    add_expr { $$ = binop_node(jz_op_gt_gt,    $1, $3); }
-  | shift_expr GT_GT_GT add_expr { $$ = binop_node(jz_op_gt_gt_gt, $1, $3); }
+  | shift_expr LSHIFT  add_expr { $$ = binop_node(jz_op_lshift,  $1, $3); }
+  | shift_expr RSHIFT  add_expr { $$ = binop_node(jz_op_rshift,  $1, $3); }
+  | shift_expr URSHIFT add_expr { $$ = binop_node(jz_op_urshift, $1, $3); }
 
 add_expr: mult_expr { $$ = $1; }
-  | add_expr PLUS  mult_expr { $$ = binop_node(jz_op_plus,  $1, $3); }
-  | add_expr MINUS mult_expr { $$ = binop_node(jz_op_minus, $1, $3); };
+  | add_expr PLUS  mult_expr { $$ = binop_node(jz_op_add, $1, $3); }
+  | add_expr MINUS mult_expr { $$ = binop_node(jz_op_sub, $1, $3); };
 
 mult_expr: unary_expr { $$ = $1; }
   | mult_expr TIMES unary_expr { $$ = binop_node(jz_op_times, $1, $3); }
@@ -204,8 +204,8 @@ mult_expr: unary_expr { $$ = $1; }
   | mult_expr MOD   unary_expr { $$ = binop_node(jz_op_mod,   $1, $3); };
 
 unary_expr: postfix_expr { $$ = $1; }
-  | PLUS   unary_expr { $$ = unop_node(jz_op_plus,   $2); }
-  | MINUS  unary_expr { $$ = unop_node(jz_op_minus,  $2); }
+  | PLUS   unary_expr { $$ = unop_node(jz_op_add,  $2); }
+  | MINUS  unary_expr { $$ = unop_node(jz_op_sub,  $2); }
   | BW_NOT unary_expr { $$ = unop_node(jz_op_bw_not, $2); }
   | NOT    unary_expr { $$ = unop_node(jz_op_not,    $2); }
 
