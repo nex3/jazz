@@ -38,7 +38,8 @@ static void compile_expr(comp_state* state, jz_parse_node* node);
 static lvar_node* compile_identifier(comp_state* state, jz_parse_node* node);
 static void compile_literal(comp_state* state, jz_parse_node* node);
 static void compile_unop(comp_state* state, jz_parse_node* node);
-static void compile_unit_shortcut(comp_state* state, jz_parse_node* node, jz_opcode op);
+static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
+                                  jz_opcode op, bool pre);
 static void compile_binop(comp_state* state, jz_parse_node* node);
 static void compile_logical_binop(comp_state* state, jz_parse_node* node);
 static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
@@ -239,7 +240,7 @@ void compile_literal(comp_state* state, jz_parse_node* node) {
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
   case operator: {                                      \
     compile_expr(state, node->cdr.node);                \
-    push_opcode(opcode);       \
+    push_opcode(opcode);                                \
     break;                                              \
   }
 
@@ -251,11 +252,19 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
   SIMPLE_UNOP_CASE(jz_op_not,    jz_oc_not)
 
   case jz_op_pre_inc:
-    compile_unit_shortcut(state, node, jz_oc_add);
+    compile_unit_shortcut(state, node, jz_oc_add, true);
     break;
 
   case jz_op_pre_dec:
-    compile_unit_shortcut(state, node, jz_oc_sub);
+    compile_unit_shortcut(state, node, jz_oc_sub, true);
+    break;
+
+  case jz_op_post_inc:
+    compile_unit_shortcut(state, node, jz_oc_add, false);
+    break;
+
+  case jz_op_post_dec:
+    compile_unit_shortcut(state, node, jz_oc_sub, false);
     break;
 
   default:
@@ -264,18 +273,24 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
   }
 }
 
-static void compile_unit_shortcut(comp_state* state, jz_parse_node* node, jz_opcode op) {
+static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
+                                  jz_opcode op, bool pre) {
   jz_tvalue unit = jz_wrap_num(1);
   lvar_node* var = compile_identifier(state, node->cdr.node);
 
+  if (!pre) push_opcode(jz_oc_dup);
   push_opcode(jz_oc_push_literal);
   push_multibyte_arg(state, &unit, JZ_OCS_TVALUE);
   push_opcode(op);
-  push_opcode(jz_oc_dup);
+  if (pre) push_opcode(jz_oc_dup);
   push_opcode(jz_oc_store);
   push_opcode(var->index);
 
-  state->stack_length++;
+  /* If it's a prefix op, we duplicate the value
+     after we increment or decrement it,
+     but if it's a postfix, we duplicate first,
+     so we need a larger stack size. */
+  state->stack_length += pre ? 1 : 2;
 }
 
 #define SIMPLE_BINOP_CASE(op)                           \

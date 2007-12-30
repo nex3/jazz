@@ -85,7 +85,9 @@ typedef enum {
   jz_op_bw_not,
   jz_op_not,
   jz_op_pre_inc,
-  jz_op_pre_dec
+  jz_op_pre_dec,
+  jz_op_post_inc,
+  jz_op_post_dec
 } jz_op_type;
 
 typedef enum {

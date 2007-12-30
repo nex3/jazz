@@ -234,7 +234,10 @@ unary_expr: postfix_expr { $$ = $1; }
   | PLUS_PLUS   unary_expr { $$ = unop_node(jz_op_pre_inc, $2); }
   | MINUS_MINUS unary_expr { $$ = unop_node(jz_op_pre_dec, $2); }
 
-postfix_expr: left_hand_expr { $$ = $1; }
+postfix_expr: left_hand_expr   { $$ = $1; }
+  | left_hand_expr PLUS_PLUS   { $$ = unop_node(jz_op_post_inc, $1); }
+  | left_hand_expr MINUS_MINUS { $$ = unop_node(jz_op_post_dec, $1); }
+
 left_hand_expr: new_expr { $$ = $1; }
 new_expr: member_expr { $$ = $1; }
 member_expr: primary_expr { $$ = $1; }
