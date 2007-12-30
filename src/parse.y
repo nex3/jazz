@@ -27,6 +27,16 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 
 %error-verbose
 
+/* We have one shift/reduce conflict due to an intentional ambiguity
+   in the ECMAscript grammar.
+   "if (foo) if (bar) baz; else boom;" could be parsed as
+   "if (foo) { if (bar) baz; } else boom;" or
+   "if (foo) { if (bar) baz; else boom; }".
+   The spec mandates the former as the actual interpretation,
+   and that's what Bison defaults to,
+   so we mark the conflict as expected. */
+%expect 1
+
 %union {
   struct jz_parse_node* node;
   jz_str* str;
@@ -43,7 +53,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN VAR IF
+%token <none> RETURN VAR IF ELSE
 
 /* Punctuation tokens */
 %token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -58,7 +68,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 
 %type <node> program source_elements source_element
              statement var_statement var_decl_list var_decl
-             expr_statement return_statement empty_statement if_statement
+             expr_statement return_statement empty_statement if_statement else
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
@@ -124,10 +134,10 @@ empty_statement: SEMICOLON {
   $$ = node_new(jz_parse_empty, car, cdr);
  }
 
-if_statement: IF LPAREN expr RPAREN statement {
+if_statement: IF LPAREN expr RPAREN statement else {
   jz_parse_node* cont;
   {
-    DECLARE_UNIONS(node, $5, node, NULL);
+    DECLARE_UNIONS(node, $5, node, $6);
     cont = node_new(jz_parse_cont, car, cdr);
   }
   {
@@ -135,6 +145,9 @@ if_statement: IF LPAREN expr RPAREN statement {
     $$ = node_new(jz_parse_if, car, cdr);
   }
  }
+
+else: ELSE statement { $$ = $2; }
+  | /* empty */ { $$ = NULL; }
 
 expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
   | expr COMMA assign_expr {

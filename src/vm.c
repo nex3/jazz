@@ -44,7 +44,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
       break;
     }
 
-    case jz_oc_jump_if: {
+    case jz_oc_jump_unless: {
       READ_ARG_INTO(size_t, jump);
       if (!jz_to_bool(POP)) code += jump;
       break;
@@ -238,8 +238,8 @@ void print_bytecode(jz_bytecode* bytecode) {
       argsize = JZ_OCS_SIZET;
       break;
 
-    case jz_oc_jump_if:
-      name = "jump_if";
+    case jz_oc_jump_unless:
+      name = "jump_unless";
       argsize = JZ_OCS_SIZET;
       break;
 

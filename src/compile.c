@@ -162,19 +162,24 @@ void compile_return(comp_state* state, jz_parse_node* node) {
 }
 
 void compile_if(comp_state* state, jz_parse_node* node) {
-  int cap;
+  int expr_cap, if_cap;
   size_t jump;
 
   compile_exprs(state, node->car.node);
-  cap = state->stack_length;
+  expr_cap = state->stack_length;
 
-  push_opcode(jz_oc_jump_if);
+  push_opcode(jz_oc_jump_unless);
   jump = push_placeholder(state, JZ_OCS_SIZET);
 
   compile_statement(state, CDAR(node).node);
   jump_to_top_from(state, jump);
 
-  state->stack_length = MAX(cap, state->stack_length);
+  if (CDDR(node).node != NULL) {
+    compile_statement(state, CDDR(node).node);
+    if_cap = state->stack_length;
+  } else if_cap = 0;
+
+  state->stack_length = MAX(MAX(expr_cap, if_cap), state->stack_length);
 }
 
 void compile_exprs(comp_state* state, jz_parse_node* node) {
@@ -383,7 +388,7 @@ void compile_logical_binop(comp_state* state, jz_parse_node* node) {
 
   if (node->car.op_type == jz_op_or) push_opcode(jz_oc_not);
 
-  push_opcode(jz_oc_jump_if);
+  push_opcode(jz_oc_jump_unless);
   jump = push_placeholder(state, JZ_OCS_SIZET);
 
   compile_expr(state, CDDR(node).node);
@@ -436,7 +441,7 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   compile_expr(state, CDAR(node).node);
   cap1 = state->stack_length;
 
-  push_opcode(jz_oc_jump_if);
+  push_opcode(jz_oc_jump_unless);
   cond_jump = push_placeholder(state, JZ_OCS_SIZET);
 
   compile_expr(state, CDDAR(node).node);
