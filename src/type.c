@@ -2,6 +2,8 @@
 
 #include <math.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define ABS(x)  ((x) < 0 ? -(x) : (x))
 #define SIGN(x) ((x) < 0 ? -1 : 1)
@@ -67,7 +69,9 @@ double jz_to_num(jz_tvalue val) {
   case jz_bool:  return (double)(val.value.b);
   case jz_num:   return val.value.num;
   case jz_undef: return JZ_NAN;
-  default: assert(0);
+  default:
+    fprintf(stderr, "Unknown jz_tvalue type %d\n", val.type);
+    exit(1);
   }
 }
 
@@ -78,7 +82,9 @@ bool jz_to_bool(jz_tvalue val) {
     if (JZ_NUM_IS_NAN(val.value.num)) return false;
     else return (bool)(val.value.num);
   case jz_undef: return false;
-  default: assert(0);
+  default:
+    fprintf(stderr, "Unknown jz_tvalue type %d\n", val.type);
+    exit(1);
   }
 }
 

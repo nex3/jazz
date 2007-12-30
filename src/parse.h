@@ -83,7 +83,9 @@ typedef enum {
   jz_op_xor_eq,
   jz_op_bw_or_eq,
   jz_op_bw_not,
-  jz_op_not
+  jz_op_not,
+  jz_op_pre_inc,
+  jz_op_pre_dec
 } jz_op_type;
 
 typedef enum {

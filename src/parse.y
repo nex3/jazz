@@ -227,10 +227,12 @@ mult_expr: unary_expr { $$ = $1; }
   | mult_expr MOD   unary_expr { $$ = binop_node(jz_op_mod,   $1, $3); };
 
 unary_expr: postfix_expr { $$ = $1; }
-  | PLUS   unary_expr { $$ = unop_node(jz_op_add,  $2); }
-  | MINUS  unary_expr { $$ = unop_node(jz_op_sub,  $2); }
-  | BW_NOT unary_expr { $$ = unop_node(jz_op_bw_not, $2); }
-  | NOT    unary_expr { $$ = unop_node(jz_op_not,    $2); }
+  | PLUS        unary_expr { $$ = unop_node(jz_op_add,     $2); }
+  | MINUS       unary_expr { $$ = unop_node(jz_op_sub,     $2); }
+  | BW_NOT      unary_expr { $$ = unop_node(jz_op_bw_not,  $2); }
+  | NOT         unary_expr { $$ = unop_node(jz_op_not,     $2); }
+  | PLUS_PLUS   unary_expr { $$ = unop_node(jz_op_pre_inc, $2); }
+  | MINUS_MINUS unary_expr { $$ = unop_node(jz_op_pre_dec, $2); }
 
 postfix_expr: left_hand_expr { $$ = $1; }
 left_hand_expr: new_expr { $$ = $1; }
