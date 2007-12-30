@@ -101,6 +101,10 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
   switch (node->type) {
   case jz_parse_empty: break;
 
+  case jz_parse_statements:
+    compile_statements(state, node);
+    break;
+
   case jz_parse_vars:
     compile_vars(state, node);
     break;

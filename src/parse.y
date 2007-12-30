@@ -67,7 +67,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> DIV DIV_EQ
 
 %type <node> program source_elements source_element
-             statement var_statement var_decl_list var_decl
+             statement block statement_list var_statement var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
@@ -93,11 +93,20 @@ source_elements: source_element { DECLARE_LIST_END(jz_parse_statements, $$, $1);
 
 source_element: statement { $$ = $1; }
 
-statement: expr_statement { $$ = $1; }
+statement: block { $$ = $1; }
+  | expr_statement { $$ = $1; }
   | var_statement { $$ = $1; }
   | empty_statement { $$ = $1; }
   | return_statement { $$ = $1; }
   | if_statement { $$ = $1; }
+
+block: LCURLY statement_list RCURLY { $$ = $2; }
+
+statement_list: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
+  | statement_list statement {
+    DECLARE_UNIONS(node, $2, node, $1);
+    $$ = node_new(jz_parse_statements, car, cdr);
+ }
 
 var_statement: VAR var_decl_list SEMICOLON { $$ = $2; }
 
