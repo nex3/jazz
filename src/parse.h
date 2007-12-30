@@ -36,6 +36,10 @@ typedef enum {
                           car.node is the conditional expression.
                           cdr.node is the statement to evaluate
                           while the conditional evaluates to true. */
+  jz_parse_while,      /* A while statement.
+                          car.node is the conditional expression.
+                          cdr.node is the statement to evaluate
+                          while the conditional evaluates to true. */
 
   jz_parse_vars,       /* A list of variable declarations.
                           car.node is a jz_parse_var. */

@@ -34,6 +34,7 @@ static void compile_vars(comp_state* state, jz_parse_node* node);
 static void compile_return(comp_state* state, jz_parse_node* node);
 static void compile_if(comp_state* state, jz_parse_node* node);
 static void compile_do_while(comp_state* state, jz_parse_node* node);
+static void compile_while(comp_state* state, jz_parse_node* node);
 
 static void compile_exprs(comp_state* state, jz_parse_node* node);
 static void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first);
@@ -128,6 +129,10 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
     compile_do_while(state, node);
     break;
 
+  case jz_parse_while:
+    compile_while(state, node);
+    break;
+
   default:
     printf("Unknown statement type %d\n", node->type);
     exit(1);
@@ -203,6 +208,26 @@ void compile_do_while(comp_state* state, jz_parse_node* node) {
   compile_exprs(state, node->car.node);
   PUSH_OPCODE(jz_oc_jump_if);
   jump_to_from_top(state, jump);
+
+  state->stack_length = MAX(cap, state->stack_length);
+}
+
+void compile_while(comp_state* state, jz_parse_node* node) {
+  int cap;
+  size_t index, placeholder;
+
+  index = state->code->next - state->code->values;
+  compile_exprs(state, node->car.node);
+  cap = state->stack_length;
+
+  PUSH_OPCODE(jz_oc_jump_unless);
+  placeholder = push_placeholder(state, JZ_OCS_SIZET);
+
+  compile_statement(state, node->cdr.node);
+  PUSH_OPCODE(jz_oc_jump);
+  jump_to_from_top(state, index);
+
+  jump_to_top_from(state, placeholder);
 
   state->stack_length = MAX(cap, state->stack_length);
 }
