@@ -7,19 +7,22 @@
 
 static jz_parse_node* root_node = NULL;
 
-#define DECLARE_UNIONS(car_member, car_val, cdr_member, cdr_val) \
-  jz_parse_value car;                                            \
-  jz_parse_value cdr;                                            \
-  car.car_member = car_val;                                      \
-  cdr.cdr_member = cdr_val;
+#define JZ_PARSE_ASSIGN_NEW_NODE(target, node_type, car_type,   \
+                                 car_val, cdr_type, cdr_val)    \
+  {                                                             \
+    jz_parse_value car;                                         \
+    jz_parse_value cdr;                                         \
+                                                                \
+    car.car_type = (car_val);                                   \
+    cdr.cdr_type = (cdr_val);                                   \
+    target = jz_node_new(node_type, car, cdr);                  \
+  }
 
-#define DECLARE_LIST_END(type, target, node_var)        \
-  DECLARE_UNIONS(node, node_var, node, NULL);           \
-  target = node_new(type, car, cdr);
-
+#define DECLARE_LIST_END(type, target, node_var)                        \
+  JZ_PARSE_ASSIGN_NEW_NODE(target, type, node, node_var, node, NULL);
 
 static void yyerror(const char* msg);
-static jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
+static jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
 
 static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right);
 static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
@@ -87,10 +90,7 @@ program: source_elements {
  }
 
 source_elements: source_element { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
-  | source_elements source_element {
-    DECLARE_UNIONS(node, $2, node, $1);
-    $$ = node_new(jz_parse_statements, car, cdr);
- }
+  | source_elements source_element { JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_statements, node, $2, node, $1); }
 
 source_element: statement { $$ = $1; }
 
@@ -104,61 +104,48 @@ statement: block     { $$ = $1; }
 
 block: LCURLY statement_list RCURLY { $$ = $2; }
   | LCURLY RCURLY {
-    DECLARE_UNIONS(node, NULL, node, NULL);
-    $$ = node_new(jz_parse_empty, car, cdr);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_empty, node, NULL, node, NULL);
  }
 
 statement_list: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
   | statement_list statement {
-    DECLARE_UNIONS(node, $2, node, $1);
-    $$ = node_new(jz_parse_statements, car, cdr);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_statements, node, $2, node, $1);
  }
 
 var_statement: VAR var_decl_list SEMICOLON { $$ = $2; }
 
 var_decl_list: var_decl { DECLARE_LIST_END(jz_parse_vars, $$, $1); }
   | var_decl_list COMMA var_decl {
-    DECLARE_UNIONS(node, $3, node, $1);
-    $$ = node_new(jz_parse_vars, car, cdr);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, node, $3, node, $1);
  }
 
 var_decl: IDENTIFIER {
-  DECLARE_UNIONS(str, jz_str_deep_dup($1), node, NULL);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, str, jz_str_deep_dup($1), node, NULL);
   free($1);
-  $$ = node_new(jz_parse_vars, car, cdr);
  }
   | IDENTIFIER EQUALS assign_expr {
-    DECLARE_UNIONS(str, jz_str_deep_dup($1), node, $3);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, str, jz_str_deep_dup($1), node, $3);
     free($1);
-    $$ = node_new(jz_parse_vars, car, cdr);
  }
 
 expr_statement: expr SEMICOLON { $$ = $1; }
 
 return_statement: RETURN expr SEMICOLON {
-  DECLARE_UNIONS(node, $2, node, NULL);
-  $$ = node_new(jz_parse_return, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_return, node, $2, node, NULL);
  }
   | RETURN SEMICOLON {
-    DECLARE_UNIONS(node, NULL, node, NULL);
-    $$ = node_new(jz_parse_return, car, cdr);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_return, node, NULL, node, NULL);
  }
 
 empty_statement: SEMICOLON {
-  DECLARE_UNIONS(node, NULL, node, NULL);
-  $$ = node_new(jz_parse_empty, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_empty, node, NULL, node, NULL);
  }
 
 if_statement: IF LPAREN expr RPAREN statement else {
   jz_parse_node* cont;
-  {
-    DECLARE_UNIONS(node, $5, node, $6);
-    cont = node_new(jz_parse_cont, car, cdr);
-  }
-  {
-    DECLARE_UNIONS(node, $3, node, cont);
-    $$ = node_new(jz_parse_if, car, cdr);
-  }
+
+  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $5, node, $6);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_if, node, $3, node, cont);
  }
 
 else: ELSE statement { $$ = $2; }
@@ -166,21 +153,18 @@ else: ELSE statement { $$ = $2; }
 
 expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
   | expr COMMA assign_expr {
-    DECLARE_UNIONS(node, $3, node, $1);
-    $$ = node_new(jz_parse_exprs, car, cdr);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_exprs, node, $3, node, $1);
  }
 
 iter_statement: do_while_statement { $$ = $1; }
   | while_statement { $$ = $1; }
 
 do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
-  DECLARE_UNIONS(node, $5, node, $2);
-  $$ = node_new(jz_parse_do_while, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_do_while, node, $5, node, $2);
  }
 
 while_statement: WHILE LPAREN expr RPAREN statement {
-  DECLARE_UNIONS(node, $3, node, $5);
-  $$ = node_new(jz_parse_while, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_while, node, $3, node, $5);
  }
 
 assign_expr: cond_expr { $$ = $1; }
@@ -213,18 +197,9 @@ cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {
     jz_parse_node* cont;
 
-    {
-      DECLARE_UNIONS(node, $3, node, $5);
-      cont = node_new(jz_parse_cont, car, cdr);
-    }
-    {
-      DECLARE_UNIONS(node, $1, node, cont);
-      cont = node_new(jz_parse_cont, car, cdr);
-    }
-    {
-      DECLARE_UNIONS(op_type, jz_op_cond, node, cont);
-      $$ = node_new(jz_parse_triop, car, cdr);
-    }
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $3, node, $5);
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $1, node, cont);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_triop, op_type, jz_op_cond, node, cont);
  }
 
 or_expr: and_expr { $$ = $1; }
@@ -295,9 +270,8 @@ primary_expr: identifier { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {
-  DECLARE_UNIONS(str, jz_str_deep_dup($1), node, NULL);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_identifier, str, jz_str_deep_dup($1), node, NULL);
   free($1);
-  $$ = node_new(jz_parse_identifier, car, cdr);
  }
 
 literal: number { $$ = $1; }
@@ -305,18 +279,15 @@ literal: number { $$ = $1; }
   | undefined   { $$ = $1; }
 
 number: NUMBER {
-  DECLARE_UNIONS(val, jz_wrap_num($1), node, NULL);
-  $$ = node_new(jz_parse_literal, car, cdr);
- };
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_wrap_num($1), node, NULL);
+ }
 
 boolean: bool_val {
-  DECLARE_UNIONS(val, jz_wrap_bool($1), node, NULL);
-  $$ = node_new(jz_parse_literal, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_wrap_bool($1), node, NULL);
  };
 
 undefined: UNDEF_VAL {
-  DECLARE_UNIONS(val, jz_undef_val(), node, NULL);
-  $$ = node_new(jz_parse_literal, car, cdr);
+  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_undef_val(), node, NULL);
  }
 
 bool_val: TRUE_VAL { $$ = true; }
@@ -324,7 +295,7 @@ bool_val: TRUE_VAL { $$ = true; }
 
 %%
 
-jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr) {
+jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr) {
   jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));
   to_ret->type = type;
   to_ret->car  = car;
@@ -335,19 +306,17 @@ jz_parse_node* node_new(jz_parse_type type, jz_parse_value car, jz_parse_value c
 jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right) {
   jz_parse_node* cont;
 
-  {
-    DECLARE_UNIONS(node, left, node, right);
-    cont = node_new(jz_parse_cont, car, cdr);
-  }
-  {
-    DECLARE_UNIONS(op_type, type, node, cont);
-    return node_new(jz_parse_binop, car, cdr);
-  }
+  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, left, node, right);
+  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_binop, op_type, type, node, cont);
+
+  return cont;
 }
 
 jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next) {
-  DECLARE_UNIONS(op_type, type, node, next);
-  return node_new(jz_parse_unop, car, cdr);
+  jz_parse_node* to_ret;
+
+  JZ_PARSE_ASSIGN_NEW_NODE(to_ret, jz_parse_unop, op_type, type, node, next);
+  return to_ret;
 }
 
 jz_parse_node* jz_parse_string(jz_str* code) {
