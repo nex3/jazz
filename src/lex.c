@@ -58,7 +58,7 @@ static bool try_re(URegularExpression* re);
    so the value should not be freed. */
 static jz_str* get_match(URegularExpression* re, int number);
 
-static URegularExpression* create_re(char* pattern);
+static URegularExpression* create_re(const char* pattern);
 
 #define CHECK_ICU_ERROR(error) {                                        \
     if (U_FAILURE(error)) {                                             \
@@ -253,14 +253,14 @@ void jz_lex_init() {
   state.decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
 }
 
-URegularExpression* create_re(char* pattern) {
+URegularExpression* create_re(const char* pattern) {
   UErrorCode error = U_ZERO_ERROR;
   URegularExpression* re = uregex_openC(pattern, 0, NULL, &error);
   CHECK_ICU_ERROR(error);
   return re;
 }
 
-void jz_lex_set_code(jz_str* code) {
-  state.code = code;
+void jz_lex_set_code(const jz_str* code) {
+  state.code = jz_str_dup(code);
   state.code_prev = jz_str_dup(code);
 }

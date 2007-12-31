@@ -16,7 +16,7 @@ void jz_lex_init();
 
 /* Sets the string from which the lexer will read tokens.
    This must be called before parsing can begin. */
-void jz_lex_set_code(jz_str* code);
+void jz_lex_set_code(const jz_str* code);
 
 
 /* The yacc parser interface function. */
