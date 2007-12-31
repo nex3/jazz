@@ -103,6 +103,10 @@ statement: block     { $$ = $1; }
   | iter_statement   { $$ = $1; }
 
 block: LCURLY statement_list RCURLY { $$ = $2; }
+  | LCURLY RCURLY {
+    DECLARE_UNIONS(node, NULL, node, NULL);
+    $$ = node_new(jz_parse_empty, car, cdr);
+ }
 
 statement_list: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
   | statement_list statement {
