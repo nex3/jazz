@@ -126,4 +126,17 @@ struct jz_parse_node {
 
 jz_parse_node* jz_parse_string(jz_str* code);
 
+jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
+
+#define JZ_PARSE_ASSIGN_NEW_NODE(target, node_type, car_type,   \
+                                 car_val, cdr_type, cdr_val)    \
+  {                                                             \
+    jz_parse_value car;                                         \
+    jz_parse_value cdr;                                         \
+                                                                \
+    car.car_type = (car_val);                                   \
+    cdr.cdr_type = (cdr_val);                                   \
+    target = jz_node_new(node_type, car, cdr);                  \
+  }
+
 #endif

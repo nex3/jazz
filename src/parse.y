@@ -7,22 +7,10 @@
 
 static jz_parse_node* root_node = NULL;
 
-#define JZ_PARSE_ASSIGN_NEW_NODE(target, node_type, car_type,   \
-                                 car_val, cdr_type, cdr_val)    \
-  {                                                             \
-    jz_parse_value car;                                         \
-    jz_parse_value cdr;                                         \
-                                                                \
-    car.car_type = (car_val);                                   \
-    cdr.cdr_type = (cdr_val);                                   \
-    target = jz_node_new(node_type, car, cdr);                  \
-  }
-
 #define DECLARE_LIST_END(type, target, node_var)                        \
   JZ_PARSE_ASSIGN_NEW_NODE(target, type, node, node_var, node, NULL);
 
 static void yyerror(const char* msg);
-static jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
 
 static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right);
 static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
