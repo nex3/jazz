@@ -44,7 +44,7 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN VAR IF ELSE DO WHILE
+%token <none> RETURN VAR IF ELSE DO WHILE FOR
 
 /* Punctuation tokens */
 %token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -60,7 +60,8 @@ static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
 %type <node> program source_elements source_element
              statement block statement_list var_statement var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
-             iter_statement do_while_statement while_statement
+             iter_statement do_while_statement while_statement for_statement
+             opt_expr
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
@@ -139,13 +140,9 @@ if_statement: IF LPAREN expr RPAREN statement else {
 else: ELSE statement { $$ = $2; }
   | /* empty */ { $$ = NULL; }
 
-expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
-  | expr COMMA assign_expr {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_exprs, node, $3, node, $1);
- }
-
 iter_statement: do_while_statement { $$ = $1; }
   | while_statement { $$ = $1; }
+  | for_statement { $$ = $1; }
 
 do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
   JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_do_while, node, $5, node, $2);
@@ -153,6 +150,32 @@ do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
 
 while_statement: WHILE LPAREN expr RPAREN statement {
   JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_while, node, $3, node, $5);
+ }
+
+for_statement
+  : FOR LPAREN opt_expr SEMICOLON
+    opt_expr SEMICOLON opt_expr RPAREN statement {
+    jz_parse_node* cont;
+
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $7, node, $9);
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $5, node, cont);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_for, node, $3, node, cont);
+ }
+  | FOR LPAREN VAR var_decl_list SEMICOLON
+    opt_expr SEMICOLON opt_expr RPAREN statement {
+    jz_parse_node* cont;
+
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $8, node, $10);
+    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $6, node, cont);
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_for, node, $4, node, cont);
+ }  
+
+opt_expr: expr { $$ = $1; }
+  | /* empty */ { $$ = NULL; }
+
+expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
+  | expr COMMA assign_expr {
+    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_exprs, node, $3, node, $1);
  }
 
 assign_expr: cond_expr { $$ = $1; }

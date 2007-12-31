@@ -22,6 +22,7 @@ typedef struct {
 #define CADR(n) ((n)->car.node->cdr)
 #define CDAR(n) ((n)->cdr.node->car)
 #define CDDR(n) ((n)->cdr.node->cdr)
+#define CAAAR(n) (CAAR(n).node->car)
 #define CDAAR(n) (CDAR(n).node->car)
 #define CDDAR(n) (CDDR(n).node->car)
 #define CDDDR(n) (CDDR(n).node->cdr)
@@ -35,6 +36,7 @@ static void compile_return(comp_state* state, jz_parse_node* node);
 static void compile_if(comp_state* state, jz_parse_node* node);
 static void compile_do_while(comp_state* state, jz_parse_node* node);
 static void compile_while(comp_state* state, jz_parse_node* node);
+static void compile_for(comp_state* state, jz_parse_node* node);
 
 static void compile_exprs(comp_state* state, jz_parse_node* node);
 static void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first);
@@ -49,6 +51,8 @@ static void compile_logical_binop(comp_state* state, jz_parse_node* node);
 static void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
 static void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op);
 static void compile_triop(comp_state* state, jz_parse_node* node);
+
+static jz_tvalue* get_literal_value(jz_parse_node* node);
 
 static unsigned char add_lvar(comp_state* state, jz_str* name);
 static lvar_node* get_lvar(comp_state* state, jz_str* name);
@@ -133,6 +137,10 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
     compile_while(state, node);
     break;
 
+  case jz_parse_for:
+    compile_for(state, node);
+    break;
+
   default:
     printf("Unknown statement type %d\n", node->type);
     exit(1);
@@ -200,13 +208,24 @@ void compile_if(comp_state* state, jz_parse_node* node) {
 void compile_do_while(comp_state* state, jz_parse_node* node) {
   int cap;
   size_t jump;
+  jz_tvalue* conditional_literal = get_literal_value(node->car.node);
+
+  /* If the conditional is a literal value that evaluates to true,
+     we don't bother to check it. */
+  bool skip_conditional = conditional_literal != NULL &&
+    jz_to_bool(*conditional_literal);
 
   jump = state->code->next - state->code->values;
   compile_statement(state, node->cdr.node);
   cap = state->stack_length;
 
-  compile_exprs(state, node->car.node);
-  PUSH_OPCODE(jz_oc_jump_if);
+  if (skip_conditional)
+    PUSH_OPCODE(jz_oc_jump);
+  else {
+    compile_exprs(state, node->car.node);
+    PUSH_OPCODE(jz_oc_jump_if);
+  }
+
   jump_to_from_top(state, jump);
 
   state->stack_length = MAX(cap, state->stack_length);
@@ -215,19 +234,58 @@ void compile_do_while(comp_state* state, jz_parse_node* node) {
 void compile_while(comp_state* state, jz_parse_node* node) {
   int cap;
   size_t index, placeholder;
+  jz_tvalue* conditional_literal = get_literal_value(node->car.node);
+
+  /* If the conditional is NULL or a literal value that evaluates to true,
+     we don't bother to check it.
+     This makes stuff like "for (;;)" and "while (true)" faster. */
+  bool skip_conditional = node->car.node == NULL ||
+    (conditional_literal != NULL && jz_to_bool(*conditional_literal));
 
   index = state->code->next - state->code->values;
-  compile_exprs(state, node->car.node);
-  cap = state->stack_length;
 
-  PUSH_OPCODE(jz_oc_jump_unless);
-  placeholder = push_placeholder(state, JZ_OCS_SIZET);
+  if (skip_conditional) cap = 0;
+  else {
+    compile_exprs(state, node->car.node);
+    cap = state->stack_length;
+
+    PUSH_OPCODE(jz_oc_jump_unless);
+    placeholder = push_placeholder(state, JZ_OCS_SIZET);
+  }
 
   compile_statement(state, node->cdr.node);
   PUSH_OPCODE(jz_oc_jump);
   jump_to_from_top(state, index);
 
-  jump_to_top_from(state, placeholder);
+  if (!skip_conditional) jump_to_top_from(state, placeholder);
+
+  state->stack_length = MAX(cap, state->stack_length);
+}
+
+void compile_for(comp_state* state, jz_parse_node* node) {
+  int cap;
+  jz_parse_node *body, *inc_expr, *while_statement;
+
+  if (node->car.node != NULL) {
+    compile_statement(state, node->car.node);
+    cap = state->stack_length;
+  } else cap = 0;
+
+  inc_expr = CDDAR(node).node;
+  if (inc_expr != NULL) {
+    JZ_PARSE_ASSIGN_NEW_NODE(inc_expr, jz_parse_exprs,
+                             node, inc_expr, node, NULL);
+    JZ_PARSE_ASSIGN_NEW_NODE(body, jz_parse_statements,
+                             node, CDDDR(node).node, node, NULL);
+    JZ_PARSE_ASSIGN_NEW_NODE(body, jz_parse_statements,
+                             node, inc_expr, node, body);
+  } else body = CDDDR(node).node;
+
+  JZ_PARSE_ASSIGN_NEW_NODE(while_statement, jz_parse_while,
+                           node, CDAR(node).node,
+                           node, body);
+
+  compile_statement(state, while_statement);
 
   state->stack_length = MAX(cap, state->stack_length);
 }
@@ -506,6 +564,17 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   jump_to_top_from(state, branch1_jump);
 
   state->stack_length = MAX(MAX(cap1, cap2), cap3);
+}
+
+/* Get the jz_tvalue of a jz_parse_exprs node if it's just a literal value,
+   or NULL if it's not. */
+jz_tvalue* get_literal_value(jz_parse_node* node) {
+  if (node == NULL ||
+      node->type != jz_parse_exprs ||
+      node->cdr.node != NULL ||
+      node->car.node->type != jz_parse_literal)
+    return NULL;
+  return &CAAR(node).val;
 }
 
 unsigned char add_lvar(comp_state* state, jz_str* name) {

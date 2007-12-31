@@ -18,9 +18,6 @@ typedef enum {
                           Note that because the grammar is left-recursive,
                           the top node is actually the last statement. */
 
-  jz_parse_statement,  /* A statement.
-                          car.st_type is the type of statement.
-                          cdr is defined per-statement-type. */
   jz_parse_return,     /* A return statement.
                           car.node is the jz_parse_exprs to be returned,
                           or NULL if there is no expression being returned. */
@@ -40,6 +37,11 @@ typedef enum {
                           car.node is the conditional expression.
                           cdr.node is the statement to evaluate
                           while the conditional evaluates to true. */
+  jz_parse_for,        /* A for statement.
+                          car.node is the initializer statement, or NULL.
+                          cdar.node is the conditional expression, or NULL.
+                          cddar.node is the increment expression, or NULL.
+                          cdddr.node is the list of statements to evaluate. */
 
   jz_parse_vars,       /* A list of variable declarations.
                           car.node is a jz_parse_var. */
