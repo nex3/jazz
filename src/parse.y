@@ -3,17 +3,20 @@
 #include "lex.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <assert.h>
 
 static jz_parse_node* root_node = NULL;
 
-#define DECLARE_LIST_END(type, target, node_var)                        \
-  JZ_PARSE_ASSIGN_NEW_NODE(target, type, node, node_var, node, NULL);
+static jz_tvalue* ptr_to_val(jz_tvalue val);
+static jz_op_type* ptr_to_ot(jz_op_type ot);
 
 static void yyerror(const char* msg);
 
-static jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right);
-static jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next);
+#define binop_node(type, left, right) jz_pnode_list(jz_parse_binop, 3, ptr_to_ot(type), (left), (right))
+#define unop_node(type, next) jz_pnode_cons(jz_parse_unop, ptr_to_ot(type), (next))
 %}
 
 %error-verbose
@@ -78,8 +81,8 @@ program: source_elements {
   root_node = $$;
  }
 
-source_elements: source_element { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
-  | source_elements source_element { JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_statements, node, $2, node, $1); }
+source_elements: source_element { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
+  | source_elements source_element { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
 
 source_element: statement { $$ = $1; }
 
@@ -92,49 +95,34 @@ statement: block     { $$ = $1; }
   | iter_statement   { $$ = $1; }
 
 block: LCURLY statement_list RCURLY { $$ = $2; }
-  | LCURLY RCURLY {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_empty, node, NULL, node, NULL);
- }
+  | LCURLY RCURLY { $$ = jz_pnode_new(jz_parse_empty); }
 
-statement_list: statement { DECLARE_LIST_END(jz_parse_statements, $$, $1); }
-  | statement_list statement {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_statements, node, $2, node, $1);
- }
+statement_list: statement { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
+  | statement_list statement { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
 
 var_statement: VAR var_decl_list SEMICOLON { $$ = $2; }
 
-var_decl_list: var_decl { DECLARE_LIST_END(jz_parse_vars, $$, $1); }
-  | var_decl_list COMMA var_decl {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, node, $3, node, $1);
- }
+var_decl_list: var_decl { $$ = jz_pnode_wrap(jz_parse_vars, $1); }
+  | var_decl_list COMMA var_decl { $$ = jz_pnode_cons(jz_parse_vars, $3, $1); }
 
 var_decl: IDENTIFIER {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, str, jz_str_deep_dup($1), node, NULL);
+  $$ = jz_pnode_wrap(jz_parse_var, jz_str_deep_dup($1));
   free($1);
  }
   | IDENTIFIER EQUALS assign_expr {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_vars, str, jz_str_deep_dup($1), node, $3);
+    $$ = jz_pnode_cons(jz_parse_var, jz_str_deep_dup($1), $3);
     free($1);
  }
 
 expr_statement: expr SEMICOLON { $$ = $1; }
 
-return_statement: RETURN expr SEMICOLON {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_return, node, $2, node, NULL);
- }
-  | RETURN SEMICOLON {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_return, node, NULL, node, NULL);
- }
+return_statement: RETURN expr SEMICOLON { $$ = jz_pnode_wrap(jz_parse_return, $2); }
+  | RETURN SEMICOLON { $$ = jz_pnode_wrap(jz_parse_return, NULL); }
 
-empty_statement: SEMICOLON {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_empty, node, NULL, node, NULL);
- }
+empty_statement: SEMICOLON { $$ = jz_pnode_new(jz_parse_empty); }
 
 if_statement: IF LPAREN expr RPAREN statement else {
-  jz_parse_node* cont;
-
-  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $5, node, $6);
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_if, node, $3, node, cont);
+  $$ = jz_pnode_list(jz_parse_if, 3, $3, $5, $6);
  }
 
 else: ELSE statement { $$ = $2; }
@@ -145,37 +133,29 @@ iter_statement: do_while_statement { $$ = $1; }
   | for_statement { $$ = $1; }
 
 do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_do_while, node, $5, node, $2);
+  $$ = jz_pnode_cons(jz_parse_do_while, $5, $2);
  }
 
 while_statement: WHILE LPAREN expr RPAREN statement {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_while, node, $3, node, $5);
+  $$ = jz_pnode_cons(jz_parse_while, $3, $5);
  }
 
 for_statement
   : FOR LPAREN opt_expr SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
-    jz_parse_node* cont;
-
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $7, node, $9);
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $5, node, cont);
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_for, node, $3, node, cont);
+    $$ = jz_pnode_list(jz_parse_for, 4, $3, $5, $7, $9);
  }
   | FOR LPAREN VAR var_decl_list SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
-    jz_parse_node* cont;
-
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $8, node, $10);
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $6, node, cont);
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_for, node, $4, node, cont);
+    $$ = jz_pnode_list(jz_parse_for, 4, $4, $6, $8, $10);
  }  
 
 opt_expr: expr { $$ = $1; }
   | /* empty */ { $$ = NULL; }
 
-expr: assign_expr { DECLARE_LIST_END(jz_parse_exprs, $$, $1); }
+expr: assign_expr { $$ = jz_pnode_wrap(jz_parse_exprs, $1); }
   | expr COMMA assign_expr {
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_exprs, node, $3, node, $1);
+    $$ = jz_pnode_cons(jz_parse_exprs, $3, $1);
  }
 
 assign_expr: cond_expr { $$ = $1; }
@@ -206,11 +186,7 @@ assign_expr: cond_expr { $$ = $1; }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {
-    jz_parse_node* cont;
-
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $3, node, $5);
-    JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, $1, node, cont);
-    JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_triop, op_type, jz_op_cond, node, cont);
+    $$ = jz_pnode_list(jz_parse_triop, 4, jz_op_cond, $1, $3, $5);
  }
 
 or_expr: and_expr { $$ = $1; }
@@ -232,12 +208,10 @@ eq_expr: rel_expr { $$ = $1; }
   | eq_expr EQ_EQ     rel_expr { $$ = binop_node(jz_op_equals,    $1, $3); }
   | eq_expr STRICT_EQ rel_expr { $$ = binop_node(jz_op_strict_eq,  $1, $3); }
   | eq_expr NOT_EQ    rel_expr {
-    $$ = binop_node(jz_op_equals, $1, $3);
-    $$ = unop_node(jz_op_not, $$);
+    $$ = unop_node(jz_op_not, binop_node(jz_op_equals, $1, $3));
  }
   | eq_expr NOT_STRICT_EQ rel_expr {
-    $$ = binop_node(jz_op_strict_eq, $1, $3);
-    $$ = unop_node(jz_op_not, $$);
+    $$ = unop_node(jz_op_not, binop_node(jz_op_strict_eq, $1, $3));
  }
 
 rel_expr: shift_expr { $$ = $1; }
@@ -281,7 +255,7 @@ primary_expr: identifier { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_identifier, str, jz_str_deep_dup($1), node, NULL);
+  $$ = jz_pnode_wrap(jz_parse_identifier, jz_str_deep_dup($1));
   free($1);
  }
 
@@ -290,15 +264,15 @@ literal: number { $$ = $1; }
   | undefined   { $$ = $1; }
 
 number: NUMBER {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_wrap_num($1), node, NULL);
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_num($1)));
  }
 
 boolean: bool_val {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_wrap_bool($1), node, NULL);
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_bool($1)));
  };
 
 undefined: UNDEF_VAL {
-  JZ_PARSE_ASSIGN_NEW_NODE($$, jz_parse_literal, val, jz_undef_val(), node, NULL);
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_undef_val()));
  }
 
 bool_val: TRUE_VAL { $$ = true; }
@@ -306,27 +280,36 @@ bool_val: TRUE_VAL { $$ = true; }
 
 %%
 
-jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr) {
-  jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));
+jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...) {
+  jz_parse_node* to_ret = jz_pnode_new(type);
+  jz_parse_node* end = to_ret;
+  va_list args;
+  int i;
+
+  va_start(args, argc);
+
   to_ret->type = type;
-  to_ret->car  = car;
-  to_ret->cdr  = cdr;
+  to_ret->car  = va_arg(args, jz_parse_value);
+
+  for (i = 2; i < argc; i++) {
+    jz_parse_node* next = jz_pnode_new(jz_parse_cont);
+
+    end->cdr.node = next;
+    end = next;
+    end->car = va_arg(args, jz_parse_value);
+  }
+
+  if (argc > 1) end->cdr = va_arg(args, jz_parse_value);
+  else end->cdr.node = NULL;
+
+  va_end(args);
   return to_ret;
 }
 
-jz_parse_node* binop_node(jz_op_type type, jz_parse_node* left, jz_parse_node* right) {
-  jz_parse_node* cont;
-
-  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_cont, node, left, node, right);
-  JZ_PARSE_ASSIGN_NEW_NODE(cont, jz_parse_binop, op_type, type, node, cont);
-
-  return cont;
-}
-
-jz_parse_node* unop_node(jz_op_type type, jz_parse_node* next) {
-  jz_parse_node* to_ret;
-
-  JZ_PARSE_ASSIGN_NEW_NODE(to_ret, jz_parse_unop, op_type, type, node, next);
+jz_parse_node* jz_pnode_new(jz_parse_type type) {
+  jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));;
+  to_ret->type = type;
+  to_ret->car.node = to_ret->cdr.node = NULL;
   return to_ret;
 }
 
@@ -337,6 +320,18 @@ jz_parse_node* jz_parse_string(jz_str* code) {
   if(yyparse()) return NULL;
 
   return root_node;
+}
+
+jz_tvalue* ptr_to_val(jz_tvalue val) {
+  jz_tvalue* to_ret = malloc(sizeof(jz_tvalue));
+  *to_ret = val;
+  return to_ret;
+}
+
+jz_op_type* ptr_to_ot(jz_op_type ot) {
+  jz_op_type* to_ret = malloc(sizeof(jz_op_type));
+  *to_ret = ot;
+  return to_ret;
 }
 
 void yyerror(const char* msg)

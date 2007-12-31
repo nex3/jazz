@@ -153,10 +153,13 @@ void compile_vars(comp_state* state, jz_parse_node* node) {
   if (node->cdr.node != NULL)
     compile_vars(state, node->cdr.node);
 
+  node = node->car.node;
+  assert(node->type == jz_parse_var);
+
   {
     int old_cap = state->stack_length;
-    unsigned char index = add_lvar(state, CAAR(node).str);
-    jz_parse_node* expr = CADR(node).node;
+    unsigned char index = add_lvar(state, node->car.str);
+    jz_parse_node* expr = node->cdr.node;
 
     if (expr != NULL)
       compile_expr(state, expr);
@@ -273,18 +276,12 @@ void compile_for(comp_state* state, jz_parse_node* node) {
 
   inc_expr = CDDAR(node).node;
   if (inc_expr != NULL) {
-    JZ_PARSE_ASSIGN_NEW_NODE(inc_expr, jz_parse_exprs,
-                             node, inc_expr, node, NULL);
-    JZ_PARSE_ASSIGN_NEW_NODE(body, jz_parse_statements,
-                             node, CDDDR(node).node, node, NULL);
-    JZ_PARSE_ASSIGN_NEW_NODE(body, jz_parse_statements,
-                             node, inc_expr, node, body);
+    inc_expr = jz_pnode_wrap(jz_parse_exprs, inc_expr);
+    body = jz_pnode_cons(jz_parse_statements, inc_expr,
+                         jz_pnode_wrap(jz_parse_statements, CDDDR(node).node));
   } else body = CDDDR(node).node;
 
-  JZ_PARSE_ASSIGN_NEW_NODE(while_statement, jz_parse_while,
-                           node, CDAR(node).node,
-                           node, body);
-
+  while_statement = jz_pnode_cons(jz_parse_while, CDAR(node).node, body);
   compile_statement(state, while_statement);
 
   state->stack_length = MAX(cap, state->stack_length);
@@ -368,7 +365,7 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 void compile_literal(comp_state* state, jz_parse_node* node) {
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_push_literal);
-  push_multibyte_arg(state, &(node->car.val), JZ_OCS_TVALUE);
+  push_multibyte_arg(state, node->car.val, JZ_OCS_TVALUE);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
@@ -379,7 +376,7 @@ void compile_literal(comp_state* state, jz_parse_node* node) {
   }
 
 void compile_unop(comp_state* state, jz_parse_node* node) {
-  switch (node->car.op_type) {
+  switch (*node->car.op_type) {
   SIMPLE_UNOP_CASE(jz_op_add,    jz_oc_to_num)
   SIMPLE_UNOP_CASE(jz_op_sub,    jz_oc_neg)
   SIMPLE_UNOP_CASE(jz_op_bw_not, jz_oc_bw_not)
@@ -402,7 +399,7 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
     break;
 
   default:
-    printf("Unrecognized unary operator %d\n", node->car.op_type);
+    printf("Unrecognized unary operator %d\n", *node->car.op_type);
     exit(1);
   }
 }
@@ -440,7 +437,7 @@ static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
   }
 
 void compile_binop(comp_state* state, jz_parse_node* node) {
-  switch (node->car.op_type) {
+  switch (*node->car.op_type) {
   case jz_op_and:
   case jz_op_or:
     compile_logical_binop(state, node);
@@ -481,7 +478,7 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
   ASSIGN_BINOP_CASE(bw_or)
 
   default:
-    fprintf(stderr, "Unknown operator %d\n", node->car.op_type);
+    fprintf(stderr, "Unknown operator %d\n", *node->car.op_type);
     exit(1);
   }
 }
@@ -494,7 +491,7 @@ void compile_logical_binop(comp_state* state, jz_parse_node* node) {
   left_cap = state->stack_length;
   PUSH_OPCODE(jz_oc_dup);
 
-  if (node->car.op_type == jz_op_or) PUSH_OPCODE(jz_oc_not);
+  if (*node->car.op_type == jz_op_or) PUSH_OPCODE(jz_oc_not);
 
   PUSH_OPCODE(jz_oc_jump_unless);
   jump = push_placeholder(state, JZ_OCS_SIZET);
@@ -544,7 +541,7 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   int cap1, cap2, cap3;
   size_t cond_jump, branch1_jump;
 
-  assert(node->car.op_type == jz_op_cond);
+  assert(*node->car.op_type == jz_op_cond);
 
   compile_expr(state, CDAR(node).node);
   cap1 = state->stack_length;
@@ -574,7 +571,7 @@ jz_tvalue* get_literal_value(jz_parse_node* node) {
       node->cdr.node != NULL ||
       node->car.node->type != jz_parse_literal)
     return NULL;
-  return &CAAR(node).val;
+  return CAAR(node).val;
 }
 
 unsigned char add_lvar(comp_state* state, jz_str* name) {

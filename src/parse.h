@@ -115,9 +115,9 @@ typedef enum {
 
 typedef union {
   jz_parse_node* node;
-  jz_tvalue val;
   jz_str* str;
-  jz_op_type op_type;
+  jz_tvalue* val;
+  jz_op_type* op_type;
 } jz_parse_value;
 
 struct jz_parse_node {
@@ -128,17 +128,10 @@ struct jz_parse_node {
 
 jz_parse_node* jz_parse_string(jz_str* code);
 
-jz_parse_node* jz_node_new(jz_parse_type type, jz_parse_value car, jz_parse_value cdr);
+jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...);
+jz_parse_node* jz_pnode_new(jz_parse_type type);
 
-#define JZ_PARSE_ASSIGN_NEW_NODE(target, node_type, car_type,   \
-                                 car_val, cdr_type, cdr_val)    \
-  {                                                             \
-    jz_parse_value car;                                         \
-    jz_parse_value cdr;                                         \
-                                                                \
-    car.car_type = (car_val);                                   \
-    cdr.cdr_type = (cdr_val);                                   \
-    target = jz_node_new(node_type, car, cdr);                  \
-  }
+#define jz_pnode_cons(type, car, cdr) jz_pnode_list(type, 2, car, cdr)
+#define jz_pnode_wrap(type, car)      jz_pnode_list(type, 1, car)
 
 #endif
