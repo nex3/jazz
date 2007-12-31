@@ -340,6 +340,18 @@ void print_bytecode(jz_bytecode* bytecode) {
       name = "mod";
       break;
 
+    case jz_oc_to_num:
+      name = "to_num";
+      break;
+
+    case jz_oc_neg:
+      name = "neg";
+      break;
+
+    case jz_oc_bw_not:
+      name = "bw_not";
+      break;
+
     case jz_oc_not:
       name = "not";
       break;

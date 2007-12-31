@@ -42,6 +42,17 @@ typedef enum {
                           cdar.node is the conditional expression, or NULL.
                           cddar.node is the increment expression, or NULL.
                           cdddr.node is the list of statements to evaluate. */
+  jz_parse_switch,     /* A switch statement.
+                          car.node is the expression being switched on.
+                          cdr.node is a jz_parse_cases,
+                          or NULL if there are no cases. */
+  jz_parse_cases,      /* A list of switch statement cases.
+                          car.node is a jz_parse_case. */
+  jz_parse_case,       /* A single switch statement case.
+                          car.node is the expression,
+                          or NULL if this is the default case.
+                          cdr.node is the statement list (a jz_parse_statements)
+                          or NULL if there is no statement list. */
 
   jz_parse_vars,       /* A list of variable declarations.
                           car.node is a jz_parse_var. */
@@ -130,6 +141,8 @@ jz_parse_node* jz_parse_string(jz_str* code);
 
 jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...);
 jz_parse_node* jz_pnode_new(jz_parse_type type);
+
+jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2);
 
 #define jz_pnode_cons(type, car, cdr) jz_pnode_list(type, 2, car, cdr)
 #define jz_pnode_wrap(type, car)      jz_pnode_list(type, 1, car)

@@ -11,13 +11,16 @@ undefined, UNDEF_VAL
 #
 # Keywords
 #
-return, RETURN
-var,    VAR
-if,     IF
-else,   ELSE
-do,     DO
-while,  WHILE
-for,    FOR
+return,  RETURN
+var,     VAR
+if,      IF
+else,    ELSE
+do,      DO
+while,   WHILE
+for,     FOR
+switch,  SWITCH
+case,    CASE
+default, DEFAULT
 #
 # Operators
 #

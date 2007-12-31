@@ -10,6 +10,8 @@
 
 static jz_parse_node* root_node = NULL;
 
+static jz_parse_node* reverse_list(jz_parse_node* head);
+
 static jz_tvalue* ptr_to_val(jz_tvalue val);
 static jz_op_type* ptr_to_ot(jz_op_type ot);
 
@@ -47,7 +49,7 @@ static void yyerror(const char* msg);
 %token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN VAR IF ELSE DO WHILE FOR
+%token <none> RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
 
 /* Punctuation tokens */
 %token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -64,7 +66,8 @@ static void yyerror(const char* msg);
              statement block statement_list var_statement var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
              iter_statement do_while_statement while_statement for_statement
-             opt_expr
+             opt_expr switch_statement case_block case_clauses case_clause
+             default_clause
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
@@ -93,6 +96,7 @@ statement: block     { $$ = $1; }
   | return_statement { $$ = $1; }
   | if_statement     { $$ = $1; }
   | iter_statement   { $$ = $1; }
+  | switch_statement { $$ = $1; }
 
 block: LCURLY statement_list RCURLY { $$ = $2; }
   | LCURLY RCURLY { $$ = jz_pnode_new(jz_parse_empty); }
@@ -152,6 +156,26 @@ for_statement
 
 opt_expr: expr { $$ = $1; }
   | /* empty */ { $$ = NULL; }
+
+switch_statement: SWITCH LPAREN expr RPAREN LCURLY case_block RCURLY {
+  $$ = jz_pnode_cons(jz_parse_switch, $3, reverse_list($6));
+ }
+
+case_block: case_clauses { $$ = $1; }
+  | default_clause { $$ = $1; }
+  | case_clauses default_clause { $$ = jz_plist_concat($2, $1); }
+  | default_clause case_clauses { $$ = jz_plist_concat($2, $1); }
+  | case_clauses default_clause case_clauses { $$ = jz_plist_concat(jz_plist_concat($3, $2), $1); }
+  | /* empty */ { $$ = NULL; }
+
+case_clauses: case_clause { $$ = jz_pnode_wrap(jz_parse_cases, $1); }
+  | case_clauses case_clause { $$ = jz_pnode_cons(jz_parse_cases, $2, $1); }
+
+case_clause: CASE expr COLON statement_list { $$ = jz_pnode_cons(jz_parse_case, $2, $4); }
+  | CASE expr COLON { $$ = jz_pnode_wrap(jz_parse_case, $2); }
+
+default_clause: DEFAULT COLON statement_list { $$ = jz_pnode_wrap(jz_parse_cases, jz_pnode_cons(jz_parse_case, NULL, $3)); }
+| DEFAULT COLON { $$ = jz_pnode_wrap(jz_parse_cases, jz_pnode_new(jz_parse_case)); }
 
 expr: assign_expr { $$ = jz_pnode_wrap(jz_parse_exprs, $1); }
   | expr COMMA assign_expr {
@@ -313,6 +337,15 @@ jz_parse_node* jz_pnode_new(jz_parse_type type) {
   return to_ret;
 }
 
+jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2) {
+  jz_parse_node* head = list1;
+
+  while (list1->cdr.node != NULL) list1 = list1->cdr.node;
+  list1->cdr.node = list2;
+
+  return head;
+}
+
 jz_parse_node* jz_parse_string(jz_str* code) {
   jz_lex_set_code(code);
 
@@ -320,6 +353,27 @@ jz_parse_node* jz_parse_string(jz_str* code) {
   if(yyparse()) return NULL;
 
   return root_node;
+}
+
+jz_parse_node* reverse_list(jz_parse_node* head) {
+  jz_parse_node *prev = NULL, *curr = NULL, *next = NULL;
+
+  if (head == NULL) return NULL;
+
+  curr = head;
+  next = curr->cdr.node;
+
+  while (next != NULL) {
+    curr->cdr.node = prev;
+
+    prev = curr;
+    curr = next;
+    next = next->cdr.node;
+  }
+
+  curr->cdr.node = prev;
+
+  return curr;
 }
 
 jz_tvalue* ptr_to_val(jz_tvalue val) {
