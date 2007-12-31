@@ -10,9 +10,21 @@
 
 #include <unicode/uregex.h>
 
+/* Lexing mostly works by applying a series of regular expressions
+   to the source text,
+   and returning the token corresponding with the first one that succeeds.
+   However, some matches must be interpreted in various ways,
+   so it gets slightly more complicated.
+
+   We can't use a lex derivative for this because
+   none of them appear to support UTF-16 well. */
+
 /* Struct hash_result is defined in keywords.gperf. */
 typedef struct hash_result hash_result;
 
+/* The lexer state.
+   The regular expression objects are stored here
+   because it would be expensive to recompile them for each token. */
 static struct {
   jz_str* code;
   jz_str* code_prev;
@@ -31,7 +43,19 @@ static bool try_hex_literal();
 static bool try_decimal_literal();
 static int try_punctuation();
 static int try_identifier();
+
+
+/* Attempts to apply 're' to the current position of the code string.
+   Returns true if successful, false otherwise. */
 static bool try_re(URegularExpression* re);
+
+/* Returns a jz_str* of the text for the given match of the given regexp.
+   Match 0 is the entire matched string.
+   Returns NULL if there is no match.
+
+   The return value should be freed when no longer in use.
+   The string is not a deep copy,
+   so the value should not be freed. */
 static jz_str* get_match(URegularExpression* re, int number);
 
 static URegularExpression* create_re(char* pattern);
@@ -39,13 +63,18 @@ static URegularExpression* create_re(char* pattern);
 #define CHECK_ICU_ERROR(error) {                                        \
     if (U_FAILURE(error)) {                                             \
       fprintf(stderr, "ICU Error: %s\n", u_errorName(error));           \
-      assert(0);                                                        \
+      exit(1);                                                          \
     }                                                                   \
   }
 
 int yylex() {
   int res;
   int to_ret = 0;
+
+  if (state.code == NULL || state.identifier_re == NULL) {
+    fprintf(stderr, "Lexer must be initialized before use.\n");
+    exit(1);
+  }
 
   while (try_filler());
 
@@ -202,15 +231,13 @@ jz_str* get_match(URegularExpression* re, int number) {
   return jz_str_substr(state.code_prev, start, end);
 }
 
+/* All regular expressions should begin with \A so they only match
+   at the beginning of the string. */
+
 #define IDENTIFIER_START_RE         "[\\p{Lu}\\p{Ll}\\p{Lt}\\p{Lm}\\p{Lo}\\p{Nl}\\$_]"
 #define IDENTIFIER_PART_RE          "(?:" IDENTIFIER_START_RE "|[\\p{Mn}\\p{Mc}\\p{Nd}\\p{Pc}])"
 #define DECIMAL_INTEGER_LITERAL_RE  "(0|[1-9][0-9]*)"
 #define EXPONENT_PART_RE            "(?:[eE]([\\+\\-]?[0-9]+))"
-
-void jz_lex_set_code(jz_str* code) {
-  state.code = code;
-  state.code_prev = jz_str_dup(code);
-}
 
 void jz_lex_init() {
   state.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
@@ -231,4 +258,9 @@ URegularExpression* create_re(char* pattern) {
   URegularExpression* re = uregex_openC(pattern, 0, NULL, &error);
   CHECK_ICU_ERROR(error);
   return re;
+}
+
+void jz_lex_set_code(jz_str* code) {
+  state.code = code;
+  state.code_prev = jz_str_dup(code);
 }
