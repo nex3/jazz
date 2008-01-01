@@ -261,6 +261,8 @@ URegularExpression* create_re(const char* pattern) {
 }
 
 void jz_lex_set_code(const jz_str* code) {
+  assert(code != NULL);
+
   state.code = jz_str_dup(code);
   state.code_prev = jz_str_dup(code);
 }

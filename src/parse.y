@@ -10,8 +10,14 @@
 
 static jz_parse_node* root_node = NULL;
 
+/* Reverses an s-expression list and returns the new list.
+   The list is destructively modified,
+   but no nodes are allocated or freed. */
 static jz_parse_node* reverse_list(jz_parse_node* head);
 
+
+/* The ptr_to functions allocate pointers to value objects,
+   so they can be used as members of jz_parse_val. */
 static jz_tvalue* ptr_to_val(jz_tvalue val);
 static jz_op_type* ptr_to_ot(jz_op_type ot);
 
@@ -41,8 +47,8 @@ static void yyerror(const char* msg);
   char none;
 }
 
+/* Literal value tokens. */
 %token <str> IDENTIFIER
-
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
@@ -62,6 +68,7 @@ static void yyerror(const char* msg);
               RSHIFT_EQ URSHIFT_EQ  BW_AND_EQ BW_OR_EQ  XOR_EQ
 %token <none> DIV DIV_EQ
 
+/* Grammmar Productions */
 %type <node> program source_elements source_element
              statement block statement_list var_statement var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
@@ -338,15 +345,17 @@ jz_parse_node* jz_pnode_new(jz_parse_type type) {
 }
 
 jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2) {
-  jz_parse_node* head = list1;
+  jz_parse_node* next = list1;
 
-  while (list1->cdr.node != NULL) list1 = list1->cdr.node;
-  list1->cdr.node = list2;
+  if (list1 == NULL) return list2;
 
-  return head;
+  while (next->cdr.node != NULL) next = next->cdr.node;
+  next->cdr.node = list2;
+
+  return list1;
 }
 
-jz_parse_node* jz_parse_string(jz_str* code) {
+jz_parse_node* jz_parse_string(const jz_str* code) {
   jz_lex_set_code(code);
 
   /* yyparse returns 0 to indicate success. */
