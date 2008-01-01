@@ -19,7 +19,7 @@ jz_str* jz_str_deep_new(int length, const UChar* value) {
   to_ret = malloc(sizeof(jz_str));
   to_ret->length = length;
 
-  value = calloc(sizeof(UChar), length);
+  buffer = calloc(sizeof(UChar), length);
   memcpy(buffer, value, length * sizeof(UChar));
   to_ret->value = buffer;
 
