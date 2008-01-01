@@ -1,0 +1,8 @@
+syntax:glob
+*.o
+libjazz.*
+y.tab.*
+*.gp.c
+
+syntax:regexp
+^jazz$
