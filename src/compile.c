@@ -21,14 +21,16 @@ JZ_DECLARE_VECTOR(jz_size_t)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
-#define CAAR(n) ((n)->car.node->car)
-#define CADR(n) ((n)->car.node->cdr)
-#define CDAR(n) ((n)->cdr.node->car)
-#define CDDR(n) ((n)->cdr.node->cdr)
-#define CAAAR(n) (CAAR(n).node->car)
-#define CDAAR(n) (CDAR(n).node->car)
-#define CDDAR(n) (CDDR(n).node->car)
-#define CDDDR(n) (CDDR(n).node->cdr)
+#define CAR(n) ((n)->car)
+#define CDR(n) ((n)->cdr)
+#define CAAR(n) (CAR(CAR(n).node))
+#define CADR(n) (CDR(CAR(n).node))
+#define CDAR(n) (CAR(CDR(n).node))
+#define CDDR(n) (CDR(CDR(n).node))
+#define CAAAR(n) (CAR(CAAR(n).node))
+#define CDAAR(n) (CAR(CDAR(n).node))
+#define CDDAR(n) (CAR(CDDR(n).node))
+#define CDDDR(n) (CDR(CDDR(n).node))
 
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(state->code, opcode)
 
@@ -104,11 +106,11 @@ void compile_statements(comp_state* state, jz_parse_node* node) {
 
   assert(node->type == jz_parse_statements);
 
-  if (node->cdr.node != NULL)
-    compile_statements(state, node->cdr.node);
+  if (CDR(node).node != NULL)
+    compile_statements(state, CDR(node).node);
 
   old_cap = state->stack_length;
-  compile_statement(state, node->car.node);
+  compile_statement(state, CAR(node).node);
   state->stack_length = MAX(old_cap, state->stack_length);
 }
 
@@ -125,7 +127,7 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
     break;
 
   case jz_parse_return:
-    compile_return(state, node->car.node);
+    compile_return(state, CAR(node).node);
     break;
       
   case jz_parse_exprs:
@@ -162,16 +164,16 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
 void compile_vars(comp_state* state, jz_parse_node* node) {
   assert(node->type == jz_parse_vars);
 
-  if (node->cdr.node != NULL)
-    compile_vars(state, node->cdr.node);
+  if (CDR(node).node != NULL)
+    compile_vars(state, CDR(node).node);
 
-  node = node->car.node;
+  node = CAR(node).node;
   assert(node->type == jz_parse_var);
 
   {
     int old_cap = state->stack_length;
-    unsigned char index = add_lvar(state, node->car.str);
-    jz_parse_node* expr = node->cdr.node;
+    unsigned char index = add_lvar(state, CAR(node).str);
+    jz_parse_node* expr = CDR(node).node;
 
     if (expr != NULL)
       compile_expr(state, expr);
@@ -203,7 +205,7 @@ void compile_if(comp_state* state, jz_parse_node* node) {
   int expr_cap, if_cap;
   size_t jump;
 
-  compile_exprs(state, node->car.node);
+  compile_exprs(state, CAR(node).node);
   expr_cap = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
@@ -223,7 +225,7 @@ void compile_if(comp_state* state, jz_parse_node* node) {
 void compile_do_while(comp_state* state, jz_parse_node* node) {
   int cap;
   size_t jump;
-  jz_tvalue* conditional_literal = get_literal_value(node->car.node);
+  jz_tvalue* conditional_literal = get_literal_value(CAR(node).node);
 
   /* If the conditional is a literal value that evaluates to true,
      we don't bother to check it. */
@@ -231,13 +233,13 @@ void compile_do_while(comp_state* state, jz_parse_node* node) {
     jz_to_bool(*conditional_literal);
 
   jump = state->code->next - state->code->values;
-  compile_statement(state, node->cdr.node);
+  compile_statement(state, CDR(node).node);
   cap = state->stack_length;
 
   if (skip_conditional)
     PUSH_OPCODE(jz_oc_jump);
   else {
-    compile_exprs(state, node->car.node);
+    compile_exprs(state, CAR(node).node);
     PUSH_OPCODE(jz_oc_jump_if);
   }
 
@@ -249,26 +251,26 @@ void compile_do_while(comp_state* state, jz_parse_node* node) {
 void compile_while(comp_state* state, jz_parse_node* node) {
   int cap;
   size_t index, placeholder;
-  jz_tvalue* conditional_literal = get_literal_value(node->car.node);
+  jz_tvalue* conditional_literal = get_literal_value(CAR(node).node);
 
   /* If the conditional is NULL or a literal value that evaluates to true,
      we don't bother to check it.
      This makes stuff like "for (;;)" and "while (true)" faster. */
-  bool skip_conditional = node->car.node == NULL ||
+  bool skip_conditional = CAR(node).node == NULL ||
     (conditional_literal != NULL && jz_to_bool(*conditional_literal));
 
   index = state->code->next - state->code->values;
 
   if (skip_conditional) cap = 0;
   else {
-    compile_exprs(state, node->car.node);
+    compile_exprs(state, CAR(node).node);
     cap = state->stack_length;
 
     PUSH_OPCODE(jz_oc_jump_unless);
     placeholder = push_placeholder(state, JZ_OCS_SIZET);
   }
 
-  compile_statement(state, node->cdr.node);
+  compile_statement(state, CDR(node).node);
   PUSH_OPCODE(jz_oc_jump);
   jump_to_from_top(state, index);
 
@@ -281,8 +283,8 @@ void compile_for(comp_state* state, jz_parse_node* node) {
   int cap;
   jz_parse_node *body, *inc_expr, *while_statement;
 
-  if (node->car.node != NULL) {
-    compile_statement(state, node->car.node);
+  if (CAR(node).node != NULL) {
+    compile_statement(state, CAR(node).node);
     cap = state->stack_length;
   } else cap = 0;
 
@@ -303,13 +305,13 @@ void compile_switch(comp_state* state, jz_parse_node* node) {
   jz_size_t_vector* placeholders;
   int expr_cap, cond_cap;
 
-  compile_exprs(state, node->car.node);
+  compile_exprs(state, CAR(node).node);
   expr_cap = state->stack_length;
 
-  placeholders = compile_switch_conditionals(state, node->cdr.node);
+  placeholders = compile_switch_conditionals(state, CDR(node).node);
   cond_cap = state->stack_length;
 
-  compile_switch_statements(state, node->cdr.node, placeholders);
+  compile_switch_statements(state, CDR(node).node, placeholders);
   state->stack_length = MAX(expr_cap, MAX(cond_cap, state->stack_length)) + 1;
 
   PUSH_OPCODE(jz_oc_pop);
@@ -323,15 +325,15 @@ jz_size_t_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* 
   if (node == NULL) return placeholders;
 
   while (node != NULL) {
-    jz_parse_node* case_node = node->car.node;
+    jz_parse_node* case_node = CAR(node).node;
     int old_cap = state->stack_length;
 
-    node = node->cdr.node;
+    node = CDR(node).node;
 
-    if (case_node->car.node == NULL) continue;
+    if (CAR(case_node).node == NULL) continue;
 
     PUSH_OPCODE(jz_oc_dup);
-    compile_exprs(state, case_node->car.node);
+    compile_exprs(state, CAR(case_node).node);
     PUSH_OPCODE(jz_oc_strict_eq);
     PUSH_OPCODE(jz_oc_jump_if);
     jz_size_t_vector_append(placeholders,
@@ -354,23 +356,23 @@ void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_size_t
   if (node == NULL) return;
 
   while (node != NULL) {
-    jz_parse_node* case_node = node->car.node;
+    jz_parse_node* case_node = CAR(node).node;
 
     /* If this is the default case,
        we only want to jump to it after trying all other conditionals. */
-    if (case_node->car.node == NULL)
+    if (CAR(case_node).node == NULL)
       default_pos = state->code->next - state->code->values;
     else {
       jump_to_top_from(state, *(next_placeholder++));
     }
 
-    if (case_node->cdr.node != NULL) {
+    if (CDR(case_node).node != NULL) {
       int old_cap = state->stack_length;
-      compile_statements(state, case_node->cdr.node);
+      compile_statements(state, CDR(case_node).node);
       state->stack_length = MAX(old_cap, state->stack_length);
     }
 
-    node = node->cdr.node;
+    node = CDR(node).node;
   }
 
   if (default_pos != -1)
@@ -388,12 +390,12 @@ void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first) {
 
   assert(node->type == jz_parse_exprs);
 
-  if (node->cdr.node != NULL) {
-    compile_exprs_helper(state, node->cdr.node, false);
+  if (CDR(node).node != NULL) {
+    compile_exprs_helper(state, CDR(node).node, false);
     old_cap = state->stack_length;
   } else old_cap = 0;
 
-  compile_expr(state, node->car.node);
+  compile_expr(state, CAR(node).node);
 
   /* Discard the return value of all expressions in a list but the last. */
   if (!first) PUSH_OPCODE(jz_oc_pop);
@@ -441,10 +443,10 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
     exit(1);
   }
 
-  local = get_lvar(state, node->car.str);
+  local = get_lvar(state, CAR(node).str);
 
   if (local == NULL) {
-    fprintf(stderr, "Undefined variable %s\n", jz_str_to_chars(node->car.str));
+    fprintf(stderr, "Undefined variable %s\n", jz_str_to_chars(CAR(node).str));
     exit(1);
   }
 
@@ -458,18 +460,18 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 void compile_literal(comp_state* state, jz_parse_node* node) {
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_push_literal);
-  push_multibyte_arg(state, node->car.val, JZ_OCS_TVALUE);
+  push_multibyte_arg(state, CAR(node).val, JZ_OCS_TVALUE);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
   case operator: {                                      \
-    compile_expr(state, node->cdr.node);                \
+    compile_expr(state, CDR(node).node);                \
     PUSH_OPCODE(opcode);                                \
     break;                                              \
   }
 
 void compile_unop(comp_state* state, jz_parse_node* node) {
-  switch (*node->car.op_type) {
+  switch (*CAR(node).op_type) {
   SIMPLE_UNOP_CASE(jz_op_add,    jz_oc_to_num)
   SIMPLE_UNOP_CASE(jz_op_sub,    jz_oc_neg)
   SIMPLE_UNOP_CASE(jz_op_bw_not, jz_oc_bw_not)
@@ -492,7 +494,7 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
     break;
 
   default:
-    printf("Unrecognized unary operator %d\n", *node->car.op_type);
+    printf("Unrecognized unary operator %d\n", *CAR(node).op_type);
     exit(1);
   }
 }
@@ -500,7 +502,7 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
 static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
                                   jz_opcode op, bool pre) {
   jz_tvalue unit = jz_wrap_num(1);
-  lvar_node* var = compile_identifier(state, node->cdr.node);
+  lvar_node* var = compile_identifier(state, CDR(node).node);
 
   if (!pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_push_literal);
@@ -530,7 +532,7 @@ static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
   }
 
 void compile_binop(comp_state* state, jz_parse_node* node) {
-  switch (*node->car.op_type) {
+  switch (*CAR(node).op_type) {
   case jz_op_and:
   case jz_op_or:
     compile_logical_binop(state, node);
@@ -571,7 +573,7 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
   ASSIGN_BINOP_CASE(bw_or)
 
   default:
-    fprintf(stderr, "Unknown operator %d\n", *node->car.op_type);
+    fprintf(stderr, "Unknown operator %d\n", *CAR(node).op_type);
     exit(1);
   }
 }
@@ -584,7 +586,7 @@ void compile_logical_binop(comp_state* state, jz_parse_node* node) {
   left_cap = state->stack_length;
   PUSH_OPCODE(jz_oc_dup);
 
-  if (*node->car.op_type == jz_op_or) PUSH_OPCODE(jz_oc_not);
+  if (*CAR(node).op_type == jz_op_or) PUSH_OPCODE(jz_oc_not);
 
   PUSH_OPCODE(jz_oc_jump_unless);
   jump = push_placeholder(state, JZ_OCS_SIZET);
@@ -634,7 +636,7 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   int cap1, cap2, cap3;
   size_t cond_jump, branch1_jump;
 
-  assert(*node->car.op_type == jz_op_cond);
+  assert(*CAR(node).op_type == jz_op_cond);
 
   compile_expr(state, CDAR(node).node);
   cap1 = state->stack_length;
@@ -661,8 +663,8 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
 jz_tvalue* get_literal_value(jz_parse_node* node) {
   if (node == NULL ||
       node->type != jz_parse_exprs ||
-      node->cdr.node != NULL ||
-      node->car.node->type != jz_parse_literal)
+      CDR(node).node != NULL ||
+      CAR(node).node->type != jz_parse_literal)
     return NULL;
   return CAAR(node).val;
 }
