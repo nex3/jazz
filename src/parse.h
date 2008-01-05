@@ -1,9 +1,3 @@
-#ifndef JZ_PARSE_H
-#define JZ_PARSE_H
-
-#include "string.h"
-#include "type.h"
-
 /* The Jazz parser.
    The parser uses yacc combined with a custom lexer (see lex.*).
    It generates an abstract syntax tree
@@ -49,6 +43,12 @@
        For each "a" between the "c" and the "r", one "car" is applied,
        and for each "d", one "cdr" is applied.
        For instance, cddar(node) is the same as node->cdr.node->cdr.node->car. */
+
+#ifndef JZ_PARSE_H
+#define JZ_PARSE_H
+
+#include "string.h"
+#include "type.h"
 
 typedef struct jz_parse_node jz_parse_node;
 

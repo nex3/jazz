@@ -1,10 +1,10 @@
-#ifndef JZ_LEX_H
-#define JZ_LEX_H
-
 /* The Jazz lexer.
    This is mainly used by the parser,
    but must be initialized before parsing can begin.
    See jz_lex_init and jz_lex_set_code. */
+
+#ifndef JZ_LEX_H
+#define JZ_LEX_H
 
 #include <unicode/ustring.h>
 #include "string.h"

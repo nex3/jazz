@@ -1,3 +1,12 @@
+/* Lexing mostly works by applying a series of regular expressions
+   to the source text,
+   and returning the token corresponding with the first one that succeeds.
+   However, some matches must be interpreted in various ways,
+   so it gets slightly more complicated.
+
+   We can't use a lex derivative for this because
+   none of them appear to support UTF-16 well. */
+
 #include "lex.h"
 #include "y.tab.h"
 #include "keywords.gp.c"
@@ -9,15 +18,6 @@
 #include <assert.h>
 
 #include <unicode/uregex.h>
-
-/* Lexing mostly works by applying a series of regular expressions
-   to the source text,
-   and returning the token corresponding with the first one that succeeds.
-   However, some matches must be interpreted in various ways,
-   so it gets slightly more complicated.
-
-   We can't use a lex derivative for this because
-   none of them appear to support UTF-16 well. */
 
 /* Struct hash_result is defined in keywords.gperf. */
 typedef struct hash_result hash_result;
