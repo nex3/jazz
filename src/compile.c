@@ -586,11 +586,10 @@ void compile_logical_binop(comp_state* state, jz_parse_node* node) {
   left_cap = state->stack_length;
   PUSH_OPCODE(jz_oc_dup);
 
-  if (*CAR(node).op_type == jz_op_or) PUSH_OPCODE(jz_oc_not);
-
-  PUSH_OPCODE(jz_oc_jump_unless);
+  PUSH_OPCODE(*CAR(node).op_type == jz_op_or ? jz_oc_jump_if : jz_oc_jump_unless);
   jump = push_placeholder(state, JZ_OCS_SIZET);
 
+  PUSH_OPCODE(jz_oc_pop);
   compile_expr(state, CDDR(node).node);
   right_cap = state->stack_length;
   jump_to_top_from(state, jump);
