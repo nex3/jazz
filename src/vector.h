@@ -41,6 +41,8 @@
   }                                                                     \
                                                                         \
   void type ## _vector_free(type ## _vector* vector) {                  \
+    if (vector == NULL) return;                                         \
+                                                                        \
     free(vector->values);                                               \
     free(vector);                                                       \
   }                                                                     \

@@ -738,3 +738,11 @@ void free_comp_state(comp_state* state) {
   jz_opcode_vector_free(state->code);
   free(state);
 }
+
+void jz_free_bytecode(jz_bytecode* this) {
+  if (this == NULL) return;
+
+  free(this->code);
+  free(this);
+}
+
