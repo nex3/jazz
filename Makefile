@@ -12,14 +12,17 @@ default: jazz
 clean:
 	rm -f jazz libjazz.* src/keywords.gp.c src/y.tab.* src/*.o
 
+test: jazz never_up_to_date
+	bash test/test.sh
 
 jazz: src/main.o libjazz.a
-	$(CC) $(LIBS) -o $@ $?
+	$(CC) $(LIBS) -o $@ src/main.o libjazz.a
 
 libjazz.a: src/lex.o src/string.o src/y.tab.o src/vm.o src/compile.o src/type.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
+never_up_to_date:
 
 src/main.o: src/main.c src/lex.h src/string.h src/vm.h src/compile.h
 
