@@ -3,6 +3,8 @@ syntax:glob
 libjazz.*
 y.tab.*
 *.gp.c
+*.gc*
+coverage/
 
 syntax:regexp
 ^jazz$
