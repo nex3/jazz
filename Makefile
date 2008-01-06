@@ -61,4 +61,4 @@ src/keywords.gp.c: src/keywords.gperf
 
 src/y.tab.o: src/y.tab.c src/y.tab.h
 src/y.tab.c src/y.tab.h: src/parse.y src/parse.h src/opcode.h
-	cd src && $(YACC) $(YFLAGS) parse.y
+	cd src && $(YACC) parse.y
