@@ -2,15 +2,17 @@ MAKE= make
 
 default: all
 
-all:
+all: jazz
+
+jazz:
 	cd src && $(MAKE)
-	mv src/jazz src/libjazz.a .
+	ln -s src/jazz jazz
 
 clean: clean-except-gcov
 	rm -rf src/*.gc* src/y.tab.*
 
 clean-except-gcov:
-	rm -rf jazz libjazz.* src/keywords.gp.c  src/*.o coverage/
+	rm -rf jazz src/libjazz.a src/keywords.gp.c  src/*.o coverage/
 
 test: all never_up_to_date
 	bash test/test.sh

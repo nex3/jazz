@@ -7,4 +7,4 @@ y.tab.*
 coverage/
 
 syntax:regexp
-^jazz$
+(/|^)jazz$
