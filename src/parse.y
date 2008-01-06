@@ -217,7 +217,7 @@ assign_expr: cond_expr { $$ = $1; }
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION cond_expr COLON cond_expr {
-    $$ = jz_pnode_list(jz_parse_triop, 4, jz_op_cond, $1, $3, $5);
+    $$ = jz_pnode_list(jz_parse_triop, 4, ptr_to_ot(jz_op_cond), $1, $3, $5);
  }
 
 or_expr: and_expr { $$ = $1; }
