@@ -2,11 +2,9 @@ MAKE= make
 
 default: all
 
-all: jazz
-
-jazz:
+all:
 	cd src && $(MAKE)
-	ln -s src/jazz jazz
+	ln -fs src/jazz jazz
 
 clean: clean-except-gcov
 	rm -rf src/*.gc* src/y.tab.*
