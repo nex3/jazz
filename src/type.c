@@ -33,7 +33,7 @@ double jz_values_comp(jz_tvalue v1, jz_tvalue v2) {
   double num2 = jz_to_num(v2);
 
   if (JZ_NUM_IS_NAN(num1) || JZ_NUM_IS_NAN(num2))
-    return num1;
+    return JZ_NAN;
 
   if (JZ_NUM_IS_INF(num1) || JZ_NUM_IS_INF(num2)) {
     if (num1 == num2) return 0;
