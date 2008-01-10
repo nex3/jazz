@@ -1,33 +1,33 @@
-return ((0/0 > 0/0) == false) &&
-    ((0/0 > 12) == false) &&
-    ((12 > 0/0) == false) &&
+return ((NaN > NaN) == false) &&
+    ((NaN > 12) == false) &&
+    ((12 > NaN) == false) &&
     ((-0 > 0) == false) &&
     ((0 > -0) == false) &&
     ((12 > 12) == false) &&
     ((0 > 0) == false) &&
-    ((1/0 > 12) == true) &&
-    ((1/0 > 1/0) == false) &&
-    ((12 > 1/0) == false) &&
-    ((12 > 1/-0) == true) &&
-    ((1/-0 > 12) == false) &&
-    ((1/-0 > 1/0) == false) &&
-    ((1/0 > 1/-0) == true) &&
+    ((Infinity > 12) == true) &&
+    ((Infinity > Infinity) == false) &&
+    ((12 > Infinity) == false) &&
+    ((12 > -Infinity) == true) &&
+    ((-Infinity > 12) == false) &&
+    ((-Infinity > Infinity) == false) &&
+    ((Infinity > -Infinity) == true) &&
     ((1 > 2) == false) &&
     ((2 > 1) == true) &&
 
-    ((0/0 >= 0/0) == false) &&
-    ((0/0 >= 12) == false) &&
-    ((12 >= 0/0) == false) &&
+    ((NaN >= NaN) == false) &&
+    ((NaN >= 12) == false) &&
+    ((12 >= NaN) == false) &&
     ((-0 >= 0) == true) &&
     ((0 >= -0) == true) &&
     ((12 >= 12) == true) &&
     ((0 >= 0) == true) &&
-    ((1/0 >= 12) == true) &&
-    ((1/0 >= 1/0) == true) &&
-    ((12 >= 1/0) == false) &&
-    ((12 >= 1/-0) == true) &&
-    ((1/-0 >= 12) == false) &&
-    ((1/-0 >= 1/0) == false) &&
-    ((1/0 >= 1/-0) == true) &&
+    ((Infinity >= 12) == true) &&
+    ((Infinity >= Infinity) == true) &&
+    ((12 >= Infinity) == false) &&
+    ((12 >= -Infinity) == true) &&
+    ((-Infinity >= 12) == false) &&
+    ((-Infinity >= Infinity) == false) &&
+    ((Infinity >= -Infinity) == true) &&
     ((1 >= 2) == false) &&
     ((2 >= 1) == true);

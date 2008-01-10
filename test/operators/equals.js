@@ -1,7 +1,7 @@
 return ((undefined == undefined) == true) &&
-    ((0/0 == 0/0) == false) &&
-    ((0/0 == 12) == false) &&
-    ((12 == 0/0) == false) &&
+    ((NaN == NaN) == false) &&
+    ((NaN == 12) == false) &&
+    ((12 == NaN) == false) &&
     ((-0 == 0) == true) &&
     ((0 == -0) == true) &&
     ((0 == 0) == true) &&
@@ -19,9 +19,9 @@ return ((undefined == undefined) == true) &&
     ((false == -1) == false) &&
 
     ((undefined != undefined) == false) &&
-    ((0/0 != 0/0) == true) &&
-    ((0/0 != 12) == true) &&
-    ((12 != 0/0) == true) &&
+    ((NaN != NaN) == true) &&
+    ((NaN != 12) == true) &&
+    ((12 != NaN) == true) &&
     ((-0 != 0) == false) &&
     ((0 != -0) == false) &&
     ((0 != 0) == false) &&
