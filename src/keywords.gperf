@@ -8,6 +8,9 @@ false,     FALSE_VAL
 # This is an extension to ECMAscript.
 # The specification doesn't require support for an undefined literal.
 undefined, UNDEF_VAL
+# These are a kludge until we have real global vars.
+NaN,       NAN_VAL
+Infinity,  INF_VAL
 #
 # Keywords
 #

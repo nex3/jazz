@@ -52,7 +52,7 @@ static void yyerror(const char* msg);
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
-%token <none> TRUE_VAL FALSE_VAL UNDEF_VAL
+%token <none> TRUE_VAL FALSE_VAL UNDEF_VAL NAN_VAL INF_VAL
 
 /* Keyword Tokens */
 %token <none> RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
@@ -79,6 +79,7 @@ static void yyerror(const char* msg);
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
              primary_expr identifier literal number boolean undefined
+             not_a_number infinity
 
 %type <boolean> bool_val
 
@@ -290,9 +291,11 @@ identifier: IDENTIFIER {
   free($1);
  }
 
-literal: number { $$ = $1; }
-  | boolean     { $$ = $1; }
-  | undefined   { $$ = $1; }
+literal: number  { $$ = $1; }
+  | boolean      { $$ = $1; }
+  | undefined    { $$ = $1; }
+  | not_a_number { $$ = $1; }
+  | infinity     { $$ = $1; }
 
 number: NUMBER {
   $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_num($1)));
@@ -302,12 +305,20 @@ boolean: bool_val {
   $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_bool($1)));
  };
 
+bool_val: TRUE_VAL { $$ = true; }
+  | FALSE_VAL { $$ = false; }
+
 undefined: UNDEF_VAL {
   $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_undef_val()));
  }
 
-bool_val: TRUE_VAL { $$ = true; }
-  | FALSE_VAL { $$ = false; }
+not_a_number: NAN_VAL {
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_num(JZ_NAN)));
+ }
+
+infinity: INF_VAL {
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_num(JZ_INF)));
+ }
 
 %%
 
