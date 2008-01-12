@@ -1,0 +1,14 @@
+var res = true;
+var a;
+res = (a === undefined) && res;
+var b, c, d;
+res = (b === undefined && c === undefined && d === undefined) && res;
+b = 12;
+res = (b == 12) && res;
+var b;
+res = (b == 12) && res;
+var b = 2;
+res = (b == 2) && res;
+var e = 3, f, g = 4;
+res = (e == 3 && f === undefined && g == 4) && res;
+return res;

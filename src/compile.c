@@ -62,7 +62,7 @@ static void compile_triop(comp_state* state, jz_parse_node* node);
 
 static jz_tvalue* get_literal_value(jz_parse_node* node);
 
-static unsigned char add_lvar(comp_state* state, jz_str* name);
+static lvar_node* add_lvar(comp_state* state, jz_str* name, bool* new);
 static lvar_node* get_lvar(comp_state* state, jz_str* name);
 
 static void jump_to_top_from(comp_state* state, size_t index);
@@ -172,21 +172,25 @@ void compile_vars(comp_state* state, jz_parse_node* node) {
 
   {
     int old_cap = state->stack_length;
-    unsigned char index = add_lvar(state, CAR(node).str);
+    bool new_node;
+    unsigned char index = add_lvar(state, CAR(node).str, &new_node)->index;
     jz_parse_node* expr = CDR(node).node;
 
-    if (expr != NULL)
+    if (expr != NULL) {
       compile_expr(state, expr);
-    else {
+
+      PUSH_OPCODE(jz_oc_store);
+      PUSH_OPCODE(index);
+    } else if (new_node) {
       jz_tvalue undef = jz_undef_val();
 
       state->stack_length = 1;
       PUSH_OPCODE(jz_oc_push_literal);
       push_multibyte_arg(state, &undef, JZ_OCS_TVALUE);
-    }
 
-    PUSH_OPCODE(jz_oc_store);
-    PUSH_OPCODE(index);
+      PUSH_OPCODE(jz_oc_store);
+      PUSH_OPCODE(index);
+    } else state->stack_length = 0;
 
     state->stack_length = MAX(old_cap, state->stack_length);
   }
@@ -667,10 +671,13 @@ jz_tvalue* get_literal_value(jz_parse_node* node) {
   return CAAR(node).val;
 }
 
-unsigned char add_lvar(comp_state* state, jz_str* name) {
+lvar_node* add_lvar(comp_state* state, jz_str* name, bool* new) {
   lvar_node* node;
 
-  if ((node = get_lvar(state, name))) return node->index;
+  if ((node = get_lvar(state, name))) {
+    *new = false;
+    return node;
+  } else *new = true;
 
   node = malloc(sizeof(lvar_node));
   node->next = state->locals;
@@ -678,7 +685,7 @@ unsigned char add_lvar(comp_state* state, jz_str* name) {
   node->index = state->locals == NULL ? 0 : state->locals->index + 1;
   state->locals = node;
 
-  return node->index;
+  return node;
 }
 
 lvar_node* get_lvar(comp_state* state, jz_str* name) {
