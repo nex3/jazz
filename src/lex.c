@@ -244,7 +244,7 @@ void jz_lex_init() {
   state.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
   state.line_terminator_re  = create_re("\\A[\\n\\r\\u2028\\u2029]");
   state.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
-                                        ">>>|={1,3}|\\+\\+|--|&&|\\|\\||"
+                                        ">>>=?|={1,3}|\\+\\+|--|&&|\\|\\||"
                                         "<<=?|>>=?|!=?=?|\\+=?|-=?|\\*=?|%=?|"
                                         ">=?|<=?|&=?|\\|=?|\\^=?|\\/=?)");
   state.hex_literal_re      = create_re("\\A0[xX][0-9a-fA-F]+");
