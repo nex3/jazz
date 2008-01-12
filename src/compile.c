@@ -619,13 +619,12 @@ void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
     var = compile_identifier(state, CDAR(node).node);
     compile_expr(state, CDDR(node).node);
     PUSH_OPCODE(op);
-
-    state->stack_length++;
   } else {
     var = get_lvar(state, CDAAR(node).str);
     compile_expr(state, CDDR(node).node);
   }
 
+  state->stack_length++;
   PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
   PUSH_OPCODE(var->index);
