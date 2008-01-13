@@ -112,7 +112,7 @@ block: LCURLY statement_list RCURLY { $$ = reverse_list($2); }
 statement_list: statement { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
   | statement_list statement { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
 
-var_statement: VAR var_decl_list SEMICOLON { $$ = $2; }
+var_statement: VAR var_decl_list SEMICOLON { $$ = reverse_list($2); }
 
 var_decl_list: var_decl { $$ = jz_pnode_wrap(jz_parse_vars, $1); }
   | var_decl_list COMMA var_decl { $$ = jz_pnode_cons(jz_parse_vars, $3, $1); }
@@ -159,7 +159,7 @@ for_statement
  }
   | FOR LPAREN VAR var_decl_list SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
-    $$ = jz_pnode_list(jz_parse_for, 4, $4, $6, $8, $10);
+    $$ = jz_pnode_list(jz_parse_for, 4, reverse_list($4), $6, $8, $10);
  }  
 
 opt_expr: expr { $$ = $1; }

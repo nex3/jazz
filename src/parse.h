@@ -120,7 +120,7 @@ typedef enum {
                           cdr.node is the statement list (a jz_parse_statements)
                           or NULL if there is no statement list. */
 
-  jz_parse_vars,       /* A bottom-up list of variable declarations.
+  jz_parse_vars,       /* A list of variable declarations.
                           car.node is a jz_parse_var. */
   jz_parse_var,        /* A single variable initialization.
                           car.str is the name of the variable.

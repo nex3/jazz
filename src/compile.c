@@ -37,6 +37,7 @@ JZ_DECLARE_VECTOR(jz_size_t)
 static void compile_statements(comp_state* state, jz_parse_node* node);
 static void compile_statement(comp_state* state, jz_parse_node* node);
 static void compile_vars(comp_state* state, jz_parse_node* node);
+static void compile_var(comp_state* state, jz_parse_node* node);
 static void compile_return(comp_state* state, jz_parse_node* node);
 static void compile_if(comp_state* state, jz_parse_node* node);
 static void compile_do_while(comp_state* state, jz_parse_node* node);
@@ -163,38 +164,43 @@ static void compile_statement(comp_state* state, jz_parse_node* node) {
 }
 
 void compile_vars(comp_state* state, jz_parse_node* node) {
-  assert(node->type == jz_parse_vars);
+  while (node != NULL) {
+    assert(node->type == jz_parse_vars);
 
-  if (CDR(node).node != NULL)
-    compile_vars(state, CDR(node).node);
+    compile_var(state, CAR(node).node);
+    node = CDR(node).node;
+  }
+}
 
-  node = CAR(node).node;
+void compile_var(comp_state* state, jz_parse_node* node) {
+  int old_cap;
+  bool new_node;
+  unsigned char index;
+  jz_parse_node* expr;
+
   assert(node->type == jz_parse_var);
 
-  {
-    int old_cap = state->stack_length;
-    bool new_node;
-    unsigned char index = add_lvar(state, CAR(node).str, &new_node)->index;
-    jz_parse_node* expr = CDR(node).node;
+  old_cap = state->stack_length;
+  index = add_lvar(state, CAR(node).str, &new_node)->index;
+  expr = CDR(node).node;
 
-    if (expr != NULL) {
-      compile_expr(state, expr);
+  if (expr != NULL) {
+    compile_expr(state, expr);
 
-      PUSH_OPCODE(jz_oc_store);
-      PUSH_OPCODE(index);
-    } else if (new_node) {
-      jz_tvalue undef = jz_undef_val();
+    PUSH_OPCODE(jz_oc_store);
+    PUSH_OPCODE(index);
+  } else if (new_node) {
+    jz_tvalue undef = jz_undef_val();
 
-      state->stack_length = 1;
-      PUSH_OPCODE(jz_oc_push_literal);
-      push_multibyte_arg(state, &undef, JZ_OCS_TVALUE);
+    state->stack_length = 1;
+    PUSH_OPCODE(jz_oc_push_literal);
+    push_multibyte_arg(state, &undef, JZ_OCS_TVALUE);
 
-      PUSH_OPCODE(jz_oc_store);
-      PUSH_OPCODE(index);
-    } else state->stack_length = 0;
+    PUSH_OPCODE(jz_oc_store);
+    PUSH_OPCODE(index);
+  } else state->stack_length = 0;
 
-    state->stack_length = MAX(old_cap, state->stack_length);
-  }
+  state->stack_length = MAX(old_cap, state->stack_length);
 }
 
 void compile_return(comp_state* state, jz_parse_node* node) {
