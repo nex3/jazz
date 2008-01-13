@@ -22,6 +22,9 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
+
+  /* This is initialized to all zeros,
+     which means locals are initially of type undefined. */
   jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
 
 #if JZ_DEBUG_BYTECODE

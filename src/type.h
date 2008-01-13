@@ -4,9 +4,11 @@
 #include <stdbool.h>
 
 enum {
-  jz_num,
-  jz_bool,
-  jz_undef
+  /* Giving undefined a 0 flag means that zero-ed memory
+     is identified as jz_undef, which saves some manual setting. */
+  jz_undef = 0x00,
+  jz_num   = 0x01,
+  jz_bool  = 0x02
 } jz_type_type;
 
 typedef union {

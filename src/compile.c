@@ -189,15 +189,6 @@ void compile_var(comp_state* state, jz_parse_node* node) {
 
     PUSH_OPCODE(jz_oc_store);
     PUSH_OPCODE(index);
-  } else if (new_node) {
-    jz_tvalue undef = jz_undef_val();
-
-    state->stack_length = 1;
-    PUSH_OPCODE(jz_oc_push_literal);
-    push_multibyte_arg(state, &undef, JZ_OCS_TVALUE);
-
-    PUSH_OPCODE(jz_oc_store);
-    PUSH_OPCODE(index);
   } else state->stack_length = 0;
 
   state->stack_length = MAX(old_cap, state->stack_length);
