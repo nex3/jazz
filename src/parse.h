@@ -81,7 +81,7 @@ typedef enum {
                           Semantics are defined by the first
                           non-continuation parent node. */
 
-  jz_parse_statements, /* A bottom-up list of statements.
+  jz_parse_statements, /* A list of statements.
                           car.node is a statement. */
 
   jz_parse_return,     /* A return statement.

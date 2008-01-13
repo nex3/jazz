@@ -102,16 +102,17 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
 }
 
 void compile_statements(comp_state* state, jz_parse_node* node) {
-  int old_cap;
+  while (node != NULL) {
+    int old_cap;
 
-  assert(node->type == jz_parse_statements);
+    assert(node->type == jz_parse_statements);
 
-  if (CDR(node).node != NULL)
-    compile_statements(state, CDR(node).node);
+    old_cap = state->stack_length;
+    compile_statement(state, CAR(node).node);
+    state->stack_length = MAX(old_cap, state->stack_length);
 
-  old_cap = state->stack_length;
-  compile_statement(state, CAR(node).node);
-  state->stack_length = MAX(old_cap, state->stack_length);
+    node = CDR(node).node;
+  }
 }
 
 static void compile_statement(comp_state* state, jz_parse_node* node) {

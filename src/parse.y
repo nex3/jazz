@@ -88,7 +88,7 @@ static void yyerror(const char* msg);
 %%
 
 program: source_elements {
-  $$ = $1;
+  $$ = reverse_list($1);
   root_node = $$;
  }
 
@@ -106,7 +106,7 @@ statement: block     { $$ = $1; }
   | iter_statement   { $$ = $1; }
   | switch_statement { $$ = $1; }
 
-block: LCURLY statement_list RCURLY { $$ = $2; }
+block: LCURLY statement_list RCURLY { $$ = reverse_list($2); }
   | LCURLY RCURLY { $$ = jz_pnode_new(jz_parse_empty); }
 
 statement_list: statement { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
