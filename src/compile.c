@@ -48,7 +48,6 @@ static jz_size_t_vector* compile_switch_conditionals(comp_state* state, jz_parse
 static void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_size_t_vector* placeholders);
 
 static void compile_exprs(comp_state* state, jz_parse_node* node);
-static void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first);
 static void compile_expr(comp_state* state, jz_parse_node* node);
 static lvar_node* compile_identifier(comp_state* state, jz_parse_node* node);
 static void compile_literal(comp_state* state, jz_parse_node* node);
