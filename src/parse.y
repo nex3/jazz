@@ -75,8 +75,8 @@ static void yyerror(const char* msg);
              expr_statement return_statement empty_statement if_statement else
              iter_statement do_while_statement while_statement for_statement
              opt_expr switch_statement case_block case_block_list case_clauses
-             case_clause default_clause
-             expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
+             case_clause default_clause expr expr_list
+             assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
              primary_expr identifier literal number boolean undefined
@@ -194,8 +194,10 @@ case_clause: CASE expr COLON statement_list { $$ = jz_pnode_cons(jz_parse_case, 
 default_clause: DEFAULT COLON statement_list { $$ = jz_pnode_wrap(jz_parse_cases, jz_pnode_cons(jz_parse_case, NULL, $3)); }
 | DEFAULT COLON { $$ = jz_pnode_wrap(jz_parse_cases, jz_pnode_new(jz_parse_case)); }
 
-expr: assign_expr { $$ = jz_pnode_wrap(jz_parse_exprs, $1); }
-  | expr COMMA assign_expr {
+expr: expr_list { $$ = reverse_list($1); }
+
+expr_list: assign_expr { $$ = jz_pnode_wrap(jz_parse_exprs, $1); }
+  | expr_list COMMA assign_expr {
     $$ = jz_pnode_cons(jz_parse_exprs, $3, $1);
  }
 

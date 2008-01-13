@@ -59,11 +59,6 @@ typedef struct jz_parse_node jz_parse_node;
    Only the semantics of the car of the node needs to be defined;
    cdr is always the next node in the list or NULL.
 
-   Some lists are marked as "bottom-up."
-   This is an artifact of the left-recursiveness of the grammar,
-   and means that the first node in the list
-   is actually the last element in the list.
-
    Note that some of the descriptions refer to "expressions"
    and some to "statements."
    An "expression" is always a node of type jz_parse_exprs,
@@ -127,7 +122,7 @@ typedef enum {
                           cdr.node is the initializer of the variable,
                           or NULL if there is no initializer. */
 
-  jz_parse_exprs,      /* A bottom-up list of expressions.
+  jz_parse_exprs,      /* A list of expressions.
                           car.node is the root node of an expression. */
   jz_parse_unop,       /* A unary operator.
                           car.op_type indicates which operator it is,

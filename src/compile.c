@@ -407,25 +407,23 @@ void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_size_t
 }
 
 void compile_exprs(comp_state* state, jz_parse_node* node) {
-  compile_exprs_helper(state, node, true);
-}
+  bool first = true;
 
-void compile_exprs_helper(comp_state* state, jz_parse_node* node, bool first) {
-  int old_cap;
+  while (node != NULL) {
+    int old_cap = first ? 0 : state->stack_length;
 
-  assert(node->type == jz_parse_exprs);
+    assert(node->type == jz_parse_exprs);
 
-  if (CDR(node).node != NULL) {
-    compile_exprs_helper(state, CDR(node).node, false);
-    old_cap = state->stack_length;
-  } else old_cap = 0;
+    compile_expr(state, CAR(node).node);
 
-  compile_expr(state, CAR(node).node);
+    /* Discard the return value of all expressions in a list but the last. */
+    if (CDR(node).node != NULL) PUSH_OPCODE(jz_oc_pop);
 
-  /* Discard the return value of all expressions in a list but the last. */
-  if (!first) PUSH_OPCODE(jz_oc_pop);
+    state->stack_length = MAX(old_cap, state->stack_length);
 
-  state->stack_length = MAX(old_cap, state->stack_length);
+    first = false;
+    node = CDR(node).node;
+  }
 }
 
 void compile_expr(comp_state* state, jz_parse_node* node) {
