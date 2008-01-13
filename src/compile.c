@@ -216,12 +216,26 @@ void compile_if(comp_state* state, jz_parse_node* node) {
   jump = push_placeholder(state, JZ_OCS_SIZET);
 
   compile_statement(state, CDAR(node).node);
-  jump_to_top_from(state, jump);
 
-  if (CDDR(node).node != NULL) {
+  if (CDDR(node).node == NULL) {
+    jump_to_top_from(state, jump);
+    if_cap = 0;
+  } else {
+    size_t else_jump;
+
+    /* We'll want to jump past the else clause if it exists. */
+    PUSH_OPCODE(jz_oc_jump);
+    else_jump = push_placeholder(state, JZ_OCS_SIZET);
+
+    jump_to_top_from(state, jump); /* Jump past the new jump instruction
+                                      if the if statement fails. */
+
+
     compile_statement(state, CDDR(node).node);
     if_cap = state->stack_length;
-  } else if_cap = 0;
+
+    jump_to_top_from(state, else_jump);
+  }
 
   state->stack_length = MAX(MAX(expr_cap, if_cap), state->stack_length);
 }
@@ -617,6 +631,11 @@ void compile_simple_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
 void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) {
   lvar_node* var;
 
+  if (CDAR(node).node->type != jz_parse_identifier) {
+    fprintf(stderr, "Illegal left-hand side of assignment.\n");
+    exit(1);
+  }
+
   /* Noop signals that this is just a plain assignment.
      Otherwise we want to run an operation before assigning. */
   if (op != jz_oc_noop) {
@@ -626,6 +645,11 @@ void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
   } else {
     var = get_lvar(state, CDAAR(node).str);
     compile_expr(state, CDDR(node).node);
+  }
+
+  if (var == NULL) {
+    fprintf(stderr, "Undefined identifier \"%s\"\n", jz_str_to_chars(CDAAR(node).str));
+    exit(1);
   }
 
   state->stack_length++;
