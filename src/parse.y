@@ -69,12 +69,13 @@ static void yyerror(const char* msg);
 %token <none> DIV DIV_EQ
 
 /* Grammmar Productions */
-%type <node> program source_elements source_element
-             statement block statement_list var_statement var_decl_list var_decl
+%type <node> program source_elements source_element_list source_element
+             statement block statements statement_list var_statement
+             var_decls var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
              iter_statement do_while_statement while_statement for_statement
-             opt_expr switch_statement case_block case_clauses case_clause
-             default_clause
+             opt_expr switch_statement case_block case_block_list case_clauses
+             case_clause default_clause
              expr assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
@@ -88,12 +89,14 @@ static void yyerror(const char* msg);
 %%
 
 program: source_elements {
-  $$ = reverse_list($1);
+  $$ = $1;
   root_node = $$;
  }
 
-source_elements: source_element { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
-  | source_elements source_element { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
+source_elements: source_element_list { $$ = reverse_list($1); }
+
+source_element_list: source_element { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
+  | source_element_list source_element { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
 
 source_element: statement { $$ = $1; }
 
@@ -106,13 +109,17 @@ statement: block     { $$ = $1; }
   | iter_statement   { $$ = $1; }
   | switch_statement { $$ = $1; }
 
-block: LCURLY statement_list RCURLY { $$ = reverse_list($2); }
+block: LCURLY statements RCURLY { $$ = $2; }
   | LCURLY RCURLY { $$ = jz_pnode_new(jz_parse_empty); }
+
+statements: statement_list { $$ = reverse_list($1); }
 
 statement_list: statement { $$ = jz_pnode_wrap(jz_parse_statements, $1); }
   | statement_list statement { $$ = jz_pnode_cons(jz_parse_statements, $2, $1); }
 
-var_statement: VAR var_decl_list SEMICOLON { $$ = reverse_list($2); }
+var_statement: VAR var_decls SEMICOLON { $$ = $2; }
+
+var_decls: var_decl_list { $$ = reverse_list($1); }
 
 var_decl_list: var_decl { $$ = jz_pnode_wrap(jz_parse_vars, $1); }
   | var_decl_list COMMA var_decl { $$ = jz_pnode_cons(jz_parse_vars, $3, $1); }
@@ -157,19 +164,21 @@ for_statement
     opt_expr SEMICOLON opt_expr RPAREN statement {
     $$ = jz_pnode_list(jz_parse_for, 4, $3, $5, $7, $9);
  }
-  | FOR LPAREN VAR var_decl_list SEMICOLON
+  | FOR LPAREN VAR var_decls SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
-    $$ = jz_pnode_list(jz_parse_for, 4, reverse_list($4), $6, $8, $10);
+    $$ = jz_pnode_list(jz_parse_for, 4, $4, $6, $8, $10);
  }  
 
 opt_expr: expr { $$ = $1; }
   | /* empty */ { $$ = NULL; }
 
 switch_statement: SWITCH LPAREN expr RPAREN LCURLY case_block RCURLY {
-  $$ = jz_pnode_cons(jz_parse_switch, $3, reverse_list($6));
+  $$ = jz_pnode_cons(jz_parse_switch, $3, $6);
  }
 
-case_block: case_clauses { $$ = $1; }
+case_block: case_block_list { $$ = reverse_list($1); }
+
+case_block_list: case_clauses { $$ = $1; }
   | default_clause { $$ = $1; }
   | case_clauses default_clause { $$ = jz_plist_concat($2, $1); }
   | default_clause case_clauses { $$ = jz_plist_concat($2, $1); }
