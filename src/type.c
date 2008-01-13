@@ -9,21 +9,24 @@
 #define SIGN(x) ((x) < 0 ? -1 : 1)
 
 bool jz_values_equal(jz_tvalue v1, jz_tvalue v2) {
-  if (v1.type == v2.type) return jz_values_strict_equal(v1, v2);
-  if (v1.type == jz_bool) return jz_values_equal(jz_wrap_num(jz_to_num(v1)), v2);
-  if (v2.type == jz_bool) return jz_values_equal(v1, jz_wrap_num(jz_to_num(v2)));
+  if (JZ_TVAL_TYPE(v1) == JZ_TVAL_TYPE(v2))
+    return jz_values_strict_equal(v1, v2);
+  if (JZ_TVAL_TYPE(v1) == jz_bool)
+    return jz_values_equal(jz_wrap_num(jz_to_num(v1)), v2);
+  if (JZ_TVAL_TYPE(v2) == jz_bool)
+    return jz_values_equal(v1, jz_wrap_num(jz_to_num(v2)));
   else return false;
 }
 
 bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2) {
-  if (v1.type != v2.type)  return false;
-  if (v1.type == jz_bool)  return v1.value.b == v2.value.b;
-  if (v1.type == jz_undef) return true;
+  if (JZ_TVAL_TYPE(v1) != JZ_TVAL_TYPE(v2)) return false;
+  if (JZ_TVAL_TYPE(v1) == jz_bool) return v1.value.b == v2.value.b;
+  if (JZ_TVAL_TYPE(v1) == jz_undef) return true;
   else {
     double num1 = v1.value.num;
     double num2 = v2.value.num;
     
-    assert(v1.type == jz_num);   
+    assert(JZ_TVAL_TYPE(v1) == jz_num);   
     return num1 == num2;
   }
 }
@@ -46,44 +49,44 @@ double jz_values_comp(jz_tvalue v1, jz_tvalue v2) {
 
 jz_tvalue jz_wrap_num(double num) {
   jz_tvalue tvalue;
-  tvalue.type = jz_num;
+  JZ_TVAL_SET_TYPE(tvalue, jz_num);
   tvalue.value.num = num;
   return tvalue;
 }
 
 jz_tvalue jz_wrap_bool(bool b) {
   jz_tvalue tvalue;
-  tvalue.type = jz_bool;
+  JZ_TVAL_SET_TYPE(tvalue, jz_bool);
   tvalue.value.b = b;
   return tvalue;
 }
 
 jz_tvalue jz_undef_val() {
   jz_tvalue tvalue;
-  tvalue.type = jz_undef;
+  JZ_TVAL_SET_TYPE(tvalue, jz_undef);
   return tvalue;
 }
 
 double jz_to_num(jz_tvalue val) {
-  switch (val.type) {
+  switch (JZ_TVAL_TYPE(val)) {
   case jz_bool:  return (double)(val.value.b);
   case jz_num:   return val.value.num;
   case jz_undef: return JZ_NAN;
   default:
-    fprintf(stderr, "Unknown jz_tvalue type %d\n", val.type);
+    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
   }
 }
 
 bool jz_to_bool(jz_tvalue val) {
-  switch (val.type) {
+  switch (JZ_TVAL_TYPE(val)) {
   case jz_bool: return val.value.b;
   case jz_num:
     if (JZ_NUM_IS_NAN(val.value.num)) return false;
     else return (bool)(val.value.num);
   case jz_undef: return false;
   default:
-    fprintf(stderr, "Unknown jz_tvalue type %d\n", val.type);
+    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
   }
 }

@@ -17,7 +17,7 @@ typedef union {
 } jz_value;
 
 typedef struct {
-  unsigned char type;
+  unsigned char tag;
   jz_value value;
 } jz_tvalue;
 
@@ -25,6 +25,9 @@ typedef struct {
 #define JZ_INF     (1.0/0.0)
 #define JZ_NEG_INF (-1.0/0.0)
 #define JZ_NAN     (0.0/0.0)
+
+#define JZ_TVAL_TYPE(value)           ((value).tag & 0x03)
+#define JZ_TVAL_SET_TYPE(value, type) ((value).tag = ((value).tag & !0x03) | type)
 
 #define JZ_NUM_IS_NAN(num)     ((num) != (num))
 #define JZ_NUM_IS_INF(num)     ((num) == (num) + 1)
