@@ -29,4 +29,11 @@ if (true) {
 }
 res = (b == 17) && res;
 
+if (a = 1);
+else if (a = -1);
+res = (a == 1) && res;
+
+if (1) a = 19;
+res = (a == 19) && res;
+
 return res;
