@@ -69,7 +69,7 @@ static void jump_to_top_from(comp_state* state, size_t index);
 static void jump_to_from_top(comp_state* state, size_t index);
 static void jump_to_from(comp_state* state, size_t to, size_t from);
 
-static void push_multibyte_arg(comp_state* state, void* data, size_t size);
+static void push_multibyte_arg(comp_state* state, const void* data, size_t size);
 static size_t push_placeholder(comp_state* state, size_t size);
 
 static void free_comp_state(comp_state* state);
@@ -731,7 +731,7 @@ void jump_to_from(comp_state* state, size_t to, size_t from) {
   *((size_t*)(state->code->values + from)) = to - from - JZ_OCS_SIZET;
 }
 
-void push_multibyte_arg(comp_state* state, void* data, size_t size) {
+void push_multibyte_arg(comp_state* state, const void* data, size_t size) {
   jz_opcode_vector* vector = state->code;
 
   while (vector->next - vector->values + size >= vector->capacity)

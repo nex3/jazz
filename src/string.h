@@ -15,6 +15,30 @@ typedef struct {
   const UChar* value;
 } jz_str;
 
+/* Declare a stack-allocated jz_str* with stack-allocated content.
+   Produces a statement. */
+#define JZ_STR_DECLARE(varname, literal)                        \
+  jz_str* varname;                                              \
+                                                                \
+  {                                                             \
+    jz_str strval;                                              \
+    UChar buffer[sizeof(literal) - 1];                          \
+    UErrorCode error = U_ZERO_ERROR;                            \
+                                                                \
+    u_strFromUTF8(buffer, sizeof(literal) - 1, NULL,            \
+                  literal, sizeof(literal) - 1, &error);        \
+                                                                \
+    if (U_FAILURE(error)) {                                     \
+      fprintf(stderr, "ICU Error: %s\n", u_errorName(error));   \
+      exit(1);                                                  \
+    }                                                           \
+                                                                \
+    strval.length = sizeof(literal) - 1;                        \
+    strval.value = buffer;                                      \
+                                                                \
+    varname = &strval;                                          \
+  }
+
 /* Creates a new jz_str*.
    This is shallow,
    so the 'value' member is the same as the 'value' argument. */
@@ -49,8 +73,21 @@ jz_str* jz_str_deep_dup(const jz_str* this);
    the same character array as 'this'. */
 jz_str* jz_str_substr(const jz_str* this, int start, int end);
 
+/* Shallow */
+jz_str* jz_str_strip(const jz_str* this);
+
 /* Returns whether or not s1 and s2 are equivalent strings. */
 bool    jz_str_equal(const jz_str* s1, const jz_str* s2);
+
+/* Returns an integer indicating
+   how s1 and s2 are ordered relative to each other.
+   The return value is > 0 if s1 > s2, < 0 if s1 < s2,
+   and 0 if s1 == s2.
+
+   The ordering is defined by the ECMAscript spec. */
+int     jz_str_comp(const jz_str* s1, const jz_str* s2);
+
+double  jz_str_to_num(const jz_str* this);
 
 /* Returns a newly allocated character array containing 'this'
    transcoded into UTF-8. */

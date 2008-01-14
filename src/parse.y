@@ -48,7 +48,7 @@ static void yyerror(const char* msg);
 }
 
 /* Literal value tokens. */
-%token <str> IDENTIFIER
+%token <str> IDENTIFIER STRING
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
@@ -79,7 +79,7 @@ static void yyerror(const char* msg);
              assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
-             primary_expr identifier literal number boolean undefined
+             primary_expr identifier literal number string boolean undefined
              not_a_number infinity
 
 %type <boolean> bool_val
@@ -303,6 +303,7 @@ identifier: IDENTIFIER {
  }
 
 literal: number  { $$ = $1; }
+  | string       { $$ = $1; }
   | boolean      { $$ = $1; }
   | undefined    { $$ = $1; }
   | not_a_number { $$ = $1; }
@@ -310,6 +311,10 @@ literal: number  { $$ = $1; }
 
 number: NUMBER {
   $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_num($1)));
+ }
+
+string: STRING {
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_wrap_str($1)));
  }
 
 boolean: bool_val {

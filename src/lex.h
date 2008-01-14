@@ -22,4 +22,7 @@ void jz_lex_set_code(const jz_str* code);
 /* The yacc parser interface function. */
 int yylex();
 
+
+double jz_parse_number(const jz_str* num);
+
 #endif

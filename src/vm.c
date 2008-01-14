@@ -15,10 +15,10 @@
 #define PUSH(val)  (*(stack++) = (val))
 
 #if JZ_DEBUG_BYTECODE
-static void print_bytecode(jz_bytecode* bytecode);
+static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
+jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
@@ -227,7 +227,7 @@ jz_tvalue jz_vm_run(jz_bytecode* bytecode) {
 }
 
 #if JZ_DEBUG_BYTECODE
-void print_bytecode(jz_bytecode* bytecode) {
+void print_bytecode(const jz_bytecode* bytecode) {
   jz_opcode* code;
 
   printf("Bytecode:\n");

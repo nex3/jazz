@@ -1,6 +1,8 @@
 #ifndef JZ_OBJECT_H
 #define JZ_OBJECT_H
 
+#include "string.h"
+
 #include <stdbool.h>
 
 enum {
@@ -8,11 +10,13 @@ enum {
      is identified as jz_undef, which saves some manual setting. */
   jz_undef = 0x00,
   jz_num   = 0x01,
-  jz_bool  = 0x02
+  jz_bool  = 0x02,
+  jz_strt  = 0x03
 } jz_type_type;
 
 typedef union {
   double num;
+  jz_str* str;
   bool b;
 } jz_value;
 
@@ -39,6 +43,7 @@ bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2);
 double jz_values_comp(jz_tvalue v1, jz_tvalue v2);
 
 jz_tvalue jz_wrap_num(double num);
+jz_tvalue jz_wrap_str(jz_str* str);
 jz_tvalue jz_wrap_bool(bool b);
 jz_tvalue jz_undef_val();
 

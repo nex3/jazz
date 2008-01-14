@@ -1,7 +1,12 @@
 #include "string.h"
+#include "lex.h"
+#include "type.h"
+
+#include <unicode/uchar.h>
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 jz_str* jz_str_new(int length, const UChar* value) {
   jz_str* to_ret = malloc(sizeof(jz_str));
@@ -43,10 +48,87 @@ jz_str* jz_str_substr(const jz_str* this, int start, int end) {
   return jz_str_new(end - start, this->value + start);
 }
 
+#define IS_WHITESPACE_CHAR(c)                                           \
+  (u_isblank(c) || (c) == 0xA0 || (c) == '\f' || (c) == '\v' ||         \
+   (c) == '\r' || (c) == '\n' || (c) == 0x2028 || (c) == 0x2029)
+
+jz_str* jz_str_strip(const jz_str* this) {
+  const UChar* start = this->value;
+  const UChar* end = this->value + this->length - 1;
+
+  while (true) {
+    UChar ch;
+    if (start - this->value == this->length) return jz_str_null();
+
+    ch = *start;
+    if (!IS_WHITESPACE_CHAR(ch)) break;
+    start++;
+  }
+
+  while (true) {
+    UChar ch = *end;
+    if (!IS_WHITESPACE_CHAR(ch)) break;
+    end--;
+  }
+
+  return jz_str_new(end - start + 1, start);
+}
+
 bool jz_str_equal(const jz_str* s1, const jz_str* s2) {
   if (s1->length != s2->length) return false;
 
   return u_strncmp(s1->value, s2->value, s1->length) == 0;
+}
+
+int jz_str_comp(const jz_str* s1, const jz_str* s2) {
+  const UChar* s1_iter = s1->value;
+  const UChar* s2_iter = s2->value;
+
+  for (;; s1_iter++, s2_iter++) {
+    if (s1_iter - s1->value == s1->length) {
+      if (s2_iter - s2->value == s2->length) return 0;
+      else return -1;
+    }
+    if (s2_iter - s2->value == s2->length) return 1;
+
+    if (*s1_iter < *s2_iter) return -1;
+    else if (*s1_iter > *s2_iter) return 1;
+  }
+
+  fprintf(stderr, "There is a bug in the jz_str_comp "
+          "when comparing \"%s\" and \"%s\". Returning 0.\n",
+          jz_str_to_chars(s1), jz_str_to_chars(s2));
+  return 0;
+}
+
+double jz_str_to_num(const jz_str* num) {
+  jz_str* my_num = jz_str_strip(num);
+  char sign = 1;
+  double to_ret;
+
+  if (*my_num->value == '-') {
+    sign = -1;
+    my_num->value++;
+    my_num->length--;
+  } else if (*my_num->value == '+') {
+    sign = 1;
+    my_num->value++;
+    my_num->length--;
+  }
+  
+  to_ret = jz_parse_number(my_num);
+
+  /* If the string couldn't be parsed,
+     it might be "Infinity" */
+  if (JZ_NUM_IS_NAN(to_ret)) {
+    JZ_STR_DECLARE(val, "Infinity");
+
+    if (jz_str_equal(my_num, val)) to_ret = JZ_INF;
+  }
+
+  free(my_num);
+
+  return sign * to_ret;
 }
 
 char* jz_str_to_chars(const jz_str* this) {
@@ -59,7 +141,7 @@ char* jz_str_to_chars(const jz_str* this) {
     return to_ret;
   }
 
-  to_ret = calloc(this->length + 1, sizeof(char));
+  to_ret = calloc(sizeof(char), this->length + 1);
   u_strToUTF8(to_ret, this->length, NULL, this->value, this->length, &error);
   to_ret[this->length] = '\0';
   return to_ret;
