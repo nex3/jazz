@@ -24,6 +24,7 @@ gcov: clean
 coverage: gcov
 	mkdir -p coverage/
 	cd src && lcov -c -d . -o ../coverage/lcov.info
+	lcov -r coverage/lcov.info y.tab.c -o coverage/lcov.info
 	genhtml -o coverage/ coverage/lcov.info
 
 never_up_to_date:
