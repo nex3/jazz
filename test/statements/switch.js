@@ -38,4 +38,15 @@ case -1: a += 2;
 }
 res = (a == 25) && res;
 
+switch (12) {
+case 1: a = 0;
+default: a = 2;
+}
+res = (a == 2) && res;
+
+switch (12) {
+default: a = 3;
+}
+res = (a == 3) && res;
+
 return res;

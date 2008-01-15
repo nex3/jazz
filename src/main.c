@@ -34,8 +34,7 @@ int main(int argc, char** argv) {
 
     printf("%s\n", jz_str_to_chars(jz_to_str(jz_vm_run(bytecode))));
 
-    free(bytecode->code);
-    free(bytecode);
+    jz_free_bytecode(bytecode);
   }
 
   return 0;

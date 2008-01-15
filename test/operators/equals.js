@@ -27,6 +27,7 @@ return ((undefined == undefined) == true) &&
     ("foo" == "foo") &&
     ("foo" != "foobar") &&
     ("bar" != "foobar") &&
+    (undefined != "blah") &&
 
     ((undefined != undefined) == false) &&
     ((NaN != NaN) == true) &&

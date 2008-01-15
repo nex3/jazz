@@ -31,5 +31,4 @@ while (i < 10) {
 }
 res = (a == 30) && res;
 
-while (true) return res;
-return false;
+return res;
