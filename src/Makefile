@@ -21,12 +21,12 @@ libjazz.a: lex.o string.o y.tab.o vm.o compile.o type.o
 
 main.o: main.c lex.h string.h vm.h compile.h
 
-type.o: type.c type.h
+type.o: type.c type.h string.h
 compile.o: compile.c compile.h parse.h opcode.h type.h \
   vector.h
 vm.o: vm.c vm.h opcode.h type.h compile.h vector.h Makefile
 lex.o: lex.c lex.h string.h y.tab.h keywords.gp.c Makefile
-string.o: string.c string.h
+string.o: string.c string.h lex.h type.h
 
 
 keywords.gp.c: keywords.gperf

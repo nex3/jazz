@@ -4,9 +4,13 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define ABS(x)  ((x) < 0 ? -(x) : (x))
 #define SIGN(x) ((x) < 0 ? -1 : 1)
+
+static void write_integral_double(UChar* buffer_end, double d);
+static int add_decimal_point(UChar* buffer, int index);
 
 bool jz_values_equal(jz_tvalue v1, jz_tvalue v2) {
   if (JZ_TVAL_TYPE(v1) == JZ_TVAL_TYPE(v2))
@@ -96,6 +100,23 @@ double jz_to_num(jz_tvalue val) {
   }
 }
 
+/* Note: this function allocates new values,
+   but only sometimes.
+   It's a source of memory leaks until we get GC going. */
+jz_str* jz_to_str(jz_tvalue val) {
+  switch (JZ_TVAL_TYPE(val)) {
+  case jz_strt: return val.value.str;
+  case jz_num: return jz_num_to_str(val.value.num);
+  case jz_bool:
+    if (val.value.b) return jz_str_from_literal("true");
+    else return jz_str_from_literal("false");
+  case jz_undef: return jz_str_from_literal("undefined");
+  default:
+    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
+    exit(1);
+  }
+}
+
 bool jz_to_bool(jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_bool: return val.value.b;
@@ -141,4 +162,113 @@ double jz_num_mod(jz_tvalue val1, jz_tvalue val2) {
     return dividend - divisor * floor(dividend / divisor);
   else
     return dividend - divisor * ceil(dividend / divisor);
+}
+
+#define DIGIT_CHAR(c)     ('0' + (int)(c))
+#define DIGIT(num, place) (((num) / place) % 10)
+
+#define FLOAT_SIG_FIGS 17
+
+/* -X.XXXXXXXXXXXXXXXXe+XXX */
+#define MAX_FLT_STR_LEN (FLOAT_SIG_FIGS + 7)
+
+jz_str* jz_num_to_str(double num) {
+  UChar* buffer;
+  int order;
+  bool exponent;
+  int length;
+
+  if (JZ_NUM_IS_NAN(num)) return jz_str_from_literal("NaN");
+  if (num == 0) return jz_str_from_literal("0");
+  if (num < 0)
+    return jz_str_concat(jz_str_from_literal("-"), jz_num_to_str(-num));
+  if (num == JZ_INF) return jz_str_from_literal("Infinity");
+
+  buffer = calloc(sizeof(UChar), MAX_FLT_STR_LEN);
+  order = floor(log10(num));
+  exponent = order > 20 || order < -6;
+
+  write_integral_double(buffer + FLOAT_SIG_FIGS - 1,
+                        num * pow(10, FLOAT_SIG_FIGS - order - 1));
+
+  if (exponent) {
+    UChar* buffer_top = buffer + add_decimal_point(buffer, 1);
+    int abs_order = ABS(order);
+    int hundreds = DIGIT(abs_order, 100);
+    int tens = DIGIT(abs_order, 10);
+    int ones = DIGIT(abs_order, 1);
+
+    *buffer_top++ = 'e';
+    *buffer_top++ = order > 0 ? '+' : '-';
+
+    /* We rely here on the exponent never being greater than three digits. */
+    if (hundreds != 0)
+      *buffer_top++ = DIGIT_CHAR(hundreds);
+    if (hundreds != 0 || tens != 0)
+      *buffer_top++ = DIGIT_CHAR(tens);
+    *buffer_top++ = DIGIT_CHAR(ones);
+
+    length = buffer_top - buffer;
+  }
+  else length = add_decimal_point(buffer, order + 1);
+
+  return jz_str_new(length, buffer);
+}
+
+void write_integral_double(UChar* buffer_end, double d) {
+  int i;
+
+  assert(JZ_NUM_IS_INT(d));
+
+  for (i = 0; i < FLOAT_SIG_FIGS; i++) {
+    /* Is there a way to divide and mod at the same time here? */
+    *buffer_end-- = DIGIT_CHAR(fmod(d, 10));
+    d /= 10;
+  }
+}
+
+int add_decimal_point(UChar* buffer, int index) {
+  /* We may have extra dangling zeros if index < 0.
+     MAX_FLT_STR_LEN isn't strictly accurate,
+     but it's a good overestimate. */
+  UChar temp_bottom[MAX_FLT_STR_LEN * 2];
+  UChar* buffer_bottom = buffer;
+  UChar* temp = temp_bottom;
+  int i;
+
+  /* Add "0." to the beginning if the index is 0 or negative */
+  if (index < 1) {
+    assert(FLOAT_SIG_FIGS + 2 - index < MAX_FLT_STR_LEN * 2);
+
+    *temp++ = '0';
+    *temp++ = '.';
+  }
+
+  /* If the index of the dot is negative,
+     add 0s to pad it out. */
+  for (; index < 0; index++) *temp++ = '0';
+
+  /* We've already added the dot for these,
+     so make index something that we won't pay attention to later on. */
+  if (index == 0) index = -1;
+
+  /* Copy from the integer string buffer,
+     adding a decimal point where necessary. */
+  for (i = 0; i < FLOAT_SIG_FIGS; i++) {
+    if (i == index) *temp++ = '.';
+
+    *temp++ = *buffer++;
+  }
+  temp--;
+
+  /* Get rid of trailing 0s,
+     and the decimal point if it's not necessary. */
+  while (*temp == '0') *temp-- = '\0';
+  if (*temp == '.') *temp-- = '\0';
+  temp++;
+
+  assert(temp - temp_bottom < MAX_FLT_STR_LEN);
+
+  memcpy(buffer_bottom, temp_bottom, (temp - temp_bottom) * sizeof(UChar));
+  return temp - temp_bottom;
 }

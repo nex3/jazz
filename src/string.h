@@ -25,7 +25,7 @@ typedef struct {
     UChar buffer[sizeof(literal) - 1];                          \
     UErrorCode error = U_ZERO_ERROR;                            \
                                                                 \
-    u_strFromUTF8(buffer, sizeof(literal) - 1, NULL,            \
+    u_strFromUTF8(buffer, sizeof(literal) - 1, &strval.length,  \
                   literal, sizeof(literal) - 1, &error);        \
                                                                 \
     if (U_FAILURE(error)) {                                     \
@@ -33,7 +33,6 @@ typedef struct {
       exit(1);                                                  \
     }                                                           \
                                                                 \
-    strval.length = sizeof(literal) - 1;                        \
     strval.value = buffer;                                      \
                                                                 \
     varname = &strval;                                          \
@@ -76,6 +75,9 @@ jz_str* jz_str_substr(const jz_str* this, int start, int end);
 /* Shallow */
 jz_str* jz_str_strip(const jz_str* this);
 
+/* Deep */
+jz_str* jz_str_concat(const jz_str* s1, const jz_str* s2);
+
 /* Returns whether or not s1 and s2 are equivalent strings. */
 bool    jz_str_equal(const jz_str* s1, const jz_str* s2);
 
@@ -92,5 +94,10 @@ double  jz_str_to_num(const jz_str* this);
 /* Returns a newly allocated character array containing 'this'
    transcoded into UTF-8. */
 char*   jz_str_to_chars(const jz_str* this);
+
+#define jz_str_from_literal(value) \
+  jz_str_from_chars(value, sizeof(value) - 1)
+
+jz_str* jz_str_from_chars(const char* value, int length);
 
 #endif

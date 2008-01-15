@@ -23,7 +23,7 @@ do
         errors[$eindex]=`echo -e "Errors for $file:\n$error"`
         let "index += 1"
         let "eindex += 1"
-    elif [ `echo "$res == 1" | bc` = 1 ]
+    elif [ "$res" = true ]
     then
         echo -n '.'
     else

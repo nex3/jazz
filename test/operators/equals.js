@@ -17,6 +17,16 @@ return ((undefined == undefined) == true) &&
     ((false == 0) == true) &&
     ((0 == false) == true) &&
     ((false == -1) == false) &&
+    ("12" == 12) &&
+    ("-12" == -12) &&
+    (12e3 == "12e3") &&
+    ("1.8e2" == 1.8e2) &&
+    (-Infinity == "-Infinity") &&
+    ("1" == true) &&
+    ("0" == false) &&
+    ("foo" == "foo") &&
+    ("foo" != "foobar") &&
+    ("bar" != "foobar") &&
 
     ((undefined != undefined) == false) &&
     ((NaN != NaN) == true) &&

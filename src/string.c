@@ -74,6 +74,17 @@ jz_str* jz_str_strip(const jz_str* this) {
   return jz_str_new(end - start + 1, start);
 }
 
+jz_str* jz_str_concat(const jz_str* s1, const jz_str* s2) {
+  UChar* buffer = calloc(sizeof(UChar), s1->length + s2->length);
+  UChar* buffer_bottom = buffer;
+  int i;
+
+  for (i = 0; i < s1->length; i++) *buffer++ = s1->value[i];
+  for (i = 0; i < s2->length; i++) *buffer++ = s2->value[i];
+
+  return jz_str_new(s1->length + s2->length, buffer_bottom);
+}
+
 bool jz_str_equal(const jz_str* s1, const jz_str* s2) {
   if (s1->length != s2->length) return false;
 
@@ -144,5 +155,22 @@ char* jz_str_to_chars(const jz_str* this) {
   to_ret = calloc(sizeof(char), this->length + 1);
   u_strToUTF8(to_ret, this->length, NULL, this->value, this->length, &error);
   to_ret[this->length] = '\0';
+  return to_ret;
+}
+
+jz_str* jz_str_from_chars(const char* value, int length) {
+  UChar* buffer = calloc(sizeof(UChar), length);
+  jz_str* to_ret = malloc(sizeof(jz_str));
+  UErrorCode error = U_ZERO_ERROR;
+
+  u_strFromUTF8(buffer, length, &to_ret->length,
+                value, length, &error);
+
+  if (U_FAILURE(error)) {
+    fprintf(stderr, "ICU Error: %s\n", u_errorName(error));
+    exit(1);
+  }
+
+  to_ret->value = buffer;
   return to_ret;
 }

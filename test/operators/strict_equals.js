@@ -17,6 +17,12 @@ return ((undefined === undefined) == true) &&
     ((false === 0) == false) &&
     ((0 === false) == false) &&
     ((false === -1) == false) &&
+    ("12" !== 12) &&
+    ("-12" !== -12) &&
+    ("1" !== true) &&
+    ("foo" === "foo") &&
+    ("foo" !== "foobar") &&
+    ("bar" !== "foobar") &&
 
     ((undefined !== undefined) == false) &&
     ((NaN !== NaN) == true) &&

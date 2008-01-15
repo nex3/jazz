@@ -164,10 +164,17 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
       stack--;
       break;
 
-    case jz_oc_add:
-      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
+    case jz_oc_add: {
+      jz_tvalue v1 = stack[-2];
+      jz_tvalue v2 = stack[-1];
+
+      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt)
+        stack[-2] = jz_wrap_str(jz_str_concat(jz_to_str(v1), jz_to_str(v2)));
+      else
+        stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
       stack--;
       break;
+    }
 
     case jz_oc_sub:
       stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) - jz_to_num(stack[-1]));

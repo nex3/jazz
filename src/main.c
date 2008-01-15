@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     bytecode = jz_compile(root);
     if (!bytecode) exit(1);
 
-    printf("%f\n", jz_to_num(jz_vm_run(bytecode)));
+    printf("%s\n", jz_str_to_chars(jz_to_str(jz_vm_run(bytecode))));
 
     free(bytecode->code);
     free(bytecode);

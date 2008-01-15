@@ -14,6 +14,11 @@ return ((NaN < NaN) == false) &&
     ((Infinity < -Infinity) == false) &&
     ((1 < 2) == true) &&
     ((2 < 1) == false) &&
+    ("1" < 2) &&
+    (("2" < 1) == false) &&
+    ("foo" < "foobar") &&
+    (("foo" < "foo") == false) &&
+    ("-17" < true) &&
 
     ((NaN <= NaN) == false) &&
     ((NaN <= 12) == false) &&
@@ -30,4 +35,6 @@ return ((NaN < NaN) == false) &&
     ((-Infinity <= Infinity) == true) &&
     ((Infinity <= -Infinity) == false) &&
     ((1 <= 2) == true) &&
-    ((2 <= 1) == false);
+    ((2 <= 1) == false) &&
+    ("1" <= 1) &&
+    ("foo" <= "foo");
