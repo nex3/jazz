@@ -103,10 +103,9 @@ jz_str* jz_str_strip(const jz_str* this) {
 
   if (start == NULL) return jz_str_null();
 
-  for (; is_whitespace_char(*start); start++) {
-    if (start - bottom == this->length)
-      return jz_str_null();
-  }
+  for (; start - bottom < this->length && is_whitespace_char(*start); start++);
+  if (start - bottom == this->length)
+    return jz_str_null();
 
   for (; is_whitespace_char(*end); end--);
 
