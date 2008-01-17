@@ -24,7 +24,8 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
   jz_tvalue* stack_bottom = stack;
 
   /* This is initialized to all zeros,
-     which means locals are initially of type undefined. */
+     which means locals are initially of type undefined.
+     This would not be preserved if this were a call to malloc. */
   jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
 
 #if JZ_DEBUG_BYTECODE
