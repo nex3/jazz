@@ -56,6 +56,8 @@ jz_str* jz_str_strip(const jz_str* this) {
   const UChar* start = this->value;
   const UChar* end = this->value + this->length - 1;
 
+  if (start == NULL) return this;
+
   while (true) {
     UChar ch;
     if (start - this->value == this->length) return jz_str_null();
@@ -116,6 +118,8 @@ double jz_str_to_num(const jz_str* num) {
   jz_str* my_num = jz_str_strip(num);
   char sign = 1;
   double to_ret;
+
+  if (my_num->value == NULL) return 0;
 
   if (*my_num->value == '-') {
     sign = -1;
