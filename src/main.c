@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   u_fclose(ustdin);
 
   {
-    jz_str* input = jz_str_new(len, str);
+    jz_str* input = jz_str_external(len, str);
     jz_parse_node* root; 
     jz_bytecode* bytecode;
 

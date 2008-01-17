@@ -11,43 +11,43 @@
    jz_strs are typically manipulated as pointers. */
 
 typedef struct {
+  unsigned char tag;
+  UChar str[1];
+} jz_str_value;
+
+typedef struct {
+  unsigned char tag;
+  int start;
   int length;
-  const UChar* value;
+  union {
+    const UChar* ext;
+    jz_str_value* val;
+  } value;
 } jz_str;
 
-/* Declare a stack-allocated jz_str* with stack-allocated content.
-   Produces a statement. */
-#define JZ_STR_DECLARE(varname, literal)                        \
-  jz_str* varname;                                              \
-                                                                \
-  {                                                             \
-    jz_str strval;                                              \
-    UChar buffer[sizeof(literal) - 1];                          \
-    UErrorCode error = U_ZERO_ERROR;                            \
-                                                                \
-    u_strFromUTF8(buffer, sizeof(literal) - 1, &strval.length,  \
-                  literal, sizeof(literal) - 1, &error);        \
-                                                                \
-    if (U_FAILURE(error)) {                                     \
-      fprintf(stderr, "ICU Error: %s\n", u_errorName(error));   \
-      exit(1);                                                  \
-    }                                                           \
-                                                                \
-    strval.value = buffer;                                      \
-                                                                \
-    varname = &strval;                                          \
-  }
+#define JZ_STR_IS_EXT(str)  ((str)->tag & 128)
 
-/* Creates a new jz_str*.
+#define JZ_STR_PTR(string)                              \
+  ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \
+    (string)->value.val->str) + (string)->start)
+
+#define JZ_STR_INT_PTR(string)                                          \
+  (assert(!JZ_STR_IS_EXT(string)), (string)->value.val->str + (string)->start)
+
+/* Creates a new jz_str* from external string data.
    This is shallow,
    so the 'value' member is the same as the 'value' argument. */
-jz_str* jz_str_new(int length, const UChar* value);
+jz_str* jz_str_external(int length, const UChar* value);
 
 /* Creates a new jz_str*.
    This is deep,
    so the character data is copied out of the 'value' argument
    into a newly allocated 'value' member. */
 jz_str* jz_str_deep_new(int length, const UChar* value);
+
+/* Allocates space a new jz_str*, but sets the length to 0.
+   The UChar* buffer can be accessed with JZ_STR_INT_PTR. */
+jz_str* jz_str_alloc(int space);
 
 /* Returns a null jz_str*.
    This means that 'length' is 0 and 'value' is NULL.
@@ -65,12 +65,14 @@ jz_str* jz_str_dup(const jz_str* this);
    is copied to a newly allocated 'value' member of the return value. */
 jz_str* jz_str_deep_dup(const jz_str* this);
 
+jz_str* jz_str_substr(const jz_str* this, int start);
+
 /* Returns a shallow substring of 'this',
    beginning at the index 'start'
    and going through the index 'end'.
    This is shallow, so the new string is pointing to
    the same character array as 'this'. */
-jz_str* jz_str_substr(const jz_str* this, int start, int end);
+jz_str* jz_str_substr2(const jz_str* this, int start, int end);
 
 /* Shallow */
 jz_str* jz_str_strip(const jz_str* this);

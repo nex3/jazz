@@ -173,6 +173,7 @@ double jz_num_mod(jz_tvalue val1, jz_tvalue val2) {
 #define MAX_FLT_STR_LEN (FLOAT_SIG_FIGS + 7)
 
 jz_str* jz_num_to_str(double num) {
+  jz_str* to_ret;
   UChar* buffer;
   int order;
   bool exponent;
@@ -184,7 +185,8 @@ jz_str* jz_num_to_str(double num) {
     return jz_str_concat(jz_str_from_literal("-"), jz_num_to_str(-num));
   if (num == JZ_INF) return jz_str_from_literal("Infinity");
 
-  buffer = calloc(sizeof(UChar), MAX_FLT_STR_LEN);
+  to_ret = jz_str_alloc(MAX_FLT_STR_LEN);
+  buffer = JZ_STR_INT_PTR(to_ret);
   order = floor(log10(num));
   exponent = order > 20 || order < -6;
 
@@ -212,7 +214,8 @@ jz_str* jz_num_to_str(double num) {
   }
   else length = add_decimal_point(buffer, order + 1);
 
-  return jz_str_new(length, buffer);
+  to_ret->length = length;
+  return to_ret;
 }
 
 void write_integral_double(UChar* buffer_end, double d) {

@@ -22,6 +22,9 @@ return ((1 + 1) == 2) &&
     ((5 + -5) == 0) &&
     (1/(5 + -5) == Infinity) &&
     ("foo" + 1 == "foo1") &&
+    ("" + "bar" == "bar") &&
+    ("bar" + "" == "bar") &&
+    ("foo" + "bar" == "foobar") &&
     ("" + undefined == "undefined") &&
     (true + "" == "true") &&
     ("" + false == "false") &&

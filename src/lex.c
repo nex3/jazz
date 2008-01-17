@@ -68,7 +68,7 @@ static URegularExpression* create_re(const char* pattern);
 
 #define CHECK_ICU_ERROR(error) {                                        \
     if (U_FAILURE(error)) {                                             \
-      fprintf(stderr, "ICU Error: %s\n", u_errorName(error));           \
+      fprintf(stderr, "ICU Error at %d: %s\n", __LINE__, u_errorName(error)); \
       exit(1);                                                          \
     }                                                                   \
   }
@@ -87,7 +87,7 @@ double jz_parse_number(const jz_str* num) {
   res = yylval.num;
 
   /* Make sure that we consumed the entire string. */
-  if (state.code->value - num->value != num->length)
+  if (state.code->length != 0)
     res = JZ_NAN;
 
   state.code = old_code;
@@ -190,9 +190,10 @@ bool try_string_literal() {
     jz_str* match = get_match(state.string_literal_re, 2);
     UChar* res = calloc(sizeof(UChar), match->length);
     UChar* res_bottom = res;
-    const UChar* match_ptr = match->value;
+    const UChar* match_ptr_bottom = JZ_STR_PTR(match);
+    const UChar* match_ptr = match_ptr_bottom;
 
-    for (; match_ptr - match->value < match->length; match_ptr++) {
+    for (; match_ptr - match_ptr_bottom < match->length; match_ptr++) {
       UChar val = *match_ptr;
 
       if (val != '\\') {
@@ -235,7 +236,7 @@ bool try_string_literal() {
       }
     }
 
-    yylval.str = jz_str_new(res - res_bottom, res_bottom);
+    yylval.str = jz_str_external(res - res_bottom, res_bottom);
     free(match);
     return true;
   }
@@ -255,7 +256,7 @@ UChar hex_escape(int chars, const jz_str* match, const_uchars* match_ptr_ptr) {
   const UChar* match_ptr = *match_ptr_ptr;
   match_ptr++;
 
-  if (match->length - (match_ptr - match->value) < chars) PRINT_HEX_ERROR
+  if (match->length - (match_ptr - JZ_STR_PTR(match)) < chars) PRINT_HEX_ERROR;
 
   {
     char* num = calloc(sizeof(char), chars + 1);
@@ -321,9 +322,11 @@ int try_identifier() {
 }
 
 bool try_re(URegularExpression* re) {
-  UErrorCode error = U_ZERO_ERROR;  
+  UErrorCode error = U_ZERO_ERROR;
 
-  uregex_setText(re, state.code->value, state.code->length, &error);
+  if (state.code->length == 0) return false;
+
+  uregex_setText(re, JZ_STR_PTR(state.code), state.code->length, &error);
   CHECK_ICU_ERROR(error);
 
   {
@@ -337,9 +340,8 @@ bool try_re(URegularExpression* re) {
     CHECK_ICU_ERROR(error);
 
     free(state.code_prev);
-    state.code_prev = jz_str_dup(state.code);
-    state.code->value  += change;
-    state.code->length -= change;
+    state.code_prev = state.code;
+    state.code = jz_str_substr(state.code, change);
   }
   return true;
 }
@@ -355,7 +357,7 @@ jz_str* get_match(URegularExpression* re, int number) {
   CHECK_ICU_ERROR(error);
 
   if (start == -1) return NULL;
-  return jz_str_substr(state.code_prev, start, end);
+  return jz_str_substr2(state.code_prev, start, end);
 }
 
 /* All regular expressions should begin with \A so they only match
