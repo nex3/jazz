@@ -6,7 +6,6 @@
 #include <assert.h>
 
 #define NEXT_OPCODE (*((code)++))
-#define OC_ARG      ((jz_oc_arg)(*code))
 #define READ_ARG_INTO(type, var)                \
   type var = *(type*)(code);                    \
   code += sizeof(type)/sizeof(jz_opcode);
@@ -61,13 +60,13 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
     }
 
     case jz_oc_store: {
-      READ_ARG_INTO(unsigned char, index);
+      READ_ARG_INTO(jz_index, index);
       locals[index] = POP;
       break;
     }
 
     case jz_oc_retrieve: {
-      READ_ARG_INTO(unsigned char, index);
+      READ_ARG_INTO(jz_index, index);
       PUSH(locals[index]);
       break;
     }
@@ -267,12 +266,12 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_store:
       name = "store";
-      argsize = 1;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_retrieve:
       name = "retrieve";
-      argsize = 1;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_pop:

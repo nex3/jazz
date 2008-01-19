@@ -7,7 +7,7 @@ typedef struct lvar_node lvar_node;
 struct lvar_node {
   lvar_node* next;
   jz_str* name;
-  unsigned char index;
+  jz_index index;
 };
 
 typedef struct {
@@ -174,7 +174,7 @@ void compile_vars(comp_state* state, jz_parse_node* node) {
 void compile_var(comp_state* state, jz_parse_node* node) {
   int old_cap;
   bool new_node;
-  unsigned char index;
+  jz_index index;
   jz_parse_node* expr;
 
   assert(node->type == jz_parse_var);
@@ -187,7 +187,7 @@ void compile_var(comp_state* state, jz_parse_node* node) {
     compile_expr(state, expr);
 
     PUSH_OPCODE(jz_oc_store);
-    PUSH_OPCODE(index);
+    push_multibyte_arg(state, &index, JZ_OCS_INDEX);
   } else state->stack_length = 0;
 
   state->stack_length = MAX(old_cap, state->stack_length);
@@ -465,7 +465,7 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_retrieve);
-  PUSH_OPCODE(local->index);
+  push_multibyte_arg(state, &local->index, JZ_OCS_INDEX);
 
   return local;
 }
@@ -523,7 +523,7 @@ static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
   PUSH_OPCODE(op);
   if (pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
-  PUSH_OPCODE(var->index);
+  push_multibyte_arg(state, &var->index, JZ_OCS_INDEX);
 
   /* If it's a prefix op, we duplicate the value
      after we increment or decrement it,
@@ -650,7 +650,7 @@ void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
   state->stack_length++;
   PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
-  PUSH_OPCODE(var->index);
+  push_multibyte_arg(state, &var->index, JZ_OCS_INDEX);
 }
 
 void compile_triop(comp_state* state, jz_parse_node* node) {

@@ -14,20 +14,9 @@ JZ_DECLARE_VECTOR(jz_opcode)
 /* This struct contains bytecode for the virtual machine to execute,
    as well as enough metadata to know how to execute it properly. */
 typedef struct {
-  /* The bytecode itself.
-     This is mostly an array of opcodes,
-     but there may be arguments to the opcodes as well.
-     These arguments are often longer than a single byte in length. */
   jz_opcode* code;
-
-  /* The length in bytes (sizeof(jz_opcode) == 1) of 'code'. */
   size_t code_length;
-
-  /* The minimum height that the virtual machine's stack needs to be
-     in order not to have any overflows. */
   size_t stack_length;
-
-  /* The number of local variables required for the bytecode. */
   size_t locals_length;
 } jz_bytecode;
 
