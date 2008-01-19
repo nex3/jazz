@@ -23,8 +23,6 @@ static jz_op_type* ptr_to_ot(jz_op_type ot);
 
 static void yyerror(const char* msg);
 
-static void jz_free_list(jz_parse_node* head);
-
 #define binop_node(type, left, right) jz_pnode_list(jz_parse_binop, 3, ptr_to_ot(type), (left), (right))
 #define unop_node(type, next) jz_pnode_cons(jz_parse_unop, ptr_to_ot(type), (next))
 %}
