@@ -18,6 +18,7 @@ typedef struct {
   size_t code_length;
   size_t stack_length;
   size_t locals_length;
+  jz_tvalue* consts;
 } jz_bytecode;
 
 /* Compiles a parse tree into Jazz bytecode.

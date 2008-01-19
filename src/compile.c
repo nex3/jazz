@@ -3,17 +3,24 @@
 #include <stdio.h>
 
 typedef struct lvar_node lvar_node;
-
 struct lvar_node {
   lvar_node* next;
   jz_str* name;
   jz_index index;
 };
 
+typedef struct const_node const_node;
+struct const_node {
+  const_node* next;
+  jz_tvalue val;
+};
+
 typedef struct {
   jz_opcode_vector* code;
   size_t stack_length;
   lvar_node* locals;
+  const_node* consts;
+  size_t consts_length;
 } comp_state;
 
 typedef ptrdiff_t jz_ptrdiff;
@@ -35,6 +42,8 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(state->code, opcode)
 #define PUSH_ARG(arg) \
   push_multibyte_arg(state, &(arg), sizeof(arg)/sizeof(jz_opcode))
+
+static jz_tvalue* consts_to_array(comp_state* state);
 
 static void compile_statements(comp_state* state, jz_parse_node* node);
 static void compile_statement(comp_state* state, jz_parse_node* node);
@@ -67,6 +76,8 @@ static jz_tvalue* get_literal_value(jz_parse_node* node);
 static lvar_node* add_lvar(comp_state* state, jz_str* name, bool* new);
 static lvar_node* get_lvar(comp_state* state, jz_str* name);
 
+static jz_index add_const(comp_state* state, jz_tvalue value);
+
 static void jump_to_top_from(comp_state* state, ptrdiff_t index);
 static void jump_to_from_top(comp_state* state, ptrdiff_t index);
 static void jump_to_from(comp_state* state, ptrdiff_t to, ptrdiff_t from);
@@ -85,22 +96,37 @@ jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
   state->code = jz_opcode_vector_new();
   state->stack_length = 0;
   state->locals = NULL;
+  state->consts = NULL;
+  state->consts_length = 0;
 
   compile_statements(state, parse_tree);
   PUSH_OPCODE(jz_oc_end);
 
   {
     jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
+
     bytecode->stack_length = state->stack_length;
     bytecode->locals_length =
       state->locals == NULL ? 0 : state->locals->index + 1;
     bytecode->code_length = state->code->next - state->code->values;
     bytecode->code = calloc(sizeof(jz_opcode), bytecode->code_length);
     memcpy(bytecode->code, state->code->values, bytecode->code_length);
+    bytecode->consts = consts_to_array(state);
 
     free_comp_state(state);
     return bytecode;
   }
+}
+
+jz_tvalue* consts_to_array(comp_state* state) {
+  const_node* node;
+  jz_tvalue* bottom = calloc(sizeof(jz_tvalue), state->consts_length);
+  jz_tvalue* top = bottom;
+
+  for (node = state-> consts; node != NULL; node = node->next)
+    *top++ = node->val;
+
+  return bottom;
 }
 
 void compile_statements(comp_state* state, jz_parse_node* node) {
@@ -473,9 +499,11 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 }
 
 void compile_literal(comp_state* state, jz_parse_node* node) {
+  jz_index index = add_const(state, *CAR(node).val);
+
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_push_literal);
-  PUSH_ARG(*CAR(node).val);
+  PUSH_ARG(index);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
@@ -516,12 +544,12 @@ void compile_unop(comp_state* state, jz_parse_node* node) {
 
 static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
                                   jz_opcode op, bool pre) {
-  jz_tvalue unit = jz_wrap_num(1);
+  jz_index unit_index = add_const(state, jz_wrap_num(1));
   lvar_node* var = compile_identifier(state, CDR(node).node);
 
   if (!pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_push_literal);
-  PUSH_ARG(unit);
+  PUSH_ARG(unit_index);
   PUSH_OPCODE(op);
   if (pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
@@ -718,6 +746,29 @@ lvar_node* get_lvar(comp_state* state, jz_str* name) {
   }
 
   return NULL;
+}
+
+jz_index add_const(comp_state* state, jz_tvalue value) {
+  const_node* last_node = NULL;
+  const_node* node = state->consts;
+  jz_index index = 0;
+
+  while (node != NULL) {
+    if (jz_values_strict_equal(value, node->val)) return index;
+    last_node = node;
+    node = node->next;
+    index++;
+  }
+
+  node = malloc(sizeof(const_node));
+  node->next = NULL;
+  node->val = value;
+  state->consts_length++;
+
+  if (last_node == NULL) state->consts = node;
+  else last_node->next = node;
+
+  return index;
 }
 
 void jump_to_top_from(comp_state* state, ptrdiff_t index) {

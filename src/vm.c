@@ -19,6 +19,7 @@ static void print_bytecode(const jz_bytecode* bytecode);
 
 jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
+
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
   jz_tvalue* stack_bottom = stack;
 
@@ -26,6 +27,8 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
      which means locals are initially of type undefined.
      This would not be preserved if this were a call to malloc. */
   jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
+
+  jz_tvalue* consts = bytecode->consts;
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
@@ -36,8 +39,8 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
   while (true) {
     switch (NEXT_OPCODE) {
     case jz_oc_push_literal: {
-      READ_ARG_INTO(jz_tvalue, literal);
-      PUSH(literal);
+      READ_ARG_INTO(jz_index, index);
+      PUSH(consts[index]);
       break;
     }
 
@@ -246,7 +249,7 @@ void print_bytecode(const jz_bytecode* bytecode) {
     switch (*code) {
     case jz_oc_push_literal:
       name = "push_literal";
-      argsize = JZ_OCS_TVALUE;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_jump:
