@@ -344,6 +344,15 @@ void compile_for(comp_state* state, jz_parse_node* node) {
   compile_statement(state, while_statement);
 
   state->stack_length = MAX(cap, state->stack_length);
+
+  /* Now free the new nodes we've made. */
+  if (inc_expr != NULL) {
+    free(CAR(body).node);
+    free(CDR(body).node);
+    free(body);
+  }
+
+  free(while_statement);
 }
 
 void compile_switch(comp_state* state, jz_parse_node* node) {
