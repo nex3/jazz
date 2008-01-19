@@ -861,8 +861,8 @@ void jz_free_parse_tree(jz_parse_node* root) {
     jz_free_parse_tree(CDAR(root).node);
     jz_free_parse_tree(CDDAR(root).node);
     jz_free_parse_tree(CDDDR(root).node);
-    free(CDR(root).node);
     free(CDDR(root).node);
+    free(CDR(root).node);
     break;
   case jz_parse_statements:
   case jz_parse_cases:
@@ -891,11 +891,14 @@ void jz_free_parse_tree(jz_parse_node* root) {
     jz_free_parse_tree(CDAR(root).node);
     jz_free_parse_tree(CDDAR(root).node);
     jz_free_parse_tree(CDDDR(root).node);
-    free(CDR(root).node);
     free(CDDR(root).node);
+    free(CDR(root).node);
     break;
   case jz_parse_identifier:
   case jz_parse_empty: break;
+  default:
+    fprintf(stderr, "Unrecognized node type %d\n", root->type);
+    exit(1);
   }
 
   free(root);
