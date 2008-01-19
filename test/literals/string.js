@@ -1,6 +1,6 @@
 return ('foo' == "foo") &&
     ('Foo' != 'foo') &&
-    ('Snowma\u006e: \u2603!' == 'Snowman: ☃!') &&
+    ('\u006e is n!' == 'n is n!') &&
     ("\x12\x34\x56" == "\u0012\u0034\u0056") &&
     ("Back\\slash" == "Back\x5Cslash") &&
     ("Double\"quote" == 'Double"quote') &&
