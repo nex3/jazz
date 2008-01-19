@@ -43,8 +43,8 @@ typedef enum {
   jz_oc_noop
 } jz_oc_type;
 
-#define JZ_OCS_TVALUE (sizeof(jz_tvalue)/sizeof(jz_opcode))
-#define JZ_OCS_SIZET  (sizeof(size_t)/sizeof(jz_opcode))
-#define JZ_OCS_INDEX  (sizeof(jz_index)/sizeof(jz_opcode))
+#define JZ_OCS_TVALUE  (sizeof(jz_tvalue)/sizeof(jz_opcode))
+#define JZ_OCS_PTRDIFF (sizeof(ptrdiff_t)/sizeof(jz_opcode))
+#define JZ_OCS_INDEX   (sizeof(jz_index)/sizeof(jz_opcode))
 
 #endif

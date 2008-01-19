@@ -42,19 +42,19 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
     }
 
     case jz_oc_jump: {
-      READ_ARG_INTO(size_t, jump);
+      READ_ARG_INTO(ptrdiff_t, jump);
       code += jump;
       break;
     }
 
     case jz_oc_jump_unless: {
-      READ_ARG_INTO(size_t, jump);
+      READ_ARG_INTO(ptrdiff_t, jump);
       if (!jz_to_bool(POP)) code += jump;
       break;
     }
 
     case jz_oc_jump_if: {
-      READ_ARG_INTO(size_t, jump);
+      READ_ARG_INTO(ptrdiff_t, jump);
       if (jz_to_bool(POP)) code += jump;
       break;
     }
@@ -251,17 +251,17 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_jump:
       name = "jump";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_jump_unless:
       name = "jump_unless";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_jump_if:
       name = "jump_if";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_store:

@@ -16,8 +16,8 @@ typedef struct {
   lvar_node* locals;
 } comp_state;
 
-typedef size_t jz_size_t;
-JZ_DECLARE_VECTOR(jz_size_t)
+typedef ptrdiff_t jz_ptrdiff;
+JZ_DECLARE_VECTOR(jz_ptrdiff)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
@@ -33,6 +33,8 @@ JZ_DECLARE_VECTOR(jz_size_t)
 #define CDDDR(n) (CDR(CDDR(n).node))
 
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(state->code, opcode)
+#define PUSH_ARG(arg) \
+  push_multibyte_arg(state, &(arg), sizeof(arg)/sizeof(jz_opcode))
 
 static void compile_statements(comp_state* state, jz_parse_node* node);
 static void compile_statement(comp_state* state, jz_parse_node* node);
@@ -44,8 +46,8 @@ static void compile_do_while(comp_state* state, jz_parse_node* node);
 static void compile_while(comp_state* state, jz_parse_node* node);
 static void compile_for(comp_state* state, jz_parse_node* node);
 static void compile_switch(comp_state* state, jz_parse_node* node);
-static jz_size_t_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* node);
-static void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_size_t_vector* placeholders);
+static jz_ptrdiff_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* node);
+static void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_ptrdiff_vector* placeholders);
 
 static void compile_exprs(comp_state* state, jz_parse_node* node);
 static void compile_expr(comp_state* state, jz_parse_node* node);
@@ -65,16 +67,16 @@ static jz_tvalue* get_literal_value(jz_parse_node* node);
 static lvar_node* add_lvar(comp_state* state, jz_str* name, bool* new);
 static lvar_node* get_lvar(comp_state* state, jz_str* name);
 
-static void jump_to_top_from(comp_state* state, size_t index);
-static void jump_to_from_top(comp_state* state, size_t index);
-static void jump_to_from(comp_state* state, size_t to, size_t from);
+static void jump_to_top_from(comp_state* state, ptrdiff_t index);
+static void jump_to_from_top(comp_state* state, ptrdiff_t index);
+static void jump_to_from(comp_state* state, ptrdiff_t to, ptrdiff_t from);
 
 static void push_multibyte_arg(comp_state* state, const void* data, size_t size);
-static size_t push_placeholder(comp_state* state, size_t size);
+static ptrdiff_t push_placeholder(comp_state* state, size_t size);
 
 static void free_comp_state(comp_state* state);
 
-JZ_DEFINE_VECTOR(jz_size_t, 10)
+JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
 
 jz_bytecode* jz_compile(jz_parse_node* parse_tree) {
@@ -187,7 +189,7 @@ void compile_var(comp_state* state, jz_parse_node* node) {
     compile_expr(state, expr);
 
     PUSH_OPCODE(jz_oc_store);
-    push_multibyte_arg(state, &index, JZ_OCS_INDEX);
+    PUSH_ARG(index);
   } else state->stack_length = 0;
 
   state->stack_length = MAX(old_cap, state->stack_length);
@@ -204,13 +206,13 @@ void compile_return(comp_state* state, jz_parse_node* node) {
 
 void compile_if(comp_state* state, jz_parse_node* node) {
   int expr_cap, if_cap;
-  size_t jump;
+  ptrdiff_t jump;
 
   compile_exprs(state, CAR(node).node);
   expr_cap = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
-  jump = push_placeholder(state, JZ_OCS_SIZET);
+  jump = push_placeholder(state, JZ_OCS_PTRDIFF);
 
   compile_statement(state, CDAR(node).node);
 
@@ -218,11 +220,11 @@ void compile_if(comp_state* state, jz_parse_node* node) {
     jump_to_top_from(state, jump);
     if_cap = 0;
   } else {
-    size_t else_jump;
+    ptrdiff_t else_jump;
 
     /* We'll want to jump past the else clause if it exists. */
     PUSH_OPCODE(jz_oc_jump);
-    else_jump = push_placeholder(state, JZ_OCS_SIZET);
+    else_jump = push_placeholder(state, JZ_OCS_PTRDIFF);
 
     jump_to_top_from(state, jump); /* Jump past the new jump instruction
                                       if the if statement fails. */
@@ -239,7 +241,7 @@ void compile_if(comp_state* state, jz_parse_node* node) {
 
 void compile_do_while(comp_state* state, jz_parse_node* node) {
   int cap;
-  size_t jump;
+  ptrdiff_t jump;
   jz_tvalue* conditional_literal = get_literal_value(CAR(node).node);
 
   /* If the conditional is a literal value that evaluates to true,
@@ -265,7 +267,7 @@ void compile_do_while(comp_state* state, jz_parse_node* node) {
 
 void compile_while(comp_state* state, jz_parse_node* node) {
   int cap;
-  size_t index, placeholder;
+  ptrdiff_t index, placeholder;
   jz_tvalue* conditional_literal = get_literal_value(CAR(node).node);
 
   /* If the conditional is NULL or a literal value that evaluates to true,
@@ -282,7 +284,7 @@ void compile_while(comp_state* state, jz_parse_node* node) {
     cap = state->stack_length;
 
     PUSH_OPCODE(jz_oc_jump_unless);
-    placeholder = push_placeholder(state, JZ_OCS_SIZET);
+    placeholder = push_placeholder(state, JZ_OCS_PTRDIFF);
   }
 
   compile_statement(state, CDR(node).node);
@@ -317,7 +319,7 @@ void compile_for(comp_state* state, jz_parse_node* node) {
 }
 
 void compile_switch(comp_state* state, jz_parse_node* node) {
-  jz_size_t_vector* placeholders;
+  jz_ptrdiff_vector* placeholders;
   int expr_cap, cond_cap;
 
   compile_exprs(state, CAR(node).node);
@@ -331,11 +333,11 @@ void compile_switch(comp_state* state, jz_parse_node* node) {
 
   PUSH_OPCODE(jz_oc_pop);
 
-  jz_size_t_vector_free(placeholders);
+  jz_ptrdiff_vector_free(placeholders);
 }
 
-jz_size_t_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* node) {
-  jz_size_t_vector* placeholders = jz_size_t_vector_new();
+jz_ptrdiff_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* node) {
+  jz_ptrdiff_vector* placeholders = jz_ptrdiff_vector_new();
 
   if (node == NULL) return placeholders;
 
@@ -351,22 +353,22 @@ jz_size_t_vector* compile_switch_conditionals(comp_state* state, jz_parse_node* 
     compile_exprs(state, CAR(case_node).node);
     PUSH_OPCODE(jz_oc_strict_eq);
     PUSH_OPCODE(jz_oc_jump_if);
-    jz_size_t_vector_append(placeholders,
-                            push_placeholder(state, JZ_OCS_SIZET));
+    jz_ptrdiff_vector_append(placeholders,
+                            push_placeholder(state, JZ_OCS_PTRDIFF));
 
     state->stack_length = MAX(old_cap, state->stack_length + 1);
   }
 
   PUSH_OPCODE(jz_oc_jump);
-  jz_size_t_vector_append(placeholders,
-                          push_placeholder(state, JZ_OCS_SIZET));
+  jz_ptrdiff_vector_append(placeholders,
+                           push_placeholder(state, JZ_OCS_PTRDIFF));
 
   return placeholders;
 }
 
-void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_size_t_vector* placeholders) {
-  size_t* next_placeholder = placeholders->values;
-  size_t default_pos = -1; /* -1 indicates that there is no default case. */
+void compile_switch_statements(comp_state* state, jz_parse_node* node, jz_ptrdiff_vector* placeholders) {
+  ptrdiff_t* next_placeholder = placeholders->values;
+  ptrdiff_t default_pos = -1; /* -1 indicates that there is no default case. */
 
   if (node == NULL) return;
 
@@ -465,7 +467,7 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_retrieve);
-  push_multibyte_arg(state, &local->index, JZ_OCS_INDEX);
+  PUSH_ARG(local->index);
 
   return local;
 }
@@ -473,7 +475,7 @@ lvar_node* compile_identifier(comp_state* state, jz_parse_node* node) {
 void compile_literal(comp_state* state, jz_parse_node* node) {
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_push_literal);
-  push_multibyte_arg(state, CAR(node).val, JZ_OCS_TVALUE);
+  PUSH_ARG(*CAR(node).val);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
@@ -519,11 +521,11 @@ static void compile_unit_shortcut(comp_state* state, jz_parse_node* node,
 
   if (!pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_push_literal);
-  push_multibyte_arg(state, &unit, JZ_OCS_TVALUE);
+  PUSH_ARG(unit);
   PUSH_OPCODE(op);
   if (pre) PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
-  push_multibyte_arg(state, &var->index, JZ_OCS_INDEX);
+  PUSH_ARG(var->index);
 
   /* If it's a prefix op, we duplicate the value
      after we increment or decrement it,
@@ -593,14 +595,14 @@ void compile_binop(comp_state* state, jz_parse_node* node) {
 
 void compile_logical_binop(comp_state* state, jz_parse_node* node) {
   int left_cap, right_cap;
-  size_t jump;
+  ptrdiff_t jump;
 
   compile_expr(state, CDAR(node).node);
   left_cap = state->stack_length;
   PUSH_OPCODE(jz_oc_dup);
 
   PUSH_OPCODE(*CAR(node).op_type == jz_op_or ? jz_oc_jump_if : jz_oc_jump_unless);
-  jump = push_placeholder(state, JZ_OCS_SIZET);
+  jump = push_placeholder(state, JZ_OCS_PTRDIFF);
 
   PUSH_OPCODE(jz_oc_pop);
   compile_expr(state, CDDR(node).node);
@@ -650,12 +652,12 @@ void compile_assign_binop(comp_state* state, jz_parse_node* node, jz_opcode op) 
   state->stack_length++;
   PUSH_OPCODE(jz_oc_dup);
   PUSH_OPCODE(jz_oc_store);
-  push_multibyte_arg(state, &var->index, JZ_OCS_INDEX);
+  PUSH_ARG(var->index);
 }
 
 void compile_triop(comp_state* state, jz_parse_node* node) {
   int cap1, cap2, cap3;
-  size_t cond_jump, branch1_jump;
+  ptrdiff_t cond_jump, branch1_jump;
 
   assert(*CAR(node).op_type == jz_op_cond);
 
@@ -663,13 +665,13 @@ void compile_triop(comp_state* state, jz_parse_node* node) {
   cap1 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
-  cond_jump = push_placeholder(state, JZ_OCS_SIZET);
+  cond_jump = push_placeholder(state, JZ_OCS_PTRDIFF);
 
   compile_expr(state, CDDAR(node).node);
   cap2 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump);
-  branch1_jump = push_placeholder(state, JZ_OCS_SIZET);
+  branch1_jump = push_placeholder(state, JZ_OCS_PTRDIFF);
   jump_to_top_from(state, cond_jump);
 
   compile_expr(state, CDDDR(node).node);
@@ -718,17 +720,17 @@ lvar_node* get_lvar(comp_state* state, jz_str* name) {
   return NULL;
 }
 
-void jump_to_top_from(comp_state* state, size_t index) {
+void jump_to_top_from(comp_state* state, ptrdiff_t index) {
   jump_to_from(state, state->code->next - state->code->values, index);
 }
 
-void jump_to_from_top(comp_state* state, size_t index) {
-  index = index - JZ_OCS_SIZET - (state->code->next - state->code->values);
-  push_multibyte_arg(state, &index, JZ_OCS_SIZET);
+void jump_to_from_top(comp_state* state, ptrdiff_t index) {
+  index = index - JZ_OCS_PTRDIFF - (state->code->next - state->code->values);
+  PUSH_ARG(index);
 }
 
-void jump_to_from(comp_state* state, size_t to, size_t from) {
-  *((size_t*)(state->code->values + from)) = to - from - JZ_OCS_SIZET;
+void jump_to_from(comp_state* state, ptrdiff_t to, ptrdiff_t from) {
+  *((ptrdiff_t*)(state->code->values + from)) = to - from - JZ_OCS_PTRDIFF;
 }
 
 void push_multibyte_arg(comp_state* state, const void* data, size_t size) {
@@ -741,9 +743,9 @@ void push_multibyte_arg(comp_state* state, const void* data, size_t size) {
   vector->next += size;
 }
 
-size_t push_placeholder(comp_state* state, size_t size) {
+ptrdiff_t push_placeholder(comp_state* state, size_t size) {
   jz_opcode_vector* vector = state->code;
-  size_t index = vector->next - vector->values;
+  ptrdiff_t index = vector->next - vector->values;
 
   while (index + size >= vector->capacity)
     jz_opcode_vector_resize(vector);
