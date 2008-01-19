@@ -6,7 +6,7 @@ RANLIB= ranlib
 MY_CFLAGS=
 CFLAGS= -g -ansi -Wall -pedantic -DJZ_DEBUG_LEX=0 -DJZ_DEBUG_BYTECODE=0 $(MY_CFLAGS)
 MY_LFLAGS=
-LFLAGS= -licuio $(MY_LFLAGS)
+LFLAGS= -licuuc -licudata -licui18n -licuio $(MY_LFLAGS)
 
 
 default: jazz
