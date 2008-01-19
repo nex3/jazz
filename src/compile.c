@@ -828,6 +828,7 @@ void jz_free_bytecode(jz_bytecode* this) {
   if (this == NULL) return;
 
   free(this->code);
+  free(this->consts);
   free(this);
 }
 
