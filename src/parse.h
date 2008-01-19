@@ -228,7 +228,6 @@ jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...);
 /* Returns a new parse node of the given type with NULL car and cdr. */
 jz_parse_node* jz_pnode_new(jz_parse_type type);
 
-
 /* Concatenates two lists.
    list1 is modified so that its last element
    points to the first element of list2.

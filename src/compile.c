@@ -87,6 +87,8 @@ static ptrdiff_t push_placeholder(comp_state* state, size_t size);
 
 static void free_comp_state(comp_state* state);
 
+static void free_list(jz_parse_node* head);
+
 JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
 
@@ -812,6 +814,12 @@ void free_comp_state(comp_state* state) {
     free(old_locals);
   }
 
+  while (state->consts != NULL) {
+    const_node* old_consts = state->consts;
+    state->consts = state->consts->next;
+    free(old_consts);
+  }
+
   jz_opcode_vector_free(state->code);
   free(state);
 }
@@ -823,3 +831,81 @@ void jz_free_bytecode(jz_bytecode* this) {
   free(this);
 }
 
+
+void jz_free_parse_tree(jz_parse_node* root) {
+  if (root == NULL) return;
+
+  switch (root->type) {
+  case jz_parse_cont:
+    fprintf(stderr, "Error: manually freeing continuation node\n");
+    exit(1);
+  case jz_parse_var:
+    jz_free_parse_tree(CDR(root).node);
+    break;
+  case jz_parse_literal:
+    free(CAR(root).val);
+    break;
+  case jz_parse_unop:
+    free(CAR(root).op_type);
+    jz_free_parse_tree(CDR(root).node);
+    break;
+  case jz_parse_binop:
+    free(CAR(root).op_type);
+    jz_free_parse_tree(CDAR(root).node);
+    jz_free_parse_tree(CDDR(root).node);
+    free(CDR(root).node);
+    break;
+  case jz_parse_triop:
+    free(CAR(root).op_type);
+    jz_free_parse_tree(CDAR(root).node);
+    jz_free_parse_tree(CDDAR(root).node);
+    jz_free_parse_tree(CDDDR(root).node);
+    free(CDR(root).node);
+    free(CDDR(root).node);
+    break;
+  case jz_parse_statements:
+  case jz_parse_cases:
+  case jz_parse_vars:
+  case jz_parse_exprs:
+    free_list(root);
+    return;
+  case jz_parse_return:
+    jz_free_parse_tree(CAR(root).node);
+    break;
+  case jz_parse_do_while:
+  case jz_parse_while:
+  case jz_parse_switch:
+  case jz_parse_case:
+    jz_free_parse_tree(CAR(root).node);
+    jz_free_parse_tree(CDR(root).node);
+    break;
+  case jz_parse_if:
+    jz_free_parse_tree(CAR(root).node);
+    jz_free_parse_tree(CDAR(root).node);
+    jz_free_parse_tree(CDDR(root).node);
+    free(CDR(root).node);
+    break;
+  case jz_parse_for:
+    jz_free_parse_tree(CAR(root).node);
+    jz_free_parse_tree(CDAR(root).node);
+    jz_free_parse_tree(CDDAR(root).node);
+    jz_free_parse_tree(CDDDR(root).node);
+    free(CDR(root).node);
+    free(CDDR(root).node);
+    break;
+  case jz_parse_identifier:
+  case jz_parse_empty: break;
+  }
+
+  free(root);
+}
+
+void free_list(jz_parse_node* head) {
+  while (head != NULL) {
+    jz_parse_node* next = CDR(head).node;
+
+    jz_free_parse_tree(CAR(head).node);
+    free(head);
+    head = next;
+  }
+}
