@@ -8,8 +8,6 @@
 #include <stdarg.h>
 #include <assert.h>
 
-static jz_parse_node* root_node = NULL;
-
 /* Reverses an s-expression list and returns the new list.
    The list is destructively modified,
    but no nodes are allocated or freed. */
@@ -21,13 +19,18 @@ static jz_parse_node* reverse_list(jz_parse_node* head);
 static jz_tvalue* ptr_to_val(jz_tvalue val);
 static jz_op_type* ptr_to_ot(jz_op_type ot);
 
-static void yyerror(const char* msg);
+ static void yyerror(jz_parse_node** root, jz_lex_state* state, const char* msg);
 
 #define binop_node(type, left, right) jz_pnode_list(jz_parse_binop, 3, ptr_to_ot(type), (left), (right))
 #define unop_node(type, next) jz_pnode_cons(jz_parse_unop, ptr_to_ot(type), (next))
 %}
 
 %error-verbose
+
+%pure-parser
+%parse-param {jz_parse_node** root}
+%parse-param {jz_lex_state* state}
+%lex-param   {jz_lex_state* state}
 
 /* We have one shift/reduce conflict due to an intentional ambiguity
    in the ECMAscript grammar.
@@ -88,10 +91,7 @@ static void yyerror(const char* msg);
 
 %%
 
-program: source_elements {
-  $$ = $1;
-  root_node = $$;
- }
+program: source_elements { *root = $1; }
 
 source_elements: source_element_list { $$ = reverse_list($1); }
 
@@ -382,13 +382,15 @@ jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2) {
   return list1;
 }
 
-jz_parse_node* jz_parse_string(const jz_str* code) {
-  jz_lex_set_code(code);
+jz_parse_node* jz_parse_string(jz_lex_state* state, const jz_str* code) {
+  jz_parse_node* root = NULL;
+
+  jz_lex_set_code(state, code);
 
   /* yyparse returns 0 to indicate success. */
-  if(yyparse()) return NULL;
+  if (yyparse(&root, state)) return NULL;
 
-  return root_node;
+  return root;
 }
 
 jz_parse_node* reverse_list(jz_parse_node* head) {
@@ -424,7 +426,7 @@ jz_op_type* ptr_to_ot(jz_op_type ot) {
   return to_ret;
 }
 
-void yyerror(const char* msg)
+void yyerror(jz_parse_node** root, jz_lex_state* state, const char* msg)
 {
   fprintf(stderr, "%s\n", msg);
 }

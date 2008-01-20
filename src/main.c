@@ -14,20 +14,20 @@ int main(int argc, char** argv) {
   int32_t len;
 
   len = u_file_read(str, 2000, ustdin);
-
-  jz_lex_init();
   u_fclose(ustdin);
 
   {
     jz_str* input = jz_str_external(len, str);
+    jz_lex_state* lex_state = jz_lex_init();
     jz_parse_node* root; 
     jz_bytecode* bytecode;
 
-    root = jz_parse_string(input);
+    root = jz_parse_string(lex_state, input);
     if (!root) exit(1);
 
     free(str);
     free(input);
+    free(lex_state);
 
     bytecode = jz_compile(root);
     if (!bytecode) exit(1);

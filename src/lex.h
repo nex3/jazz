@@ -8,19 +8,19 @@
 
 #include <unicode/ustring.h>
 #include "string.h"
+#include "y.tab.h"
+#include "parse.h"
 
-/* Initializes the lexer.
-   This must be called before parsing can begin,
-   and before jz_lex_set_code is called. */
-void jz_lex_init();
+/* Initializes new lexer state. */
+jz_lex_state* jz_lex_init();
 
 /* Sets the string from which the lexer will read tokens.
    This must be called before parsing can begin. */
-void jz_lex_set_code(const jz_str* code);
+void jz_lex_set_code(jz_lex_state* state, const jz_str* code);
 
 
 /* The yacc parser interface function. */
-int yylex();
+int yylex(YYSTYPE* lex_val, jz_lex_state* state);
 
 
 double jz_parse_number(const jz_str* num);

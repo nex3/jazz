@@ -47,8 +47,29 @@
 #ifndef JZ_PARSE_H
 #define JZ_PARSE_H
 
+#include <unicode/uregex.h>
 #include "string.h"
 #include "type.h"
+
+/* The lexer state.
+   The regular expression objects are stored here
+   because it would be expensive to recompile them for each token.
+
+   TODO: Find a better place for this. state.h maybe? */
+typedef struct {
+  jz_str* code;
+  jz_str* code_prev;
+  URegularExpression* identifier_re;
+  URegularExpression* whitespace_re;
+  URegularExpression* line_terminator_re;
+  URegularExpression* punctuation_re;
+  URegularExpression* hex_literal_re;
+  URegularExpression* decimal_literal_re1;
+  URegularExpression* decimal_literal_re2;
+  URegularExpression* decimal_literal_re3;
+  URegularExpression* string_literal_re;
+} jz_lex_state;
+
 
 typedef struct jz_parse_node jz_parse_node;
 
@@ -211,7 +232,7 @@ struct jz_parse_node {
 
 /* Parses a Javascript program and returns its parse tree.
    The root node of the parse tree is jz_parse_statements. */
-jz_parse_node* jz_parse_string(const jz_str* code);
+jz_parse_node* jz_parse_string(jz_lex_state* state, const jz_str* code);
 
 
 /* Returns a new parse node of the given type,

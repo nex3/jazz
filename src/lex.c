@@ -18,42 +18,25 @@
 #include <math.h>
 #include <assert.h>
 
-#include <unicode/uregex.h>
-
 /* Struct hash_result is defined in keywords.gperf. */
 typedef struct hash_result hash_result;
 
-/* The lexer state.
-   The regular expression objects are stored here
-   because it would be expensive to recompile them for each token. */
-static struct {
-  jz_str* code;
-  jz_str* code_prev;
-  URegularExpression* identifier_re;
-  URegularExpression* whitespace_re;
-  URegularExpression* line_terminator_re;
-  URegularExpression* punctuation_re;
-  URegularExpression* hex_literal_re;
-  URegularExpression* decimal_literal_re1;
-  URegularExpression* decimal_literal_re2;
-  URegularExpression* decimal_literal_re3;
-  URegularExpression* string_literal_re;
-} state;
+#define STATE jz_lex_state* state
 
-static bool try_filler();
-static bool try_hex_literal();
-static bool try_decimal_literal();
-static bool try_string_literal();
+static bool try_filler(STATE);
+static bool try_hex_literal(STATE, YYSTYPE* lex_val);
+static bool try_decimal_literal(STATE, YYSTYPE* lex_val);
+static bool try_string_literal(STATE, YYSTYPE* lex_val);
 typedef const UChar* const_uchars;
 static UChar hex_escape(int chars, const jz_str* match,
                         const_uchars* match_ptr_ptr);
-static int try_punctuation();
-static int try_identifier();
+static int try_punctuation(STATE, YYSTYPE* lex_val);
+static int try_identifier(STATE, YYSTYPE* lex_val);
 
 
 /* Attempts to apply 're' to the current position of the code string.
    Returns true if successful, false otherwise. */
-static bool try_re(URegularExpression* re);
+static bool try_re(STATE, URegularExpression* re);
 
 /* Returns a jz_str* of the text for the given match of the given regexp.
    Match 0 is the entire matched string.
@@ -62,7 +45,7 @@ static bool try_re(URegularExpression* re);
    The return value should be freed when no longer in use.
    The string is not a deep copy,
    so the value should not be freed. */
-static jz_str* get_match(URegularExpression* re, int number);
+static jz_str* get_match(STATE, URegularExpression* re, int number);
 
 static URegularExpression* create_re(const char* pattern);
 
@@ -74,45 +57,40 @@ static URegularExpression* create_re(const char* pattern);
   }
 
 double jz_parse_number(const jz_str* num) {
-  jz_str* old_code = state.code;
-  jz_str* old_code_prev = state.code_prev;
-  YYSTYPE old_yylval = yylval;
+  /* TODO: Use global lexer state. */
+  jz_lex_state* state = jz_lex_init();
+  YYSTYPE lval;
   double res;
 
-  jz_lex_set_code(num);
+  jz_lex_set_code(state, num);
 
-  yylval.num = JZ_NAN;
-  if (try_hex_literal());
-  else if (try_decimal_literal());
-  res = yylval.num;
+  lval.num = JZ_NAN;
+  if (try_hex_literal(state, &lval));
+  else if (try_decimal_literal(state, &lval));
+  res = lval.num;
 
   /* Make sure that we consumed the entire string. */
-  if (state.code->length != 0)
+  if (state->code->length != 0)
     res = JZ_NAN;
 
-  state.code = old_code;
-  state.code_prev = old_code_prev;
-  yylval = old_yylval;
+  free(state);
 
   return res;
 }
 
-int yylex() {
+int yylex(YYSTYPE* lex_val, STATE) {
   int res;
   int to_ret = 0;
 
-  if (state.code == NULL || state.identifier_re == NULL) {
-    fprintf(stderr, "Lexer must be initialized before use.\n");
-    exit(1);
-  }
+  assert(state->code != NULL);
 
-  while (try_filler());
+  while (try_filler(state));
 
-  if ((res = try_identifier())) to_ret = res;
-  else if (try_hex_literal()) to_ret = NUMBER;
-  else if (try_decimal_literal()) to_ret = NUMBER;
-  else if (try_string_literal()) to_ret = STRING;
-  else if ((res = try_punctuation())) to_ret = res;
+  if ((res = try_identifier(state, lex_val))) to_ret = res;
+  else if (try_hex_literal(state, lex_val)) to_ret = NUMBER;
+  else if (try_decimal_literal(state, lex_val)) to_ret = NUMBER;
+  else if (try_string_literal(state, lex_val)) to_ret = STRING;
+  else if ((res = try_punctuation(state, lex_val))) to_ret = res;
 
 #if JZ_DEBUG_LEX
   printf("Token: %d\n", to_ret);
@@ -121,44 +99,44 @@ int yylex() {
   return to_ret;
 }
 
-bool try_filler() {
-  if (try_re(state.whitespace_re)) return true;
-  if (try_re(state.line_terminator_re)) return true;
+bool try_filler(STATE) {
+  if (try_re(state, state->whitespace_re)) return true;
+  if (try_re(state, state->line_terminator_re)) return true;
   return false;
 }
 
-bool try_decimal_literal() {
+bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
   URegularExpression* matched;
 
-  if (try_re(state.decimal_literal_re1))
-    matched = state.decimal_literal_re1;
-  else if (try_re(state.decimal_literal_re2))
-    matched = state.decimal_literal_re2;
-  else if (try_re(state.decimal_literal_re3))
-    matched = state.decimal_literal_re3;
+  if (try_re(state, state->decimal_literal_re1))
+    matched = state->decimal_literal_re1;
+  else if (try_re(state, state->decimal_literal_re2))
+    matched = state->decimal_literal_re2;
+  else if (try_re(state, state->decimal_literal_re3))
+    matched = state->decimal_literal_re3;
   else return false;
 
   {
     jz_str* match;
     char *num, *dec, *exp;
 
-    match = get_match(matched, 1);
+    match = get_match(state, matched, 1);
     num = jz_str_to_chars(match);
     free(match);
 
-    match = get_match(matched, 2);
+    match = get_match(state, matched, 2);
     dec = jz_str_to_chars(match);
     free(match);
 
-    match = get_match(matched, 3);
+    match = get_match(state, matched, 3);
     exp = jz_str_to_chars(match);
     free(match);
 
-    yylval.num = (*num) ? atof(num) : 0.0;
+    lex_val->num = (*num) ? atof(num) : 0.0;
 
     /* dec[0] is always '.' if it's not '\0' */
-    if (dec[0] && dec[1]) yylval.num += atof(dec);
-    if (*exp)   yylval.num *= pow(10.0, atof(exp));
+    if (dec[0] && dec[1]) lex_val->num += atof(dec);
+    if (*exp) lex_val->num *= pow(10.0, atof(exp));
 
     free(num);
     free(dec);
@@ -167,27 +145,27 @@ bool try_decimal_literal() {
   }
 }
 
-bool try_hex_literal() {
-  if (!try_re(state.hex_literal_re)) return false;
+bool try_hex_literal(STATE, YYSTYPE* lex_val) {
+  if (!try_re(state, state->hex_literal_re)) return false;
 
   {
-    jz_str* match = get_match(state.hex_literal_re, 0);
+    jz_str* match = get_match(state, state->hex_literal_re, 0);
     char *num = jz_str_to_chars(match);
     unsigned int hex;
     free(match);
 
     sscanf(num + 2, "%x", &hex);
-    yylval.num = (double)hex;
+    lex_val->num = (double)hex;
     free(num);
     return true;
   }
 }
 
-bool try_string_literal() {
-  if (!try_re(state.string_literal_re)) return false;
+bool try_string_literal(STATE, YYSTYPE* lex_val) {
+  if (!try_re(state, state->string_literal_re)) return false;
 
   {
-    jz_str* match = get_match(state.string_literal_re, 2);
+    jz_str* match = get_match(state, state->string_literal_re, 2);
     UChar* res = calloc(sizeof(UChar), match->length);
     UChar* res_bottom = res;
     const UChar* match_ptr_bottom = JZ_STR_PTR(match);
@@ -236,7 +214,7 @@ bool try_string_literal() {
       }
     }
 
-    yylval.str = jz_str_external(res - res_bottom, res_bottom);
+    lex_val->str = jz_str_external(res - res_bottom, res_bottom);
     free(match);
     return true;
   }
@@ -280,14 +258,14 @@ UChar hex_escape(int chars, const jz_str* match, const_uchars* match_ptr_ptr) {
   }
 }
 
-int try_punctuation() {
+int try_punctuation(STATE, YYSTYPE* lex_val) {
   jz_str* jz_match;
   char* match;
   const hash_result* result;
 
-  if (!try_re(state.punctuation_re)) return false;
+  if (!try_re(state, state->punctuation_re)) return false;
 
-  jz_match = get_match(state.punctuation_re, 0);
+  jz_match = get_match(state, state->punctuation_re, 0);
   match = jz_str_to_chars(jz_match);
   result = in_word_set(match, jz_match->length);
 
@@ -296,18 +274,18 @@ int try_punctuation() {
 
   if (result) return result->token;
 
-  printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state.code->length);
+  printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state->code->length);
   return false;
 }
 
-int try_identifier() {
+int try_identifier(STATE, YYSTYPE* lex_val) {
   jz_str* jz_match;
   char* match;
   const hash_result* result;
 
-  if (!try_re(state.identifier_re)) return false;
+  if (!try_re(state, state->identifier_re)) return false;
 
-  jz_match = get_match(state.identifier_re, 0);
+  jz_match = get_match(state, state->identifier_re, 0);
   match = jz_str_to_chars(jz_match);
   result = in_word_set(match, jz_match->length);
   free(match);
@@ -317,16 +295,16 @@ int try_identifier() {
     return result->token;
   }
 
-  yylval.str = jz_match;
+  lex_val->str = jz_match;
   return IDENTIFIER;
 }
 
-bool try_re(URegularExpression* re) {
+bool try_re(STATE, URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;
 
-  if (state.code->length == 0) return false;
+  if (state->code->length == 0) return false;
 
-  uregex_setText(re, JZ_STR_PTR(state.code), state.code->length, &error);
+  uregex_setText(re, JZ_STR_PTR(state->code), state->code->length, &error);
   CHECK_ICU_ERROR(error);
 
   {
@@ -339,14 +317,14 @@ bool try_re(URegularExpression* re) {
     int change = uregex_end(re, 0, &error);
     CHECK_ICU_ERROR(error);
 
-    free(state.code_prev);
-    state.code_prev = state.code;
-    state.code = jz_str_substr(state.code, change);
+    free(state->code_prev);
+    state->code_prev = state->code;
+    state->code = jz_str_substr(state->code, change);
   }
   return true;
 }
 
-jz_str* get_match(URegularExpression* re, int number) {
+jz_str* get_match(STATE, URegularExpression* re, int number) {
   UErrorCode error = U_ZERO_ERROR;
   int start;
   int end;
@@ -357,7 +335,7 @@ jz_str* get_match(URegularExpression* re, int number) {
   CHECK_ICU_ERROR(error);
 
   if (start == -1) return NULL;
-  return jz_str_substr2(state.code_prev, start, end);
+  return jz_str_substr2(state->code_prev, start, end);
 }
 
 /* All regular expressions should begin with \A so they only match
@@ -369,20 +347,26 @@ jz_str* get_match(URegularExpression* re, int number) {
 #define EXPONENT_PART_RE            "(?:[eE]([\\+\\-]?[0-9]+))"
 #define LINE_TERMINATOR_CHARS       "\\n\\r\\u2028\\u2029"
 
-void jz_lex_init() {
-  state.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
-  state.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
-  state.line_terminator_re  = create_re("\\A[" LINE_TERMINATOR_CHARS "]");
-  state.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
+jz_lex_state* jz_lex_init() {
+  jz_lex_state* state = malloc(sizeof(jz_lex_state));
+
+  state->code = NULL;
+  state->code_prev = NULL;
+  state->identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
+  state->whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
+  state->line_terminator_re  = create_re("\\A[" LINE_TERMINATOR_CHARS "]");
+  state->punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                         ">>>=?|={1,3}|\\+\\+|--|&&|\\|\\||"
                                         "<<=?|>>=?|!=?=?|\\+=?|-=?|\\*=?|%=?|"
                                         ">=?|<=?|&=?|\\|=?|\\^=?|\\/=?)");
-  state.hex_literal_re      = create_re("\\A0[xX][0-9a-fA-F]+");
-  state.decimal_literal_re1 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
-  state.decimal_literal_re2 = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
-  state.decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
-  state.string_literal_re   = create_re("\\A('|\")((?:[^\\1\\\\" LINE_TERMINATOR_CHARS "]|"
+  state->hex_literal_re      = create_re("\\A0[xX][0-9a-fA-F]+");
+  state->decimal_literal_re1 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
+  state->decimal_literal_re2 = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
+  state->decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
+  state->string_literal_re   = create_re("\\A('|\")((?:[^\\1\\\\" LINE_TERMINATOR_CHARS "]|"
                                         "\\\\(?:[^1-9" LINE_TERMINATOR_CHARS "]))*?)\\1");
+
+  return state;
 }
 
 URegularExpression* create_re(const char* pattern) {
@@ -392,9 +376,9 @@ URegularExpression* create_re(const char* pattern) {
   return re;
 }
 
-void jz_lex_set_code(const jz_str* code) {
+void jz_lex_set_code(jz_lex_state* state, const jz_str* code) {
   assert(code != NULL);
 
-  state.code = jz_str_dup(code);
-  state.code_prev = jz_str_dup(code);
+  state->code = jz_str_dup(code);
+  state->code_prev = jz_str_dup(code);
 }
