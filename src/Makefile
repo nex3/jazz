@@ -14,27 +14,29 @@ default: jazz
 jazz: main.o libjazz.a
 	$(CC) $(LFLAGS) -o $@ main.o libjazz.a
 
-libjazz.a: lex.o string.o y.tab.o vm.o compile.o type.o
+libjazz.a: lex.o string.o y.tab.o vm.o compile.o type.o state.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
 
-main.o: main.c lex.h parse.h string.h compile.h vm.h type.h
+main.o: main.c lex.h parse.h string.h compile.h vm.h type.h state.h
 
 type.o: type.c type.h
 compile.o: compile.c compile.h
 vm.o: vm.c vm.h Makefile
 lex.o: lex.c lex.h y.tab.h keywords.gp.c type.h Makefile
 string.o: string.c string.h lex.h type.h
+state.o: state.c state.h
 
 %.h:
 	touch $@
 
 lex.h: string.h y.tab.h parse.h
-parse.h: string.h type.h
+parse.h: state.h string.h type.h
 compile.h: parse.h opcode.h vector.h
-vm.h: type.h opcode.h compile.h
+vm.h: state.h type.h opcode.h compile.h
 type.h: string.h
+state.h: type.h
 
 keywords.gp.c: keywords.gperf
 	gperf --output-file=$@ -I -t -C -E $?

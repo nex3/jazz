@@ -50,7 +50,6 @@ double jz_values_comp(jz_tvalue v1, jz_tvalue v2);
 jz_tvalue jz_wrap_num(double num);
 jz_tvalue jz_wrap_str(jz_str* str);
 jz_tvalue jz_wrap_bool(bool b);
-jz_tvalue jz_undef_val();
 
 double jz_to_num(jz_tvalue val);
 jz_str* jz_to_str(jz_tvalue val);

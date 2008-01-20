@@ -1,6 +1,7 @@
 %{
 #include "parse.h"
 #include "lex.h"
+#include "state.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -19,7 +20,7 @@ static jz_parse_node* reverse_list(jz_parse_node* head);
 static jz_tvalue* ptr_to_val(jz_tvalue val);
 static jz_op_type* ptr_to_ot(jz_op_type ot);
 
- static void yyerror(jz_parse_node** root, jz_lex_state* state, const char* msg);
+static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg);
 
 #define binop_node(type, left, right) jz_pnode_list(jz_parse_binop, 3, ptr_to_ot(type), (left), (right))
 #define unop_node(type, next) jz_pnode_cons(jz_parse_unop, ptr_to_ot(type), (next))
@@ -28,6 +29,7 @@ static jz_op_type* ptr_to_ot(jz_op_type ot);
 %error-verbose
 
 %pure-parser
+%parse-param {jz_state* jstate}
 %parse-param {jz_parse_node** root}
 %parse-param {jz_lex_state* state}
 %lex-param   {jz_lex_state* state}
@@ -325,7 +327,7 @@ bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }
 
 undefined: UNDEF_VAL {
-  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(jz_undef_val()));
+  $$ = jz_pnode_wrap(jz_parse_literal, ptr_to_val(JZ_UNDEFINED));
  }
 
 not_a_number: NAN_VAL {
@@ -382,13 +384,13 @@ jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2) {
   return list1;
 }
 
-jz_parse_node* jz_parse_string(jz_lex_state* state, const jz_str* code) {
+jz_parse_node* jz_parse_string(JZ_STATE, jz_lex_state* state, const jz_str* code) {
   jz_parse_node* root = NULL;
 
   jz_lex_set_code(state, code);
 
   /* yyparse returns 0 to indicate success. */
-  if (yyparse(&root, state)) return NULL;
+  if (yyparse(jstate, &root, state)) return NULL;
 
   return root;
 }
@@ -426,7 +428,7 @@ jz_op_type* ptr_to_ot(jz_op_type ot) {
   return to_ret;
 }
 
-void yyerror(jz_parse_node** root, jz_lex_state* state, const char* msg)
+void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg)
 {
   fprintf(stderr, "%s\n", msg);
 }

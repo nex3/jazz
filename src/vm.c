@@ -17,7 +17,7 @@
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
+jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
 
   jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
@@ -227,7 +227,7 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
     case jz_oc_end:
       free(stack_bottom);
       free(locals);
-      return jz_undef_val();
+      return JZ_UNDEFINED;
 
     default:
       fprintf(stderr, "Unknown opcode %d\n", code[-1]);

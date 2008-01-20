@@ -48,6 +48,7 @@
 #define JZ_PARSE_H
 
 #include <unicode/uregex.h>
+#include "state.h"
 #include "string.h"
 #include "type.h"
 
@@ -232,7 +233,7 @@ struct jz_parse_node {
 
 /* Parses a Javascript program and returns its parse tree.
    The root node of the parse tree is jz_parse_statements. */
-jz_parse_node* jz_parse_string(jz_lex_state* state, const jz_str* code);
+jz_parse_node* jz_parse_string(JZ_STATE, jz_lex_state* state, const jz_str* code);
 
 
 /* Returns a new parse node of the given type,

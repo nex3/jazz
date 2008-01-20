@@ -82,12 +82,6 @@ jz_tvalue jz_wrap_bool(bool b) {
   return tvalue;
 }
 
-jz_tvalue jz_undef_val() {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_undef);
-  return tvalue;
-}
-
 double jz_to_num(jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_num:   return val.value.num;
