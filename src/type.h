@@ -1,11 +1,11 @@
 #ifndef JZ_OBJECT_H
 #define JZ_OBJECT_H
 
-#include "string.h"
-
 #include <stdbool.h>
 #include <math.h>
 #include <float.h>
+
+#include "string.h"
 
 enum {
   /* Giving undefined a 0 flag means that zero-ed memory
