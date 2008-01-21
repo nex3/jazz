@@ -1,7 +1,7 @@
 #ifndef JZ_OPCODE_H
 #define JZ_OPCODE_H
 
-#include "type.h"
+#include "value.h"
 
 #include <stdlib.h>
 

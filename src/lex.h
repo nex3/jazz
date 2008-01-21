@@ -11,18 +11,18 @@
 #include "y.tab.h"
 #include "parse.h"
 
-/* Initializes new lexer state. */
-jz_lex_state* jz_lex_init();
+typedef struct {
+  jz_str* code;
+  jz_str* code_prev;
+} jz_lex_state;
 
-/* Sets the string from which the lexer will read tokens.
-   This must be called before parsing can begin. */
-void jz_lex_set_code(jz_lex_state* state, const jz_str* code);
-
+/* Initializes the lexer to lex from the given string. */
+jz_lex_state* jz_lex_init(JZ_STATE, const jz_str* code);
 
 /* The yacc parser interface function. */
-int yylex(YYSTYPE* lex_val, jz_lex_state* state);
+int yylex(YYSTYPE* lex_val, JZ_STATE, jz_lex_state* state);
 
 
-double jz_parse_number(const jz_str* num);
+double jz_parse_number(JZ_STATE, const jz_str* num);
 
 #endif

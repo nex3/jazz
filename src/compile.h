@@ -5,6 +5,7 @@
 #ifndef JZ_COMPILE_H
 #define JZ_COMPILE_H
 
+#include "state.h"
 #include "parse.h"
 #include "opcode.h"
 #include "vector.h"
@@ -24,12 +25,12 @@ typedef struct {
 /* Compiles a parse tree into Jazz bytecode.
    The caller is responsible for freeing the returned bytecode
    using jz_free_bytecode. */
-jz_bytecode* jz_compile(jz_parse_node* parse_tree);
+jz_bytecode* jz_compile(JZ_STATE, jz_parse_node* parse_tree);
 
 /* Frees a jz_bytecode*.
    Does nothing if 'this' is NULL. */
-void jz_free_bytecode(jz_bytecode* this);
+void jz_free_bytecode(JZ_STATE, jz_bytecode* this);
 
-void jz_free_parse_tree(jz_parse_node* root);
+void jz_free_parse_tree(JZ_STATE, jz_parse_node* root);
 
 #endif
