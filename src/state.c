@@ -6,6 +6,8 @@
 static void init_lex(JZ_STATE);
 static URegularExpression* create_re(const char* pattern);
 
+static void free_lex(JZ_STATE);
+
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
 
@@ -61,5 +63,18 @@ URegularExpression* create_re(const char* pattern) {
 }
 
 void jz_free_state(JZ_STATE) {
+  free_lex(jz);
   free(jz);
+}
+
+void free_lex(JZ_STATE) {
+  uregex_close(jz->lex.identifier_re);
+  uregex_close(jz->lex.whitespace_re);
+  uregex_close(jz->lex.line_terminator_re);
+  uregex_close(jz->lex.punctuation_re);
+  uregex_close(jz->lex.hex_literal_re);
+  uregex_close(jz->lex.decimal_literal_re1);
+  uregex_close(jz->lex.decimal_literal_re2);
+  uregex_close(jz->lex.decimal_literal_re3);
+  uregex_close(jz->lex.string_literal_re);
 }
