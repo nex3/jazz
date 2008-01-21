@@ -12,3 +12,7 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
 
   return frame;
 }
+
+void jz_frame_free(JZ_STATE, jz_frame* frame) {
+  free(frame);
+}

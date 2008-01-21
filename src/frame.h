@@ -11,6 +11,7 @@ typedef struct {
 } jz_frame;
 
 jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function);
+void jz_frame_free(JZ_STATE, jz_frame* frame);
 
 #define JZ_FRAME_STACK(frame) \
   ((frame)->locals_then_stack + (frame)->bytecode->locals_length)

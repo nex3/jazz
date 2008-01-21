@@ -233,10 +233,14 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       jz_tvalue res;
 
       res = stack[-1];
+      jz_frame_free(jz, frame);
+      jz->current_frame = NULL;
       return res;
     }
 
     case jz_oc_end:
+      jz_frame_free(jz, frame);
+      jz->current_frame = NULL;
       return JZ_UNDEFINED;
 
     default:
