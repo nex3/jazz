@@ -60,3 +60,6 @@ URegularExpression* create_re(const char* pattern) {
   return re;
 }
 
+void jz_free_state(JZ_STATE) {
+  free(jz);
+}

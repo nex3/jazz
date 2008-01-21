@@ -37,6 +37,7 @@ int main(int argc, char** argv) {
     printf("%s\n", jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode))));
 
     jz_free_bytecode(jz, bytecode);
+    jz_free_state(jz);
   }
 
   return 0;

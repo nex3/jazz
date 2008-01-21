@@ -32,4 +32,6 @@ typedef struct {
 
 jz_state* jz_init();
 
+void jz_free_state(JZ_STATE);
+
 #endif
