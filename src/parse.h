@@ -47,11 +47,8 @@
 #ifndef JZ_PARSE_H
 #define JZ_PARSE_H
 
-#include "state.h"
-#include "string.h"
+#include "jazz.h"
 #include "value.h"
-
-typedef struct jz_parse_node jz_parse_node;
 
 /* These are the possible node types for parse tree nodes.
 
@@ -186,6 +183,8 @@ typedef enum {
   jz_op_post_inc,
   jz_op_post_dec
 } jz_op_type;
+
+typedef struct jz_parse_node jz_parse_node;
 
 /* Potential values for the car and cdr of a jz_parse_node.
 

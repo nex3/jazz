@@ -7,9 +7,8 @@
 #define JZ_LEX_H
 
 #include <unicode/ustring.h>
-#include "string.h"
+#include "jazz.h"
 #include "y.tab.h"
-#include "parse.h"
 
 typedef struct {
   jz_str* code;
@@ -19,9 +18,9 @@ typedef struct {
 /* Initializes the lexer to lex from the given string. */
 jz_lex_state* jz_lex_init(JZ_STATE, const jz_str* code);
 
-/* The yacc parser interface function. */
+/* The yacc parser interface function.
+   Defined in lex.c. */
 int yylex(YYSTYPE* lex_val, JZ_STATE, jz_lex_state* state);
-
 
 double jz_parse_number(JZ_STATE, const jz_str* num);
 

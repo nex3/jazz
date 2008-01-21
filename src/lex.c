@@ -7,16 +7,18 @@
    We can't use a lex derivative for this because
    none of them appear to support UTF-16 well. */
 
-#include "lex.h"
-#include "y.tab.h"
-#include "keywords.gp.c"
-#include "value.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
 #include <assert.h>
+
+#include "lex.h"
+#include "state.h"
+#include "value.h"
+#include "string.h"
+#include "y.tab.h"
+#include "keywords.gp.c"
 
 /* Struct hash_result is defined in keywords.gperf. */
 typedef struct hash_result hash_result;

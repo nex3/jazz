@@ -4,8 +4,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include "state.h"
-
 /* This is a poor substitute for generics, but so be it. */
 
 #define JZ_VECTOR_CAPACITY_MULT 1.5

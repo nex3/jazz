@@ -4,8 +4,23 @@
 #include <stdbool.h>
 
 #include <unicode/ustring.h>
-#include "state.h"
+#include "jazz.h"
 #include "value.h"
+
+typedef struct {
+  unsigned char tag;
+  UChar str[1];
+} jz_str_value;
+
+struct jz_str {
+  unsigned char tag;
+  int start;
+  int length;
+  union {
+    const UChar* ext;
+    jz_str_value* val;
+  } value;
+};
 
 #define JZ_STR_IS_EXT(str)  ((str)->tag & 128)
 
@@ -13,7 +28,7 @@
   ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \
     (string)->value.val->str) + (string)->start)
 
-#define JZ_STR_INT_PTR(string)                                          \
+#define JZ_STR_INT_PTR(string) \
   (assert(!JZ_STR_IS_EXT(string)), (string)->value.val->str + (string)->start)
 
 /* Creates a new jz_str* from external string data.

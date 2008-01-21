@@ -1,10 +1,8 @@
-#include "lex.h"
-#include "parse.h"
+#include "state.h"
 #include "string.h"
+#include "parse.h"
 #include "compile.h"
 #include "vm.h"
-#include "value.h"
-#include "state.h"
 
 #include <stdlib.h>
 #include <unicode/ustdio.h>

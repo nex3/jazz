@@ -1,5 +1,7 @@
 #include "vm.h"
 #include "frame.h"
+#include "state.h"
+#include "string.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -17,6 +19,12 @@
 #if JZ_DEBUG_BYTECODE
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
+
+typedef struct foo foo;
+
+int foobar(foo* blat) {
+  return 1 + 1;
+}
 
 jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;

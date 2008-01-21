@@ -5,8 +5,30 @@
 #include <math.h>
 #include <float.h>
 
-#include "type.h"
-#include "state.h"
+#include "jazz.h"
+
+enum {
+  /* Giving undefined a 0 flag means that zero-ed memory
+     is identified as jz_undef, which saves some manual setting. */
+  jz_undef = 0x00,
+  jz_num   = 0x01,
+  jz_bool  = 0x02,
+  jz_strt  = 0x03
+} jz_type_type;
+
+typedef union {
+  double num;
+  jz_str* str;
+  bool b;
+} jz_value;
+
+typedef struct {
+  unsigned char tag;
+  jz_value value;
+} jz_tvalue;
+
+#define JZ_TVAL_TYPE(value)           ((value).tag & 0x03)
+#define JZ_TVAL_SET_TYPE(value, type) ((value).tag = ((value).tag & !0x03) | type)
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)

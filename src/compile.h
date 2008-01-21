@@ -5,10 +5,18 @@
 #ifndef JZ_COMPILE_H
 #define JZ_COMPILE_H
 
-#include "state.h"
+#include "jazz.h"
 #include "parse.h"
 #include "opcode.h"
 #include "vector.h"
+
+typedef struct {
+  jz_opcode* code;
+  size_t code_length;
+  size_t stack_length;
+  size_t locals_length;
+  jz_tvalue* consts;
+} jz_bytecode;
 
 JZ_DECLARE_VECTOR(jz_opcode)
 
