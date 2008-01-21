@@ -5,6 +5,7 @@
 #include "type.h"
 
 typedef struct {
+  jz_frame* current_frame;
   jz_tvalue undefined_val;
   jz_tvalue true_val;
   jz_tvalue false_val;

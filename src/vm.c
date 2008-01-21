@@ -1,4 +1,5 @@
 #include "vm.h"
+#include "frame.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -19,16 +20,12 @@ static void print_bytecode(const jz_bytecode* bytecode);
 
 jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
-
-  jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
-  jz_tvalue* stack_bottom = stack;
-
-  /* This is initialized to all zeros,
-     which means locals are initially of type undefined.
-     This would not be preserved if this were a call to malloc. */
-  jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
-
+  jz_frame* frame = jz_frame_new(jz, bytecode);
+  jz_tvalue* stack = JZ_FRAME_STACK(frame);
+  jz_tvalue* locals = JZ_FRAME_LOCALS(frame);
   jz_tvalue* consts = bytecode->consts;
+
+  jz->current_frame = frame;
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
@@ -228,14 +225,10 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       jz_tvalue res;
 
       res = stack[-1];
-      free(stack_bottom);
-      free(locals);
       return res;
     }
 
     case jz_oc_end:
-      free(stack_bottom);
-      free(locals);
       return JZ_UNDEFINED;
 
     default:

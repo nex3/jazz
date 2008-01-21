@@ -12,16 +12,6 @@
 
 JZ_DECLARE_VECTOR(jz_opcode)
 
-/* This struct contains bytecode for the virtual machine to execute,
-   as well as enough metadata to know how to execute it properly. */
-typedef struct {
-  jz_opcode* code;
-  size_t code_length;
-  size_t stack_length;
-  size_t locals_length;
-  jz_tvalue* consts;
-} jz_bytecode;
-
 /* Compiles a parse tree into Jazz bytecode.
    The caller is responsible for freeing the returned bytecode
    using jz_free_bytecode. */

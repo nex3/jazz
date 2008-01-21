@@ -18,6 +18,8 @@ jz_state* jz_init() {
   JZ_TVAL_SET_TYPE(state->false_val, jz_bool);
   state->true_val.value.b = false;
 
+  state->current_frame = NULL;
+
   init_lex(state);
 
   return state;
