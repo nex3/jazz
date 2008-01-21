@@ -47,30 +47,9 @@
 #ifndef JZ_PARSE_H
 #define JZ_PARSE_H
 
-#include <unicode/uregex.h>
 #include "state.h"
 #include "string.h"
-#include "type.h"
-
-/* The lexer state.
-   The regular expression objects are stored here
-   because it would be expensive to recompile them for each token.
-
-   TODO: Find a better place for this. state.h maybe? */
-typedef struct {
-  jz_str* code;
-  jz_str* code_prev;
-  URegularExpression* identifier_re;
-  URegularExpression* whitespace_re;
-  URegularExpression* line_terminator_re;
-  URegularExpression* punctuation_re;
-  URegularExpression* hex_literal_re;
-  URegularExpression* decimal_literal_re1;
-  URegularExpression* decimal_literal_re2;
-  URegularExpression* decimal_literal_re3;
-  URegularExpression* string_literal_re;
-} jz_lex_state;
-
+#include "value.h"
 
 typedef struct jz_parse_node jz_parse_node;
 
@@ -233,7 +212,7 @@ struct jz_parse_node {
 
 /* Parses a Javascript program and returns its parse tree.
    The root node of the parse tree is jz_parse_statements. */
-jz_parse_node* jz_parse_string(JZ_STATE, jz_lex_state* state, const jz_str* code);
+jz_parse_node* jz_parse_string(JZ_STATE, const jz_str* code);
 
 
 /* Returns a new parse node of the given type,
@@ -245,10 +224,10 @@ jz_parse_node* jz_parse_string(JZ_STATE, jz_lex_state* state, const jz_str* code
      car = foo, cdar = bar, cddr = baz
    and jz_node_list(type, 2, foo, bar) has
      car = foo, cdr = bar. */
-jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...);
+jz_parse_node* jz_pnode_list(JZ_STATE, jz_parse_type type, int argc, ...);
 
 /* Returns a new parse node of the given type with NULL car and cdr. */
-jz_parse_node* jz_pnode_new(jz_parse_type type);
+jz_parse_node* jz_pnode_new(JZ_STATE, jz_parse_type type);
 
 /* Concatenates two lists.
    list1 is modified so that its last element
@@ -257,9 +236,9 @@ jz_parse_node* jz_pnode_new(jz_parse_type type);
 
    list1 is returned as a convenience, unless it's NULL,
    in which case list2 is returned. */
-jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2);
+jz_parse_node* jz_plist_concat(JZ_STATE, jz_parse_node* list1, jz_parse_node* list2);
 
-#define jz_pnode_cons(type, car, cdr) jz_pnode_list(type, 2, car, cdr)
-#define jz_pnode_wrap(type, car)      jz_pnode_list(type, 1, car)
+#define jz_pnode_cons(jz, type, car, cdr) jz_pnode_list(jz, type, 2, car, cdr)
+#define jz_pnode_wrap(jz, type, car)      jz_pnode_list(jz, type, 1, car)
 
 #endif

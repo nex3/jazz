@@ -2,7 +2,7 @@
 #define JZ_VM_H
 
 #include "state.h"
-#include "type.h"
+#include "value.h"
 #include "opcode.h"
 #include "compile.h"
 

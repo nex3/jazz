@@ -3,7 +3,7 @@
 #include "string.h"
 #include "compile.h"
 #include "vm.h"
-#include "type.h"
+#include "value.h"
 #include "state.h"
 
 #include <stdlib.h>
@@ -18,27 +18,25 @@ int main(int argc, char** argv) {
   u_fclose(ustdin);
 
   {
-    jz_state* jstate = jz_init();
-    jz_str* input = jz_str_external(len, str);
-    jz_lex_state* lex_state = jz_lex_init();
+    jz_state* jz = jz_init();
+    jz_str* input = jz_str_external(jz, len, str);
     jz_parse_node* root; 
     jz_bytecode* bytecode;
 
-    root = jz_parse_string(jstate, lex_state, input);
+    root = jz_parse_string(jz, input);
     if (!root) exit(1);
 
     free(str);
     free(input);
-    free(lex_state);
 
-    bytecode = jz_compile(root);
+    bytecode = jz_compile(jz, root);
     if (!bytecode) exit(1);
 
-    jz_free_parse_tree(root);
+    jz_free_parse_tree(jz, root);
 
-    printf("%s\n", jz_str_to_chars(jz_to_str(jz_vm_run(jstate, bytecode))));
+    printf("%s\n", jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode))));
 
-    jz_free_bytecode(bytecode);
+    jz_free_bytecode(jz, bytecode);
   }
 
   return 0;
