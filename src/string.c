@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define SET_EXT(str) ((str)->tag |= 128)
-#define SET_INT(str) ((str)->tag &= 127)
+#define SET_EXT(str) (JZ_GC_UTAG_OR((str), 1))
+#define SET_INT(str) (JZ_GC_UTAG_AND((str), ~1))
 
 static bool is_whitespace_char(UChar c);
 static jz_str* str_new(JZ_STATE, int start, int length);
@@ -21,10 +21,10 @@ bool is_whitespace_char(UChar c) {
 }
 
 jz_str* str_new(JZ_STATE, int start, int length) {
-  jz_str* to_ret = malloc(sizeof(jz_str));
+  jz_str* to_ret = (jz_str*)jz_gc_malloc(jz, jz_strt, sizeof(jz_str));
   to_ret->start = start;
   to_ret->length = length;
-  to_ret->tag = 0;
+  JZ_GC_SET_UTAG(to_ret, 0);
   return to_ret;
 }
 
@@ -38,8 +38,9 @@ jz_str_value* val_alloc(JZ_STATE, int length) {
   jz_str_value* to_ret;
 
   assert(length != 0);
-  to_ret = malloc(sizeof(jz_str_value) + sizeof(UChar) * (length - 1));
-  to_ret->tag = 0;
+  to_ret = (jz_str_value*)jz_gc_dyn_malloc(jz, jz_strt, sizeof(jz_str_value),
+                                           sizeof(UChar), length);
+  JZ_GC_SET_UTAG(to_ret, 0);
   return to_ret;
 }
 

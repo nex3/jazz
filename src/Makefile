@@ -14,7 +14,7 @@ default: jazz
 jazz: main.o libjazz.a
 	$(CC) $(LFLAGS) -o $@ main.o libjazz.a
 
-libjazz.a: lex.o string.o y.tab.o vm.o compile.o value.o state.o frame.o
+libjazz.a: lex.o string.o y.tab.o vm.o compile.o value.o state.o frame.o gc.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -28,16 +28,18 @@ lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h
 state.o: state.c state.h
 frame.o: frame.c frame.h
+gc.o: gc.c gc.h value.h
 
 %.h:
 	touch $@
 
 jazz.h:
+gc.h: jazz.h
 vector.h: jazz.h
 value.h: jazz.h
-string.h: jazz.h value.h
 parse.h: jazz.h value.h
 lex.h: jazz.h y.tab.h
+string.h: jazz.h value.h gc.h
 frame.h: jazz.h compile.h value.h
 compile.h: jazz.h parse.h opcode.h vector.h	
 vm.h: jazz.h value.h compile.h

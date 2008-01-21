@@ -6,14 +6,15 @@
 #include <unicode/ustring.h>
 #include "jazz.h"
 #include "value.h"
+#include "gc.h"
 
 typedef struct {
-  unsigned char tag;
+  gc_header gc;
   UChar str[1];
 } jz_str_value;
 
 struct jz_str {
-  unsigned char tag;
+  gc_header gc;
   int start;
   int length;
   union {
@@ -22,7 +23,7 @@ struct jz_str {
   } value;
 };
 
-#define JZ_STR_IS_EXT(str)  ((str)->tag & 128)
+#define JZ_STR_IS_EXT(str) (JZ_GC_UTAG(str) & 1)
 
 #define JZ_STR_PTR(string)                              \
   ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \
