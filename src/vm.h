@@ -1,10 +1,10 @@
 #ifndef JZ_VM_H
 #define JZ_VM_H
 
-#include "type.h"
-#include "opcode.h"
+#include "jazz.h"
+#include "value.h"
 #include "compile.h"
 
-jz_tvalue jz_vm_run(const jz_bytecode* bytecode);
+jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode);
 
 #endif

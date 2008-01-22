@@ -1,4 +1,8 @@
 #include "vm.h"
+#include "frame.h"
+#include "state.h"
+#include "string.h"
+#include "gc.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -6,27 +10,46 @@
 #include <assert.h>
 
 #define NEXT_OPCODE (*((code)++))
-#define OC_ARG      ((jz_oc_arg)(*code))
 #define READ_ARG_INTO(type, var)                \
   type var = *(type*)(code);                    \
   code += sizeof(type)/sizeof(jz_opcode);
 
-#define POP        (*(--stack))
-#define PUSH(val)  (*(stack++) = (val))
+#define POP()     (*(--stack))
+#define PUSH(val) (*(stack++) = (val))
+#define PUSH_WB(val) {                          \
+    jz_tvalue tmp = (val);                      \
+    *(stack++) = tmp;                           \
+    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+      JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
+  }
+
+#define STACK_SET(i, val) (stack[(i)] = (val))
+#define STACK_SET_WB(i, val) {                  \
+    jz_tvalue tmp = (val);                      \
+    stack[(i)] = tmp;                           \
+    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+      JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
+  }
 
 #if JZ_DEBUG_BYTECODE
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
-  jz_opcode* code = bytecode->code;
-  jz_tvalue* stack = calloc(sizeof(jz_tvalue), bytecode->stack_length);
-  jz_tvalue* stack_bottom = stack;
+typedef struct foo foo;
 
-  /* This is initialized to all zeros,
-     which means locals are initially of type undefined.
-     This would not be preserved if this were a call to malloc. */
-  jz_tvalue* locals = calloc(sizeof(jz_tvalue), bytecode->locals_length);
+int foobar(foo* blat) {
+  return 1 + 1;
+}
+
+jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
+  jz_opcode* code = bytecode->code;
+  jz_frame* frame = jz_frame_new(jz, bytecode);
+  jz_tvalue* stack = JZ_FRAME_STACK(frame);
+  jz_tvalue* locals = JZ_FRAME_LOCALS(frame);
+  jz_tvalue* consts = bytecode->consts;
+
+  frame->stack_top = &stack;
+  jz->current_frame = frame;
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
@@ -35,39 +58,41 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
 #endif
 
   while (true) {
+    jz_gc_tick(jz);
+
     switch (NEXT_OPCODE) {
     case jz_oc_push_literal: {
-      READ_ARG_INTO(jz_tvalue, literal);
-      PUSH(literal);
+      READ_ARG_INTO(jz_index, index);
+      PUSH(consts[index]);
       break;
     }
 
     case jz_oc_jump: {
-      READ_ARG_INTO(size_t, jump);
+      READ_ARG_INTO(ptrdiff_t, jump);
       code += jump;
       break;
     }
 
     case jz_oc_jump_unless: {
-      READ_ARG_INTO(size_t, jump);
-      if (!jz_to_bool(POP)) code += jump;
+      READ_ARG_INTO(ptrdiff_t, jump);
+      if (!jz_to_bool(jz, POP())) code += jump;
       break;
     }
 
     case jz_oc_jump_if: {
-      READ_ARG_INTO(size_t, jump);
-      if (jz_to_bool(POP)) code += jump;
+      READ_ARG_INTO(ptrdiff_t, jump);
+      if (jz_to_bool(jz, POP())) code += jump;
       break;
     }
 
     case jz_oc_store: {
-      READ_ARG_INTO(unsigned char, index);
-      locals[index] = POP;
+      READ_ARG_INTO(jz_index, index);
+      locals[index] = POP();
       break;
     }
 
     case jz_oc_retrieve: {
-      READ_ARG_INTO(unsigned char, index);
+      READ_ARG_INTO(jz_index, index);
       PUSH(locals[index]);
       break;
     }
@@ -83,85 +108,90 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
     }
 
     case jz_oc_bw_or:
-      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) | jz_to_int32(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) |
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_xor:
-      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) ^ jz_to_int32(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) ^
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_bw_and:
-      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) & jz_to_int32(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) &
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_equals:
-      stack[-2] = jz_wrap_bool(jz_values_equal(stack[-2], stack[-1]));
+      STACK_SET(-2, jz_wrap_bool(jz, jz_values_equal(jz, stack[-2],
+                                                     stack[-1])));
       stack--;
       break;
 
     case jz_oc_strict_eq:
-      stack[-2] = jz_wrap_bool(jz_values_strict_equal(stack[-2], stack[-1]));
+      STACK_SET(-2, jz_wrap_bool(jz, jz_values_strict_equal(jz, stack[-2],
+                                                            stack[-1])));
       stack--;
       break;
 
     case jz_oc_lt: {
-      double comp = jz_values_comp(stack[-2], stack[-1]);
+      double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
-      else stack[-2] = jz_wrap_bool(comp < 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp < 0));
 
       stack--;
       break;
     }
 
     case jz_oc_gt: {
-      double comp = jz_values_comp(stack[-2], stack[-1]);
+      double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
-      else stack[-2] = jz_wrap_bool(comp > 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp > 0));
 
       stack--;
       break;
     }
 
     case jz_oc_lt_eq: {
-      double comp = jz_values_comp(stack[-2], stack[-1]);
+      double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
-      else stack[-2] = jz_wrap_bool(comp <= 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp <= 0));
 
       stack--;
       break;
     }
 
     case jz_oc_gt_eq: {
-      double comp = jz_values_comp(stack[-2], stack[-1]);
+      double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(false);
-      else stack[-2] = jz_wrap_bool(comp >= 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp >= 0));
 
       stack--;
       break;
     }
 
     case jz_oc_lshift:
-      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) <<
-                              (jz_to_uint32(stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) <<
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
     case jz_oc_rshift:
-      stack[-2] = jz_wrap_num(jz_to_int32(stack[-2]) >>
-                              (jz_to_uint32(stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) >>
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
     case jz_oc_urshift:
-      stack[-2] = jz_wrap_num((unsigned int)jz_to_int32(stack[-2]) >>
-                              (jz_to_uint32(stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, (unsigned int)jz_to_int32(jz, stack[-2]) >>
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
@@ -169,63 +199,69 @@ jz_tvalue jz_vm_run(const jz_bytecode* bytecode) {
       jz_tvalue v1 = stack[-2];
       jz_tvalue v2 = stack[-1];
 
-      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt)
-        stack[-2] = jz_wrap_str(jz_str_concat(jz_to_str(v1), jz_to_str(v2)));
-      else
-        stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) + jz_to_num(stack[-1]));
+      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt) {
+        STACK_SET_WB(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
+                                                       jz_to_str(jz, v2))));
+      } else {
+        STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) +
+                                  jz_to_num(jz, stack[-1])));
+      }
       stack--;
       break;
     }
 
     case jz_oc_sub:
-      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) - jz_to_num(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) -
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_times:
-      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) * jz_to_num(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) *
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_div:
-      stack[-2] = jz_wrap_num(jz_to_num(stack[-2]) / jz_to_num(stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) /
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_mod:
-      stack[-2] = jz_wrap_num(jz_num_mod(stack[-2], stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_num_mod(jz, stack[-2], stack[-1])));
       stack--;
       break;
 
     case jz_oc_to_num:
-      stack[-1] = jz_wrap_num(jz_to_num(stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, jz_to_num(jz, stack[-1])));
       break;
 
     case jz_oc_neg:
-      stack[-1] = jz_wrap_num(-jz_to_num(stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, -jz_to_num(jz, stack[-1])));
       break;
 
     case jz_oc_bw_not:
-      stack[-1] = jz_wrap_num(~jz_to_int32(stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, ~jz_to_int32(jz, stack[-1])));
       break;
 
     case jz_oc_not:
-      stack[-1] = jz_wrap_bool(!jz_to_bool(stack[-1]));
+      STACK_SET(-1, jz_wrap_bool(jz, !jz_to_bool(jz, stack[-1])));
       break;
 
     case jz_oc_ret: {
       jz_tvalue res;
 
       res = stack[-1];
-      free(stack_bottom);
-      free(locals);
+      jz_frame_free(jz, frame);
+      jz->current_frame = NULL;
       return res;
     }
 
     case jz_oc_end:
-      free(stack_bottom);
-      free(locals);
-      return jz_undef_val();
+      jz_frame_free(jz, frame);
+      jz->current_frame = NULL;
+      return JZ_UNDEFINED;
 
     default:
       fprintf(stderr, "Unknown opcode %d\n", code[-1]);
@@ -247,32 +283,32 @@ void print_bytecode(const jz_bytecode* bytecode) {
     switch (*code) {
     case jz_oc_push_literal:
       name = "push_literal";
-      argsize = JZ_OCS_TVALUE;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_jump:
       name = "jump";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_jump_unless:
       name = "jump_unless";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_jump_if:
       name = "jump_if";
-      argsize = JZ_OCS_SIZET;
+      argsize = JZ_OCS_PTRDIFF;
       break;
 
     case jz_oc_store:
       name = "store";
-      argsize = 1;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_retrieve:
       name = "retrieve";
-      argsize = 1;
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_pop:

@@ -5,39 +5,31 @@
 #ifndef JZ_COMPILE_H
 #define JZ_COMPILE_H
 
+#include "jazz.h"
 #include "parse.h"
 #include "opcode.h"
 #include "vector.h"
 
-JZ_DECLARE_VECTOR(jz_opcode)
-
-/* This struct contains bytecode for the virtual machine to execute,
-   as well as enough metadata to know how to execute it properly. */
 typedef struct {
-  /* The bytecode itself.
-     This is mostly an array of opcodes,
-     but there may be arguments to the opcodes as well.
-     These arguments are often longer than a single byte in length. */
   jz_opcode* code;
-
-  /* The length in bytes (sizeof(jz_opcode) == 1) of 'code'. */
   size_t code_length;
-
-  /* The minimum height that the virtual machine's stack needs to be
-     in order not to have any overflows. */
   size_t stack_length;
-
-  /* The number of local variables required for the bytecode. */
   size_t locals_length;
+  jz_tvalue* consts;
+  size_t consts_length;
 } jz_bytecode;
+
+JZ_DECLARE_VECTOR(jz_opcode)
 
 /* Compiles a parse tree into Jazz bytecode.
    The caller is responsible for freeing the returned bytecode
    using jz_free_bytecode. */
-jz_bytecode* jz_compile(jz_parse_node* parse_tree);
+jz_bytecode* jz_compile(JZ_STATE, jz_parse_node* parse_tree);
 
 /* Frees a jz_bytecode*.
    Does nothing if 'this' is NULL. */
-void jz_free_bytecode(jz_bytecode* this);
+void jz_free_bytecode(JZ_STATE, jz_bytecode* this);
+
+void jz_free_parse_tree(JZ_STATE, jz_parse_node* root);
 
 #endif

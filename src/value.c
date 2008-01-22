@@ -1,10 +1,11 @@
-#include "type.h"
-
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "value.h"
+#include "string.h"
 
 #define ABS(x)  ((x) < 0 ? -(x) : (x))
 #define SIGN(x) ((x) < 0 ? -1 : 1)
@@ -12,42 +13,45 @@
 static void write_integral_double(UChar* buffer_end, double d);
 static int add_decimal_point(UChar* buffer, int index);
 
-bool jz_values_equal(jz_tvalue v1, jz_tvalue v2) {
+bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   if (JZ_TVAL_TYPE(v1) == JZ_TVAL_TYPE(v2))
-    return jz_values_strict_equal(v1, v2);
+    return jz_values_strict_equal(jz, v1, v2);
+
   if (JZ_TVAL_TYPE(v1) == jz_bool ||
       (JZ_TVAL_TYPE(v1) == jz_strt && JZ_TVAL_TYPE(v2) == jz_num))
-    return jz_values_equal(jz_wrap_num(jz_to_num(v1)), v2);
+    return jz_values_equal(jz, jz_to_wrapped_num(jz, v1), v2);
+
   if (JZ_TVAL_TYPE(v2) == jz_bool ||
       (JZ_TVAL_TYPE(v1) == jz_num && JZ_TVAL_TYPE(v2) == jz_strt))
-    return jz_values_equal(v1, jz_wrap_num(jz_to_num(v2)));
-  else return false;
+    return jz_values_equal(jz, v1, jz_to_wrapped_num(jz, v2));
+
+  return false;
 }
 
-bool jz_values_strict_equal(jz_tvalue v1, jz_tvalue v2) {
+bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   if (JZ_TVAL_TYPE(v1) != JZ_TVAL_TYPE(v2)) return false;
   if (JZ_TVAL_TYPE(v1) == jz_strt)
-    return jz_str_equal(v1.value.str, v2.value.str);
+    return jz_str_equal(jz, v1.value.str, v2.value.str);
   if (JZ_TVAL_TYPE(v1) == jz_bool) return v1.value.b == v2.value.b;
   if (JZ_TVAL_TYPE(v1) == jz_undef) return true;
   else {
     double num1 = v1.value.num;
     double num2 = v2.value.num;
     
-    assert(JZ_TVAL_TYPE(v1) == jz_num);   
+    assert(JZ_TVAL_TYPE(v1) == jz_num);
     return num1 == num2;
   }
 }
 
-double jz_values_comp(jz_tvalue v1, jz_tvalue v2) {
+double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   double num1;
   double num2;
 
   if (JZ_TVAL_TYPE(v1) == jz_strt && JZ_TVAL_TYPE(v2) == jz_strt)
-    return jz_str_comp(v1.value.str, v2.value.str);
+    return jz_str_comp(jz, v1.value.str, v2.value.str);
 
-  num1 = jz_to_num(v1);
-  num2 = jz_to_num(v2);
+  num1 = jz_to_num(jz, v1);
+  num2 = jz_to_num(jz, v2);
 
   if (JZ_NUM_IS_NAN(num1) || JZ_NUM_IS_NAN(num2))
     return JZ_NAN;
@@ -61,39 +65,33 @@ double jz_values_comp(jz_tvalue v1, jz_tvalue v2) {
   return num1 - num2;
 }
 
-jz_tvalue jz_wrap_num(double num) {
+jz_tvalue jz_wrap_num(JZ_STATE, double num) {
   jz_tvalue tvalue;
   JZ_TVAL_SET_TYPE(tvalue, jz_num);
   tvalue.value.num = num;
   return tvalue;
 }
 
-jz_tvalue jz_wrap_str(jz_str* str) {
+jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
   jz_tvalue tvalue;
   JZ_TVAL_SET_TYPE(tvalue, jz_strt);
   tvalue.value.str = str;
   return tvalue;
 }
 
-jz_tvalue jz_wrap_bool(bool b) {
+jz_tvalue jz_wrap_bool(JZ_STATE, bool b) {
   jz_tvalue tvalue;
   JZ_TVAL_SET_TYPE(tvalue, jz_bool);
   tvalue.value.b = b;
   return tvalue;
 }
 
-jz_tvalue jz_undef_val() {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_undef);
-  return tvalue;
-}
-
-double jz_to_num(jz_tvalue val) {
+double jz_to_num(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_num:   return val.value.num;
   case jz_bool:  return (double)(val.value.b);
   case jz_undef: return JZ_NAN;
-  case jz_strt:  return jz_str_to_num(val.value.str);
+  case jz_strt:  return jz_str_to_num(jz, val.value.str);
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
@@ -103,21 +101,21 @@ double jz_to_num(jz_tvalue val) {
 /* Note: this function allocates new values,
    but only sometimes.
    It's a source of memory leaks until we get GC going. */
-jz_str* jz_to_str(jz_tvalue val) {
+jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_strt: return val.value.str;
-  case jz_num: return jz_num_to_str(val.value.num);
+  case jz_num: return jz_num_to_str(jz, val.value.num);
   case jz_bool:
-    if (val.value.b) return jz_str_from_literal("true");
-    else return jz_str_from_literal("false");
-  case jz_undef: return jz_str_from_literal("undefined");
+    if (val.value.b) return jz_str_from_literal(jz, "true");
+    else return jz_str_from_literal(jz, "false");
+  case jz_undef: return jz_str_from_literal(jz, "undefined");
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
   }
 }
 
-bool jz_to_bool(jz_tvalue val) {
+bool jz_to_bool(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_bool: return val.value.b;
   case jz_num:
@@ -131,14 +129,14 @@ bool jz_to_bool(jz_tvalue val) {
   }
 }
 
-int jz_to_int32(jz_tvalue val) {
-  unsigned int num = jz_to_uint32(val);
+int jz_to_int32(JZ_STATE, jz_tvalue val) {
+  unsigned int num = jz_to_uint32(jz, val);
   if (num >= pow(2, 31)) return num - pow(2, 32);
   return num;
 }
 
-unsigned int jz_to_uint32(jz_tvalue val) {
-  double num = jz_to_num(val);
+unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val) {
+  double num = jz_to_num(jz, val);
   if (!((int)num) || JZ_NUM_IS_NAN(num) || JZ_NUM_IS_INF(num)) return 0;
   num = SIGN(num) * floor(ABS(num));
 
@@ -149,9 +147,9 @@ unsigned int jz_to_uint32(jz_tvalue val) {
   }
 }
 
-double jz_num_mod(jz_tvalue val1, jz_tvalue val2) {
-  double dividend = jz_to_num(val1);
-  double divisor = jz_to_num(val2);
+double jz_num_mod(JZ_STATE, jz_tvalue val1, jz_tvalue val2) {
+  double dividend = jz_to_num(jz, val1);
+  double divisor = jz_to_num(jz, val2);
 
   if (JZ_NUM_IS_NAN(dividend) || JZ_NUM_IS_NAN(divisor) ||
       JZ_NUM_IS_INF(dividend) || divisor == 0.0)
@@ -172,20 +170,21 @@ double jz_num_mod(jz_tvalue val1, jz_tvalue val2) {
 /* -X.XXXXXXXXXXXXXXXXe+XXX */
 #define MAX_FLT_STR_LEN (FLOAT_SIG_FIGS + 7)
 
-jz_str* jz_num_to_str(double num) {
+jz_str* jz_num_to_str(JZ_STATE, double num) {
   jz_str* to_ret;
   UChar* buffer;
   int order;
   bool exponent;
   int length;
 
-  if (JZ_NUM_IS_NAN(num)) return jz_str_from_literal("NaN");
-  if (num == 0) return jz_str_from_literal("0");
+  if (JZ_NUM_IS_NAN(num)) return jz_str_from_literal(jz, "NaN");
+  if (num == 0) return jz_str_from_literal(jz, "0");
   if (num < 0)
-    return jz_str_concat(jz_str_from_literal("-"), jz_num_to_str(-num));
-  if (num == JZ_INF) return jz_str_from_literal("Infinity");
+    return jz_str_concat(jz, jz_str_from_literal(jz, "-"),
+                         jz_num_to_str(jz, -num));
+  if (num == JZ_INF) return jz_str_from_literal(jz, "Infinity");
 
-  to_ret = jz_str_alloc(MAX_FLT_STR_LEN);
+  to_ret = jz_str_alloc(jz, MAX_FLT_STR_LEN);
   buffer = JZ_STR_INT_PTR(to_ret);
   order = floor(log10(num));
   exponent = order > 20 || order < -6;

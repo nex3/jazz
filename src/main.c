@@ -1,9 +1,8 @@
-#include "lex.h"
-#include "parse.h"
+#include "state.h"
 #include "string.h"
+#include "parse.h"
 #include "compile.h"
 #include "vm.h"
-#include "type.h"
 
 #include <stdlib.h>
 #include <unicode/ustdio.h>
@@ -14,27 +13,28 @@ int main(int argc, char** argv) {
   int32_t len;
 
   len = u_file_read(str, 2000, ustdin);
-
-  jz_lex_init();
   u_fclose(ustdin);
 
   {
-    jz_str* input = jz_str_external(len, str);
+    jz_state* jz = jz_init();
+    jz_str* input = jz_str_external(jz, len, str);
     jz_parse_node* root; 
     jz_bytecode* bytecode;
 
-    root = jz_parse_string(input);
+    root = jz_parse_string(jz, input);
     if (!root) exit(1);
 
     free(str);
-    free(input);
 
-    bytecode = jz_compile(root);
+    bytecode = jz_compile(jz, root);
     if (!bytecode) exit(1);
 
-    printf("%s\n", jz_str_to_chars(jz_to_str(jz_vm_run(bytecode))));
+    jz_free_parse_tree(jz, root);
 
-    jz_free_bytecode(bytecode);
+    printf("%s\n", jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode))));
+
+    jz_free_bytecode(jz, bytecode);
+    jz_free_state(jz);
   }
 
   return 0;

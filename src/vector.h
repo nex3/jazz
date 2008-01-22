@@ -15,39 +15,39 @@
     type* values;                                                       \
   } type ## _vector;                                                    \
                                                                         \
-  type ## _vector* type ## _vector_new();                               \
-  void type ## _vector_append(type ## _vector* vector, type val);       \
-  size_t type ## _vector_compress(type ## _vector* vector);             \
-  void type ## _vector_free(type ## _vector* vector);                   \
+  type ## _vector* type ## _vector_new(JZ_STATE);                       \
+  void type ## _vector_append(JZ_STATE, type ## _vector* vector, type val); \
+  size_t type ## _vector_compress(JZ_STATE, type ## _vector* vector);   \
+  void type ## _vector_free(JZ_STATE, type ## _vector* vector);         \
                                                                         \
-  void type ## _vector_resize(type ## _vector* vector);                 \
+  void type ## _vector_resize(JZ_STATE, type ## _vector* vector);       \
 
 #define JZ_DEFINE_VECTOR(type, initial)                                 \
                                                                         \
-  type ## _vector* type ## _vector_new() {                              \
+  type ## _vector* type ## _vector_new(JZ_STATE) {                      \
     type ## _vector* vector = malloc(sizeof(type ## _vector));          \
     vector->next = vector->values = calloc(sizeof(type), initial);      \
     vector->capacity = initial;                                         \
     return vector;                                                      \
   }                                                                     \
                                                                         \
-  void type ## _vector_append(type ## _vector* vector, type val) {      \
+  void type ## _vector_append(JZ_STATE, type ## _vector* vector, type val) { \
     if (vector->next - vector->values == vector->capacity)              \
-      type ## _vector_resize(vector);                                   \
+      type ## _vector_resize(jz, vector);                               \
     assert(vector->next - vector->values < vector->capacity);           \
                                                                         \
     *(vector->next) = val;                                              \
     vector->next++;                                                     \
   }                                                                     \
                                                                         \
-  void type ## _vector_free(type ## _vector* vector) {                  \
+  void type ## _vector_free(JZ_STATE, type ## _vector* vector) {        \
     if (vector == NULL) return;                                         \
                                                                         \
     free(vector->values);                                               \
     free(vector);                                                       \
   }                                                                     \
                                                                         \
-  void type ## _vector_resize(type ## _vector* vector) {                \
+  void type ## _vector_resize(JZ_STATE, type ## _vector* vector) {      \
     type* old_values = vector->values;                                  \
     type* old_next = vector->next;                                      \
     size_t old_capacity = vector->capacity;                             \

@@ -1,12 +1,12 @@
 #ifndef JZ_OPCODE_H
 #define JZ_OPCODE_H
 
-#include "type.h"
+#include "value.h"
 
 #include <stdlib.h>
 
 typedef unsigned char jz_opcode;
-typedef char jz_oc_arg;
+typedef unsigned short int jz_index;
 
 typedef enum {
   jz_oc_push_literal,
@@ -43,7 +43,8 @@ typedef enum {
   jz_oc_noop
 } jz_oc_type;
 
-#define JZ_OCS_TVALUE (sizeof(jz_tvalue)/sizeof(jz_opcode))
-#define JZ_OCS_SIZET  (sizeof(size_t)/sizeof(jz_opcode))
+#define JZ_OCS_TVALUE  (sizeof(jz_tvalue)/sizeof(jz_opcode))
+#define JZ_OCS_PTRDIFF (sizeof(ptrdiff_t)/sizeof(jz_opcode))
+#define JZ_OCS_INDEX   (sizeof(jz_index)/sizeof(jz_opcode))
 
 #endif

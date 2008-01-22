@@ -47,10 +47,8 @@
 #ifndef JZ_PARSE_H
 #define JZ_PARSE_H
 
-#include "string.h"
-#include "type.h"
-
-typedef struct jz_parse_node jz_parse_node;
+#include "jazz.h"
+#include "value.h"
 
 /* These are the possible node types for parse tree nodes.
 
@@ -186,6 +184,8 @@ typedef enum {
   jz_op_post_dec
 } jz_op_type;
 
+typedef struct jz_parse_node jz_parse_node;
+
 /* Potential values for the car and cdr of a jz_parse_node.
 
    Note that all of these should be pointers;
@@ -211,7 +211,7 @@ struct jz_parse_node {
 
 /* Parses a Javascript program and returns its parse tree.
    The root node of the parse tree is jz_parse_statements. */
-jz_parse_node* jz_parse_string(const jz_str* code);
+jz_parse_node* jz_parse_string(JZ_STATE, const jz_str* code);
 
 
 /* Returns a new parse node of the given type,
@@ -223,11 +223,10 @@ jz_parse_node* jz_parse_string(const jz_str* code);
      car = foo, cdar = bar, cddr = baz
    and jz_node_list(type, 2, foo, bar) has
      car = foo, cdr = bar. */
-jz_parse_node* jz_pnode_list(jz_parse_type type, int argc, ...);
+jz_parse_node* jz_pnode_list(JZ_STATE, jz_parse_type type, int argc, ...);
 
 /* Returns a new parse node of the given type with NULL car and cdr. */
-jz_parse_node* jz_pnode_new(jz_parse_type type);
-
+jz_parse_node* jz_pnode_new(JZ_STATE, jz_parse_type type);
 
 /* Concatenates two lists.
    list1 is modified so that its last element
@@ -236,9 +235,9 @@ jz_parse_node* jz_pnode_new(jz_parse_type type);
 
    list1 is returned as a convenience, unless it's NULL,
    in which case list2 is returned. */
-jz_parse_node* jz_plist_concat(jz_parse_node* list1, jz_parse_node* list2);
+jz_parse_node* jz_plist_concat(JZ_STATE, jz_parse_node* list1, jz_parse_node* list2);
 
-#define jz_pnode_cons(type, car, cdr) jz_pnode_list(type, 2, car, cdr)
-#define jz_pnode_wrap(type, car)      jz_pnode_list(type, 1, car)
+#define jz_pnode_cons(jz, type, car, cdr) jz_pnode_list(jz, type, 2, car, cdr)
+#define jz_pnode_wrap(jz, type, car)      jz_pnode_list(jz, type, 1, car)
 
 #endif
