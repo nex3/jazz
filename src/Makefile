@@ -28,13 +28,13 @@ lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h
 state.o: state.c state.h
 frame.o: frame.c frame.h
-gc.o: gc.c gc.h value.h
+gc.o: gc.c gc.h state.h
 
 %.h:
 	touch $@
 
 jazz.h:
-gc.h: jazz.h
+gc.h: jazz.h value.h
 vector.h: jazz.h
 value.h: jazz.h
 parse.h: jazz.h value.h
