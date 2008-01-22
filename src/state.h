@@ -17,6 +17,8 @@ struct jz_state {
     bool black_bit;
     jz_gc_header* all_objs;
     jz_gc_node* gray_stack;
+    jz_gc_header* prev_sweep_obj;
+    jz_gc_header* next_sweep_obj;
   } gc;
   struct {
     URegularExpression* identifier_re;

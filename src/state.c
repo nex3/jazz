@@ -29,8 +29,11 @@ jz_state* jz_init() {
 
 void init_gc(JZ_STATE) {
   jz->gc.state = jz_gcs_waiting;
+  jz->gc.black_bit = false;
   jz->gc.all_objs = NULL;
   jz->gc.gray_stack = NULL;
+  jz->gc.prev_sweep_obj = NULL;
+  jz->gc.next_sweep_obj = NULL;
 }
 
 /* All regular expressions should begin with \A so they only match

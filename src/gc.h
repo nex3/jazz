@@ -1,6 +1,9 @@
 #ifndef JZ_GC_H
 #define JZ_GC_H
 
+/* TODO: GET RID OF THIS */
+#include <stdio.h>
+
 #include "jazz.h"
 #include "value.h"
 

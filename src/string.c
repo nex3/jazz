@@ -37,7 +37,8 @@ jz_str_value* val_alloc(JZ_STATE, int length) {
   jz_str_value* to_ret;
 
   assert(length != 0);
-  to_ret = (jz_str_value*)jz_gc_dyn_malloc(jz, jz_strt, sizeof(jz_str_value),
+  to_ret = (jz_str_value*)jz_gc_dyn_malloc(jz, jz_str_valuet,
+                                           sizeof(jz_str_value),
                                            sizeof(UChar), length);
   return to_ret;
 }
@@ -184,8 +185,6 @@ double jz_str_to_num(JZ_STATE, const jz_str* num) {
 
     if (jz_str_equal(jz, my_num, val)) to_ret = JZ_INF;
   }
-
-  free(my_num);
 
   return sign * to_ret;
 }

@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
     if (!root) exit(1);
 
     free(str);
-    free(input);
 
     bytecode = jz_compile(jz, root);
     if (!bytecode) exit(1);

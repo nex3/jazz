@@ -7,9 +7,16 @@
 #include "string.h"
 
 #define MARK_BLACK(obj) \
-  (JZ_GC_TAG(obj) = (jz)->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
+  (JZ_GC_TAG(obj) = jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
 #define MARK_WHITE(obj) \
-  (JZ_GC_TAG(obj) = !(jz)->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
+  (JZ_GC_TAG(obj) = !jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
+
+#define GC_FLAG(obj) (JZ_GC_TAG(obj) & 0x03)
+
+#define IS_WHITE(obj) \
+  (GC_FLAG(obj) == !jz->gc.black_bit)
+#define IS_BLACK(obj) \
+  (GC_FLAG(obj) == jz->gc.black_bit)
 
 static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
@@ -17,6 +24,8 @@ static void blacken_str(JZ_STATE, jz_str* str);
 
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
+static void mark_step(JZ_STATE);
+static void sweep_step(JZ_STATE);
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
   jz_gc_header* to_ret;
@@ -41,9 +50,7 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
 }
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
-  char tag = JZ_GC_TAG(obj);
-
-  if (tag & 0x02 || (tag & 0x01) == jz->gc.black_bit) return false;
+  if (IS_WHITE(obj)) return false;
   else {
     jz_gc_node* node = malloc(sizeof(jz_gc_node));
 
@@ -63,15 +70,13 @@ void jz_gc_tick(JZ_STATE) {
     jz->gc.state = jz_gcs_marking;
     return;
 
-  case jz_gcs_marking: {
-    jz_gc_header* obj = pop_gray_stack(jz);
-    if (obj == NULL) jz->gc.state = jz_gcs_sweeping;
-    else blacken(jz, obj);
+  case jz_gcs_marking:
+    mark_step(jz);
     return;
-  }
 
   case jz_gcs_sweeping:
-    break;
+    sweep_step(jz);
+    return;
 
   default:
     fprintf(stderr, "Unknown garbage-collection state %d\n", jz->gc.state);
@@ -122,3 +127,51 @@ void mark_roots(JZ_STATE) {
   top = next + frame->bytecode->consts_length;
   for (; next != top; next++) JZ_GC_MARK_VAL_GRAY(jz, *next);
 }
+
+void mark_step(JZ_STATE) {
+  jz_gc_header* obj = pop_gray_stack(jz);
+  if (obj == NULL) {
+    jz->gc.black_bit = !jz->gc.black_bit;
+    jz->gc.state = jz_gcs_sweeping;
+  }
+  else blacken(jz, obj);
+  return;
+}
+
+void sweep_step(JZ_STATE) {
+  jz_gc_header* prev = jz->gc.prev_sweep_obj;
+  jz_gc_header* next = jz->gc.next_sweep_obj;
+
+  if (next == NULL) {
+    next = jz->gc.all_objs;
+
+    if (next == NULL) {
+      /* For some reason, there are no heap-allocated objects. */
+      jz->gc.state = jz_gcs_waiting;
+      return;
+    }
+
+    if (IS_BLACK(next)) {
+      jz->gc.all_objs = next->next;
+      free(next);
+      return;
+    }
+  }
+
+  for (; next != NULL; prev = next, next = next->next) {
+    if (IS_BLACK(next)) {
+      prev->next = next->next;
+      free(next);
+
+      jz->gc.prev_sweep_obj = prev;
+      jz->gc.next_sweep_obj = prev->next;
+
+      return;
+    }
+  }
+
+  jz->gc.prev_sweep_obj = NULL;
+  jz->gc.next_sweep_obj = NULL;
+  jz->gc.state = jz_gcs_waiting;
+}
+

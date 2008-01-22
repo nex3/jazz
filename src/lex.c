@@ -119,15 +119,12 @@ bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
 
     match = get_match(jz, state, matched, 1);
     num = jz_str_to_chars(jz, match);
-    free(match);
 
     match = get_match(jz, state, matched, 2);
     dec = jz_str_to_chars(jz, match);
-    free(match);
 
     match = get_match(jz, state, matched, 3);
     exp = jz_str_to_chars(jz, match);
-    free(match);
 
     lex_val->num = (*num) ? atof(num) : 0.0;
 
@@ -149,7 +146,6 @@ bool try_hex_literal(STATE, YYSTYPE* lex_val) {
     jz_str* match = get_match(jz, state, jz->lex.hex_literal_re, 0);
     char *num = jz_str_to_chars(jz, match);
     unsigned int hex;
-    free(match);
 
     sscanf(num + 2, "%x", &hex);
     lex_val->num = (double)hex;
@@ -212,7 +208,6 @@ bool try_string_literal(STATE, YYSTYPE* lex_val) {
     }
 
     lex_val->str = jz_str_external(jz, res - res_bottom, res_bottom);
-    free(match);
     return true;
   }
 }
@@ -266,7 +261,6 @@ int try_punctuation(STATE, YYSTYPE* lex_val) {
   match = jz_str_to_chars(jz, jz_match);
   result = in_word_set(match, jz_match->length);
 
-  free(jz_match);
   free(match);
 
   if (result) return result->token;
@@ -287,10 +281,7 @@ int try_identifier(STATE, YYSTYPE* lex_val) {
   result = in_word_set(match, jz_match->length);
   free(match);
 
-  if (result) {
-    free(jz_match);
-    return result->token;
-  }
+  if (result) return result->token;
 
   lex_val->str = jz_match;
   return IDENTIFIER;
@@ -314,7 +305,6 @@ bool try_re(STATE, URegularExpression* re) {
     int change = uregex_end(re, 0, &error);
     CHECK_ICU_ERROR(error);
 
-    free(state->code_prev);
     state->code_prev = state->code;
     state->code = jz_str_substr(jz, state->code, change);
   }

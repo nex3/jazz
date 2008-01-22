@@ -130,11 +130,9 @@ var_decl_list: var_decl { $$ = jz_pnode_wrap(jz, jz_parse_vars, $1); }
 
 var_decl: IDENTIFIER {
   $$ = jz_pnode_wrap(jz, jz_parse_var, jz_str_deep_dup(jz, $1));
-  free($1);
  }
   | IDENTIFIER EQUALS assign_expr {
     $$ = jz_pnode_cons(jz, jz_parse_var, jz_str_deep_dup(jz, $1), $3);
-    free($1);
  }
 
 expr_statement: expr SEMICOLON { $$ = $1; }
@@ -303,7 +301,6 @@ primary_expr: identifier { $$ = $1; }
 
 identifier: IDENTIFIER {
   $$ = jz_pnode_wrap(jz, jz_parse_identifier, jz_str_deep_dup(jz, $1));
-  free($1);
  }
 
 literal: number  { $$ = $1; }
