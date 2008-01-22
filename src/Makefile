@@ -43,7 +43,7 @@ string.h: jazz.h value.h gc.h
 frame.h: jazz.h compile.h value.h
 compile.h: jazz.h parse.h opcode.h vector.h	
 vm.h: jazz.h value.h compile.h
-state.h: jazz.h value.h frame.h
+state.h: jazz.h value.h frame.h gc.h
 
 keywords.gp.c: keywords.gperf
 	gperf --output-file=$@ -I -t -C -E $?

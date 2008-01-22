@@ -19,6 +19,7 @@ jz_state* jz_init() {
   state->true_val.value.b = false;
 
   state->current_frame = NULL;
+  state->gc.all_objs = NULL;
 
   init_lex(state);
 

@@ -9,12 +9,12 @@
 #include "gc.h"
 
 typedef struct {
-  gc_header gc;
+  jz_gc_header gc;
   UChar str[1];
 } jz_str_value;
 
 struct jz_str {
-  gc_header gc;
+  jz_gc_header gc;
   int start;
   int length;
   union {

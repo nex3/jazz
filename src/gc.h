@@ -14,13 +14,13 @@
    for any tagging they need,
    and may be accessed with the JZ_GC_UTAG macros. */
 
-typedef struct gc_header gc_header;
-struct gc_header {
-  gc_header* next;
+typedef struct jz_gc_header jz_gc_header;
+struct jz_gc_header {
+  jz_gc_header* next;
   unsigned char tag;
 };
 
-#define JZ_GC_TAG(obj) (((gc_header*)obj)->tag)
+#define JZ_GC_TAG(obj) (((jz_gc_header*)obj)->tag)
 
 #define JZ_GC_TYPE(obj) (JZ_GC_TAG(obj) >> 2)
 #define JZ_GC_SET_TYPE(obj, type) \
@@ -34,8 +34,8 @@ struct gc_header {
 #define JZ_GC_UTAG_OR(obj, val) \
   (JZ_GC_TAG(obj) |= ((val) << 6) & 0xff)
 
-gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size);
-gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
+jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size);
+jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number);
 
 #endif

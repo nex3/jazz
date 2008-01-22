@@ -5,12 +5,16 @@
 #include "jazz.h"
 #include "value.h"
 #include "frame.h"
+#include "gc.h"
 
 struct jz_state {
   jz_frame* current_frame;
   jz_tvalue undefined_val;
   jz_tvalue true_val;
   jz_tvalue false_val;
+  struct {
+    jz_gc_header* all_objs;
+  } gc;
   struct {
     URegularExpression* identifier_re;
     URegularExpression* whitespace_re;

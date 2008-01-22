@@ -2,23 +2,34 @@
 #include <assert.h>
 
 #include "gc.h"
+#include "state.h"
 
-gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
-  gc_header* to_ret;
+jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
+  jz_gc_header* to_ret;
 
-  assert(size >= sizeof(gc_header));
+  assert(size >= sizeof(jz_gc_header));
   to_ret = calloc(size, 1); /* calloc zeroes memory. */
   JZ_GC_SET_TYPE(to_ret, type);
+  JZ_GC_SET_UTAG(to_ret, 0);
+
+  to_ret->next = jz->gc.all_objs;
+  jz->gc.all_objs = to_ret;
+
   return to_ret;
 }
 
-gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
+jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number) {
-  gc_header* to_ret;
+  jz_gc_header* to_ret;
 
-  assert(struct_size - extra_size >= sizeof(gc_header));
+  assert(struct_size - extra_size >= sizeof(jz_gc_header));
   /* calloc zeroes memory. */
   to_ret = calloc(struct_size + extra_size * (number - 1), 1);
   JZ_GC_SET_TYPE(to_ret, type);
+  JZ_GC_SET_UTAG(to_ret, 0);
+
+  to_ret->next = jz->gc.all_objs;
+  jz->gc.all_objs = to_ret;
+
   return to_ret;
 }

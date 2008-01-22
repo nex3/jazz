@@ -24,7 +24,6 @@ jz_str* str_new(JZ_STATE, int start, int length) {
   jz_str* to_ret = (jz_str*)jz_gc_malloc(jz, jz_strt, sizeof(jz_str));
   to_ret->start = start;
   to_ret->length = length;
-  JZ_GC_SET_UTAG(to_ret, 0);
   return to_ret;
 }
 
@@ -40,7 +39,6 @@ jz_str_value* val_alloc(JZ_STATE, int length) {
   assert(length != 0);
   to_ret = (jz_str_value*)jz_gc_dyn_malloc(jz, jz_strt, sizeof(jz_str_value),
                                            sizeof(UChar), length);
-  JZ_GC_SET_UTAG(to_ret, 0);
   return to_ret;
 }
 
