@@ -13,7 +13,10 @@ struct jz_state {
   jz_tvalue true_val;
   jz_tvalue false_val;
   struct {
+    unsigned char state;
+    bool black_bit;
     jz_gc_header* all_objs;
+    jz_gc_node* gray_stack;
   } gc;
   struct {
     URegularExpression* identifier_re;

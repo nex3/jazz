@@ -16,6 +16,7 @@ typedef struct {
   size_t stack_length;
   size_t locals_length;
   jz_tvalue* consts;
+  size_t consts_length;
 } jz_bytecode;
 
 JZ_DECLARE_VECTOR(jz_opcode)

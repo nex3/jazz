@@ -24,6 +24,7 @@ struct jz_str {
 };
 
 #define JZ_STR_IS_EXT(str) (JZ_GC_UTAG(str) & 1)
+#define JZ_STR_IS_INT(str) (!JZ_STR_IS_EXT(str))
 
 #define JZ_STR_PTR(string)                              \
   ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \

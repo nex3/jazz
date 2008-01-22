@@ -19,8 +19,9 @@ typedef enum {
 
 typedef union {
   double num;
-  jz_str* str;
   bool b;
+  jz_gc_header* gc;
+  jz_str* str;
 } jz_value;
 
 typedef struct {
@@ -28,8 +29,11 @@ typedef struct {
   jz_value value;
 } jz_tvalue;
 
-#define JZ_TVAL_TYPE(value)           ((value).tag & 0x0f)
-#define JZ_TVAL_SET_TYPE(value, type) ((value).tag = ((value).tag & !0x0f) | type)
+#define JZ_TVAL_TYPE(value) ((value).tag & 0x0f)
+#define JZ_TVAL_SET_TYPE(value, type) \
+  ((value).tag = ((value).tag & !0x0f) | type)
+
+#define JZ_TVAL_CAN_BE_GCED(value) (JZ_TVAL_TYPE(value) >= jz_strt)
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)

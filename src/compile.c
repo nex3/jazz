@@ -117,6 +117,7 @@ jz_bytecode* jz_compile(JZ_STATE, jz_parse_node* parse_tree) {
     bytecode->code = calloc(sizeof(jz_opcode), bytecode->code_length);
     memcpy(bytecode->code, state->code->values, bytecode->code_length);
     bytecode->consts = consts_to_array(jz, state);
+    bytecode->consts_length = state->consts_length;
 
     free_comp_state(jz, state);
     return bytecode;

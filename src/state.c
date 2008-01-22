@@ -3,6 +3,7 @@
 
 #include "state.h"
 
+static void init_gc(JZ_STATE);
 static void init_lex(JZ_STATE);
 static URegularExpression* create_re(const char* pattern);
 
@@ -19,15 +20,23 @@ jz_state* jz_init() {
   state->true_val.value.b = false;
 
   state->current_frame = NULL;
-  state->gc.all_objs = NULL;
 
+  init_gc(state);
   init_lex(state);
 
   return state;
 }
 
+void init_gc(JZ_STATE) {
+  jz->gc.state = jz_gcs_waiting;
+  jz->gc.all_objs = NULL;
+  jz->gc.gray_stack = NULL;
+}
+
 /* All regular expressions should begin with \A so they only match
-   at the beginning of the string. */
+   at the beginning of the string.
+
+   TODO: Move this into lex.c. */
 
 #define CHECK_ICU_ERROR(error) {                                        \
     if (U_FAILURE(error)) {                                             \

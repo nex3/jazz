@@ -9,6 +9,7 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
 
   frame = calloc(sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size, 1);
   frame->bytecode = function;
+  frame->stack_top = NULL;
 
   return frame;
 }

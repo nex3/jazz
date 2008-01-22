@@ -2,6 +2,7 @@
 #include "frame.h"
 #include "state.h"
 #include "string.h"
+#include "gc.h"
 
 #include <stdlib.h>
 #include <stdbool.h>
@@ -13,8 +14,22 @@
   type var = *(type*)(code);                    \
   code += sizeof(type)/sizeof(jz_opcode);
 
-#define POP        (*(--stack))
-#define PUSH(val)  (*(stack++) = (val))
+#define POP()     (*(--stack))
+#define PUSH(val) (*(stack++) = (val))
+#define PUSH_WB(val) {                          \
+    jz_tvalue tmp = (val);                      \
+    *(stack++) = tmp;                           \
+    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+      JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
+  }
+
+#define STACK_SET(i, val) (stack[(i)] = (val))
+#define STACK_SET_WB(i, val) {                  \
+    jz_tvalue tmp = (val);                      \
+    stack[(i)] = tmp;                           \
+    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+      JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
+  }
 
 #if JZ_DEBUG_BYTECODE
 static void print_bytecode(const jz_bytecode* bytecode);
@@ -33,6 +48,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_tvalue* locals = JZ_FRAME_LOCALS(frame);
   jz_tvalue* consts = bytecode->consts;
 
+  frame->stack_top = &stack;
   jz->current_frame = frame;
 
 #if JZ_DEBUG_BYTECODE
@@ -42,6 +58,8 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
 #endif
 
   while (true) {
+    jz_gc_tick(jz);
+
     switch (NEXT_OPCODE) {
     case jz_oc_push_literal: {
       READ_ARG_INTO(jz_index, index);
@@ -57,19 +75,19 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
 
     case jz_oc_jump_unless: {
       READ_ARG_INTO(ptrdiff_t, jump);
-      if (!jz_to_bool(jz, POP)) code += jump;
+      if (!jz_to_bool(jz, POP())) code += jump;
       break;
     }
 
     case jz_oc_jump_if: {
       READ_ARG_INTO(ptrdiff_t, jump);
-      if (jz_to_bool(jz, POP)) code += jump;
+      if (jz_to_bool(jz, POP())) code += jump;
       break;
     }
 
     case jz_oc_store: {
       READ_ARG_INTO(jz_index, index);
-      locals[index] = POP;
+      locals[index] = POP();
       break;
     }
 
@@ -90,39 +108,40 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     }
 
     case jz_oc_bw_or:
-      stack[-2] = jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) |
-                              jz_to_int32(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) |
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_xor:
-      stack[-2] = jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) ^
-                              jz_to_int32(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) ^
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_bw_and:
-      stack[-2] = jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) &
-                              jz_to_int32(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) &
+                                jz_to_int32(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_equals:
-      stack[-2] = jz_wrap_bool(jz, jz_values_equal(jz, stack[-2], stack[-1]));
+      STACK_SET(-2, jz_wrap_bool(jz, jz_values_equal(jz, stack[-2],
+                                                     stack[-1])));
       stack--;
       break;
 
     case jz_oc_strict_eq:
-      stack[-2] = jz_wrap_bool(jz, jz_values_strict_equal(jz, stack[-2],
-                                                          stack[-1]));
+      STACK_SET(-2, jz_wrap_bool(jz, jz_values_strict_equal(jz, stack[-2],
+                                                            stack[-1])));
       stack--;
       break;
 
     case jz_oc_lt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(jz, false);
-      else stack[-2] = jz_wrap_bool(jz, comp < 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp < 0));
 
       stack--;
       break;
@@ -131,8 +150,8 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_gt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(jz, false);
-      else stack[-2] = jz_wrap_bool(jz, comp > 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp > 0));
 
       stack--;
       break;
@@ -141,8 +160,8 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_lt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(jz, false);
-      else stack[-2] = jz_wrap_bool(jz, comp <= 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp <= 0));
 
       stack--;
       break;
@@ -151,28 +170,28 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_gt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) stack[-2] = jz_wrap_bool(jz, false);
-      else stack[-2] = jz_wrap_bool(jz, comp >= 0);
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      else STACK_SET(-2, jz_wrap_bool(jz, comp >= 0));
 
       stack--;
       break;
     }
 
     case jz_oc_lshift:
-      stack[-2] = jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) <<
-                              (jz_to_uint32(jz, stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) <<
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
     case jz_oc_rshift:
-      stack[-2] = jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) >>
-                              (jz_to_uint32(jz, stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) >>
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
     case jz_oc_urshift:
-      stack[-2] = jz_wrap_num(jz, (unsigned int)jz_to_int32(jz, stack[-2]) >>
-                              (jz_to_uint32(jz, stack[-1]) & 0x1F));
+      STACK_SET(-2, jz_wrap_num(jz, (unsigned int)jz_to_int32(jz, stack[-2]) >>
+                                (jz_to_uint32(jz, stack[-1]) & 0x1F)));
       stack--;
       break;
 
@@ -180,53 +199,54 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       jz_tvalue v1 = stack[-2];
       jz_tvalue v2 = stack[-1];
 
-      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt)
-        stack[-2] = jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
-                                                  jz_to_str(jz, v2)));
-      else
-        stack[-2] = jz_wrap_num(jz, jz_to_num(jz, stack[-2]) +
-                                jz_to_num(jz, stack[-1]));
+      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt) {
+        STACK_SET_WB(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
+                                                       jz_to_str(jz, v2))));
+      } else {
+        STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) +
+                                  jz_to_num(jz, stack[-1])));
+      }
       stack--;
       break;
     }
 
     case jz_oc_sub:
-      stack[-2] = jz_wrap_num(jz, jz_to_num(jz, stack[-2]) -
-                              jz_to_num(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) -
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_times:
-      stack[-2] = jz_wrap_num(jz, jz_to_num(jz, stack[-2]) *
-                              jz_to_num(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) *
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_div:
-      stack[-2] = jz_wrap_num(jz, jz_to_num(jz, stack[-2]) /
-                              jz_to_num(jz, stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) /
+                                jz_to_num(jz, stack[-1])));
       stack--;
       break;
 
     case jz_oc_mod:
-      stack[-2] = jz_wrap_num(jz, jz_num_mod(jz, stack[-2], stack[-1]));
+      STACK_SET(-2, jz_wrap_num(jz, jz_num_mod(jz, stack[-2], stack[-1])));
       stack--;
       break;
 
     case jz_oc_to_num:
-      stack[-1] = jz_wrap_num(jz, jz_to_num(jz, stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, jz_to_num(jz, stack[-1])));
       break;
 
     case jz_oc_neg:
-      stack[-1] = jz_wrap_num(jz, -jz_to_num(jz, stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, -jz_to_num(jz, stack[-1])));
       break;
 
     case jz_oc_bw_not:
-      stack[-1] = jz_wrap_num(jz, ~jz_to_int32(jz, stack[-1]));
+      STACK_SET(-1, jz_wrap_num(jz, ~jz_to_int32(jz, stack[-1])));
       break;
 
     case jz_oc_not:
-      stack[-1] = jz_wrap_bool(jz, !jz_to_bool(jz, stack[-1]));
+      STACK_SET(-1, jz_wrap_bool(jz, !jz_to_bool(jz, stack[-1])));
       break;
 
     case jz_oc_ret: {

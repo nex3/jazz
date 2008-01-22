@@ -7,6 +7,7 @@
 
 typedef struct {
   const jz_bytecode* bytecode;
+  jz_tvalue** stack_top;
   jz_tvalue locals_then_stack[1];
 } jz_frame;
 
