@@ -18,7 +18,7 @@
 #define IS_BLACK(obj) \
   (GC_FLAG(obj) == jz->gc.black_bit)
 
-static void step(JZ_STATE);
+static bool step(JZ_STATE);
 
 static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
@@ -27,7 +27,7 @@ static void blacken_str(JZ_STATE, jz_str* str);
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
 static void mark_step(JZ_STATE);
-static void sweep_step(JZ_STATE);
+static bool sweep_step(JZ_STATE);
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
   jz_gc_header* to_ret;
@@ -65,27 +65,27 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
   }
 }
 
-void jz_gc_tick(JZ_STATE) {
+bool jz_gc_tick(JZ_STATE) {
   unsigned char i;
   unsigned char steps = jz->gc.speed;
 
-  for (i = 0; i < steps; i++) step(jz);
+  for (i = 0; i < steps; i++) {
+    if (step(jz)) return true;
+  }
 }
 
-void step(JZ_STATE) {
+bool step(JZ_STATE) {
   switch (jz->gc.state) {
   case jz_gcs_waiting:
     mark_roots(jz);
     jz->gc.state = jz_gcs_marking;
-    return;
+    return false;
 
   case jz_gcs_marking:
     mark_step(jz);
-    return;
+    return false;
 
-  case jz_gcs_sweeping:
-    sweep_step(jz);
-    return;
+  case jz_gcs_sweeping: return sweep_step(jz);
 
   default:
     fprintf(stderr, "Unknown garbage-collection state %d\n", jz->gc.state);
@@ -147,7 +147,7 @@ void mark_step(JZ_STATE) {
   return;
 }
 
-void sweep_step(JZ_STATE) {
+bool sweep_step(JZ_STATE) {
   jz_gc_header* prev = jz->gc.prev_sweep_obj;
   jz_gc_header* next = jz->gc.next_sweep_obj;
 
@@ -157,13 +157,13 @@ void sweep_step(JZ_STATE) {
     if (next == NULL) {
       /* For some reason, there are no heap-allocated objects. */
       jz->gc.state = jz_gcs_waiting;
-      return;
+      return true;
     }
 
     if (IS_BLACK(next)) {
       jz->gc.all_objs = next->next;
       free(next);
-      return;
+      return false;
     }
   }
 
@@ -175,12 +175,15 @@ void sweep_step(JZ_STATE) {
       jz->gc.prev_sweep_obj = prev;
       jz->gc.next_sweep_obj = prev->next;
 
-      return;
+      return false;
     }
   }
 
+  /* No more black (sweepable) objects left. */
   jz->gc.prev_sweep_obj = NULL;
   jz->gc.next_sweep_obj = NULL;
   jz->gc.state = jz_gcs_waiting;
+
+  return true;
 }
 
