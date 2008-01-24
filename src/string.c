@@ -75,8 +75,11 @@ jz_str* jz_str_null(JZ_STATE) {
 }
 
 jz_str* jz_str_dup(JZ_STATE, const jz_str* this) {
-  jz_str* to_ret = malloc(sizeof(jz_str));
-  memcpy(to_ret, this, sizeof(jz_str));
+  jz_str* to_ret = jz_gc_malloc(jz, jz_strt, sizeof(jz_str));
+  JZ_GC_SET_UTAG(to_ret, JZ_GC_UTAG(this));
+  to_ret->start = this->start;
+  to_ret->length = this->length;
+  to_ret->value = this->value;
   return to_ret;
 }
 
