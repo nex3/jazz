@@ -69,6 +69,7 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
    jz_gc_steps(jz))
 
 bool jz_gc_steps(JZ_STATE);
+bool jz_gc_step(JZ_STATE);
 
 #define jz_gc_set_speed(jz, new_speed) ((jz)->gc.speed = (new_speed))
 #define jz_gc_set_pause(jz, new_pause) ((jz)->gc.pause = (new_pause))
