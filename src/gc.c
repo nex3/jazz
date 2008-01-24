@@ -52,7 +52,7 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
 }
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
-  if (IS_WHITE(obj)) return false;
+  if (IS_BLACK(obj)) return false;
   else {
     jz_gc_node* node = malloc(sizeof(jz_gc_node));
 
@@ -72,6 +72,7 @@ bool jz_gc_tick(JZ_STATE) {
   for (i = 0; i < steps; i++) {
     if (step(jz)) return true;
   }
+  return false;
 }
 
 bool step(JZ_STATE) {
