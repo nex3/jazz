@@ -51,20 +51,21 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
 }
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
+  jz_gc_node* node;
+
   /* If the object is already black,
      we don't need to do anything about it. */
   if (IS_BLACK(obj))
     return false;
-  else {
-    jz_gc_node* node = malloc(sizeof(jz_gc_node));
 
-    node->next = jz->gc.gray_stack;
-    node->obj = obj;
-    jz->gc.gray_stack = node;
+  node = malloc(sizeof(jz_gc_node));
 
-    JZ_GC_TAG(obj) |= 0x02;
-    return true;
-  }
+  node->next = jz->gc.gray_stack;
+  node->obj = obj;
+  jz->gc.gray_stack = node;
+  MARK_BLACK(obj);
+
+  return true;
 }
 
 bool jz_gc_tick(JZ_STATE) {
@@ -182,15 +183,16 @@ bool sweep_step(JZ_STATE) {
   }
 
   for (; next != NULL; prev = next, next = next->next) {
-    if (IS_BLACK(next)) {
-      prev->next = next->next;
-      free(next);
+    if (IS_WHITE(next))
+      continue;
 
-      jz->gc.prev_sweep_obj = prev;
-      jz->gc.next_sweep_obj = prev->next;
+    prev->next = next->next;
+    free(next);
 
-      return false;
-    }
+    jz->gc.prev_sweep_obj = prev;
+    jz->gc.next_sweep_obj = prev->next;
+
+    return false;
   }
 
   /* No more black (sweepable) objects left. */
