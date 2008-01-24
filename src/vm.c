@@ -19,7 +19,7 @@
 #define PUSH_WB(val) {                          \
     jz_tvalue tmp = (val);                      \
     *(stack++) = tmp;                           \
-    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+    if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 
@@ -27,7 +27,7 @@
 #define STACK_SET_WB(i, val) {                  \
     jz_tvalue tmp = (val);                      \
     stack[(i)] = tmp;                           \
-    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+    if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 

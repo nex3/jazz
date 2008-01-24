@@ -30,6 +30,9 @@ jz_state* jz_init() {
 void init_gc(JZ_STATE) {
   jz->gc.state = jz_gcs_waiting;
   jz->gc.speed = JZ_GC_DEFAULT_SPEED;
+  jz->gc.pause = JZ_GC_DEFAULT_PAUSE;
+  jz->gc.allocated = 0;
+  jz->gc.threshold = 1;
   jz->gc.black_bit = false;
   jz->gc.all_objs = NULL;
   jz->gc.gray_stack = NULL;

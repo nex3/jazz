@@ -29,6 +29,8 @@ static void mark_roots(JZ_STATE);
 static void mark_step(JZ_STATE);
 static bool sweep_step(JZ_STATE);
 
+static void finish_cycle(JZ_STATE);
+
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
   jz_gc_header* to_ret;
 
@@ -40,6 +42,8 @@ jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
 
   to_ret->next = jz->gc.all_objs;
   jz->gc.all_objs = to_ret;
+
+  jz->gc.allocated += size;
 
   return to_ret;
 }
@@ -68,7 +72,7 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
   return true;
 }
 
-bool jz_gc_tick(JZ_STATE) {
+bool jz_gc_steps(JZ_STATE) {
   unsigned char i;
   unsigned char steps = jz->gc.speed;
 
@@ -171,7 +175,7 @@ bool sweep_step(JZ_STATE) {
 
     if (next == NULL) {
       /* For some reason, there are no heap-allocated objects. */
-      jz->gc.state = jz_gcs_waiting;
+      finish_cycle(jz);
       return true;
     }
 
@@ -196,10 +200,15 @@ bool sweep_step(JZ_STATE) {
   }
 
   /* No more black (sweepable) objects left. */
-  jz->gc.prev_sweep_obj = NULL;
-  jz->gc.next_sweep_obj = NULL;
-  jz->gc.state = jz_gcs_waiting;
+  finish_cycle(jz);
 
   return true;
 }
 
+void finish_cycle(JZ_STATE) {
+  jz->gc.prev_sweep_obj = NULL;
+  jz->gc.next_sweep_obj = NULL;
+  jz->gc.state = jz_gcs_waiting;
+  jz->gc.threshold = (jz->gc.pause * jz->gc.allocated)/100;
+  assert(jz->gc.threshold > 0);
+}
