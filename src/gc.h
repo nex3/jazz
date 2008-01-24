@@ -34,6 +34,8 @@ typedef enum {
   jz_gcs_sweeping
 } jz_gc_state;
 
+#define JZ_GC_DEFAULT_SPEED 2
+
 #define JZ_GC_TAG(obj) (((jz_gc_header*)obj)->tag)
 #define JZ_GC_NEXT(obj) (((jz_gc_header*)obj)->next)
 
@@ -63,6 +65,8 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number);
 
 void jz_gc_tick(JZ_STATE);
+
+#define jz_gc_set_speed(jz, new_speed) ((jz)->gc.speed = (new_speed))
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
 

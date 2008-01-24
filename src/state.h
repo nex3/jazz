@@ -14,6 +14,7 @@ struct jz_state {
   jz_tvalue false_val;
   struct {
     unsigned char state;
+    unsigned char speed;
     bool black_bit;
     jz_gc_header* all_objs;
     jz_gc_node* gray_stack;

@@ -18,6 +18,8 @@
 #define IS_BLACK(obj) \
   (GC_FLAG(obj) == jz->gc.black_bit)
 
+static void step(JZ_STATE);
+
 static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
@@ -64,6 +66,13 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
 }
 
 void jz_gc_tick(JZ_STATE) {
+  unsigned char i;
+  unsigned char steps = jz->gc.speed;
+
+  for (i = 0; i < steps; i++) step(jz);
+}
+
+void step(JZ_STATE) {
   switch (jz->gc.state) {
   case jz_gcs_waiting:
     mark_roots(jz);
