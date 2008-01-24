@@ -68,6 +68,7 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
   ((jz_gc_within_threshold(jz) && jz_gc_paused(jz)) ? false :   \
    jz_gc_steps(jz))
 
+void jz_gc_cycle(JZ_STATE);
 bool jz_gc_steps(JZ_STATE);
 bool jz_gc_step(JZ_STATE);
 

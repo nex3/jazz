@@ -70,6 +70,10 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
   return true;
 }
 
+void jz_gc_cycle(JZ_STATE) {
+  while (!jz_gc_step(jz));
+}
+
 bool jz_gc_steps(JZ_STATE) {
   unsigned char i;
   unsigned char steps = jz->gc.speed;
@@ -138,8 +142,14 @@ jz_gc_header* pop_gray_stack(JZ_STATE) {
 
 void mark_roots(JZ_STATE) {
   jz_frame* frame = jz->current_frame;
-  jz_tvalue* next = frame->locals_then_stack;
-  jz_tvalue* top = *frame->stack_top;
+  jz_tvalue* next;
+  jz_tvalue* top;
+
+  if (frame == NULL)
+    return;
+
+  next = frame->locals_then_stack;
+  top = *frame->stack_top;
 
   for (; next != top; next++)
     JZ_GC_MARK_VAL_GRAY(jz, *next);
