@@ -47,12 +47,14 @@ jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
 jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number) {
   assert(struct_size - extra_size >= sizeof(jz_gc_header));
-  /* calloc zeroes memory. */
   return jz_gc_malloc(jz, type, struct_size + extra_size * (number - 1));
 }
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
-  if (IS_BLACK(obj)) return false;
+  /* If the object is already black,
+     we don't need to do anything about it. */
+  if (IS_BLACK(obj))
+    return false;
   else {
     jz_gc_node* node = malloc(sizeof(jz_gc_node));
 
@@ -70,7 +72,9 @@ bool jz_gc_tick(JZ_STATE) {
   unsigned char steps = jz->gc.speed;
 
   for (i = 0; i < steps; i++) {
-    if (step(jz)) return true;
+    if (step(jz))
+      /* We don't want to run over into a new collection cycle. */
+      return true;
   }
   return false;
 }
@@ -86,7 +90,8 @@ bool step(JZ_STATE) {
     mark_step(jz);
     return false;
 
-  case jz_gcs_sweeping: return sweep_step(jz);
+  case jz_gcs_sweeping:
+    return sweep_step(jz);
 
   default:
     fprintf(stderr, "Unknown garbage-collection state %d\n", jz->gc.state);
@@ -110,14 +115,16 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
-  if (JZ_STR_IS_INT(str)) jz_gc_mark_gray(jz, &str->value.val->gc);
+  if (JZ_STR_IS_INT(str))
+    jz_gc_mark_gray(jz, &str->value.val->gc);
 }
 
 jz_gc_header* pop_gray_stack(JZ_STATE) {
   jz_gc_node* node = jz->gc.gray_stack;
   jz_gc_header* obj;
 
-  if (node == NULL) return NULL;
+  if (node == NULL)
+    return NULL;
 
   obj = node->obj;
   jz->gc.gray_stack = node->next;
@@ -131,11 +138,13 @@ void mark_roots(JZ_STATE) {
   jz_tvalue* next = frame->locals_then_stack;
   jz_tvalue* top = *frame->stack_top;
 
-  for (; next != top; next++) JZ_GC_MARK_VAL_GRAY(jz, *next);
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
 
   next = frame->bytecode->consts;
   top = next + frame->bytecode->consts_length;
-  for (; next != top; next++) JZ_GC_MARK_VAL_GRAY(jz, *next);
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
 }
 
 void mark_step(JZ_STATE) {
@@ -151,6 +160,10 @@ void mark_step(JZ_STATE) {
 bool sweep_step(JZ_STATE) {
   jz_gc_header* prev = jz->gc.prev_sweep_obj;
   jz_gc_header* next = jz->gc.next_sweep_obj;
+
+  /* By the time we reach this function,
+     the white and black bits have been flipped.
+     Thus, black objects are colletable and white objects are not. */
 
   if (next == NULL) {
     next = jz->gc.all_objs;
