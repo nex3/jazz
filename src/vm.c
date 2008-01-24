@@ -35,12 +35,6 @@
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-typedef struct foo foo;
-
-int foobar(foo* blat) {
-  return 1 + 1;
-}
-
 jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
   jz_frame* frame = jz_frame_new(jz, bytecode);
