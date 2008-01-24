@@ -71,6 +71,10 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
 }
 
 void jz_gc_cycle(JZ_STATE) {
+  /* Make sure we finish up an existing cycle
+     before we start a new one. */
+  if (!jz_gc_paused(jz))
+    while (!jz_gc_step(jz));
   while (!jz_gc_step(jz));
 }
 
