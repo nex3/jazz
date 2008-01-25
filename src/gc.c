@@ -115,7 +115,8 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
     fprintf(stderr, "Unknown GC type %d\n", JZ_GC_TYPE(obj));
     exit(1);
   }
-  MARK_BLACK(obj);
+  /* We don't actually need to blacken the object in this method,
+     because it was blackened when it was added to the gray stack. */
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
