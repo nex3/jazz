@@ -11,10 +11,10 @@ typedef enum {
   /* Giving undefined a 0 flag means that zero-ed memory
      is identified as jz_t_undef, which saves some manual setting. */
   jz_t_undef = 0x00,
-  jz_t_num   = 0x01,
-  jz_t_bool  = 0x02,
-  jz_t_str   = 0x03,
-  jz_t_str_value = 0x04
+  jz_t_num,
+  jz_t_bool,
+  jz_t_str,
+  jz_t_str_value
 } jz_type;
 
 typedef union {
