@@ -9,6 +9,7 @@ rm -f test.errors
 
 for file in $( find test/ -name '*.js' )
 do
+    rm -f jazz.test
     errorf=`mktemp jazz.test`
     res=`cat "$file" | ./jazz 2> $errorf`
     error=`cat $errorf`
