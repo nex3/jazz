@@ -159,7 +159,8 @@ bool try_string_literal(STATE, YYSTYPE* lex_val) {
 
   {
     jz_str* match = get_match(jz, state, jz->lex.string_literal_re, 2);
-    UChar* res = calloc(sizeof(UChar), match->length);
+    jz_str* str = jz_str_alloc(jz, match->length);
+    UChar* res = JZ_STR_INT_PTR(str);
     UChar* res_bottom = res;
     const UChar* match_ptr_bottom = JZ_STR_PTR(match);
     const UChar* match_ptr = match_ptr_bottom;
