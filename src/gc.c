@@ -120,7 +120,7 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
-  if (JZ_STR_IS_INT(str))
+  if (JZ_STR_IS_INT(str) && str->value.val != NULL)
     jz_gc_mark_gray(jz, &str->value.val->gc);
 }
 

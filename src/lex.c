@@ -159,11 +159,12 @@ bool try_string_literal(STATE, YYSTYPE* lex_val) {
 
   {
     jz_str* match = get_match(jz, state, jz->lex.string_literal_re, 2);
-    jz_str* str = jz_str_alloc(jz, match->length);
-    UChar* res = JZ_STR_INT_PTR(str);
-    UChar* res_bottom = res;
     const UChar* match_ptr_bottom = JZ_STR_PTR(match);
     const UChar* match_ptr = match_ptr_bottom;
+    UChar* res;
+
+    lex_val->str = jz_str_alloc(jz, match->length);
+    res = JZ_STR_INT_PTR(lex_val->str);
 
     for (; match_ptr - match_ptr_bottom < match->length; match_ptr++) {
       UChar val = *match_ptr;
@@ -208,7 +209,7 @@ bool try_string_literal(STATE, YYSTYPE* lex_val) {
       }
     }
 
-    lex_val->str = jz_str_external(jz, res - res_bottom, res_bottom);
+    lex_val->str->length = res - JZ_STR_PTR(lex_val->str);
     return true;
   }
 }
