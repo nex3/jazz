@@ -33,7 +33,8 @@ typedef struct {
 #define JZ_TVAL_SET_TYPE(value, type) \
   ((value).tag = ((value).tag & !0x0f) | type)
 
-#define JZ_TVAL_CAN_BE_GCED(value) (JZ_TVAL_TYPE(value) >= jz_t_str)
+#define JZ_TVAL_CAN_BE_GCED(val) \
+  (JZ_TVAL_TYPE(val) >= jz_t_str && (val).value.gc != NULL)
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
