@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     jz_str* input = jz_str_external(jz, len, str);
     jz_parse_node* root; 
     jz_bytecode* bytecode;
+    char* result;
 
     root = jz_parse_string(jz, input);
     if (!root) exit(1);
@@ -31,8 +32,11 @@ int main(int argc, char** argv) {
 
     jz_free_parse_tree(jz, root);
 
-    printf("%s\n", jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode))));
+    result = jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode)));
+    printf("%s\n", result);
 
+    free(result);
+    jz_gc_cycle(jz);
     jz_free_bytecode(jz, bytecode);
     jz_free_state(jz);
   }

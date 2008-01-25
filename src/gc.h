@@ -1,9 +1,6 @@
 #ifndef JZ_GC_H
 #define JZ_GC_H
 
-/* TODO: GET RID OF THIS */
-#include <stdio.h>
-
 #include "jazz.h"
 #include "value.h"
 
@@ -34,6 +31,9 @@ typedef enum {
   jz_gcs_sweeping
 } jz_gc_state;
 
+#define JZ_GC_DEFAULT_SPEED 2
+#define JZ_GC_DEFAULT_PAUSE 150
+
 #define JZ_GC_TAG(obj) (((jz_gc_header*)obj)->tag)
 #define JZ_GC_NEXT(obj) (((jz_gc_header*)obj)->next)
 
@@ -56,13 +56,24 @@ typedef enum {
     }                                           \
   }
 
-#define JZ_GC_WRITE_BARRIER_ACTIVE(jz) ((jz)->gc.state == jz_gcs_marking)
+#define jz_gc_write_barrier_active(jz) (jz->gc.state == jz_gcs_marking)
+#define jz_gc_paused(jz) (jz->gc.state == jz_gcs_waiting)
+#define jz_gc_within_threshold(jz) (jz->gc.allocated < jz->gc.threshold)
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size);
 jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number);
 
-void jz_gc_tick(JZ_STATE);
+#define jz_gc_tick(jz)                                          \
+  ((jz_gc_within_threshold(jz) && jz_gc_paused(jz)) ? false :   \
+   jz_gc_steps(jz))
+
+void jz_gc_cycle(JZ_STATE);
+bool jz_gc_steps(JZ_STATE);
+bool jz_gc_step(JZ_STATE);
+
+#define jz_gc_set_speed(jz, new_speed) ((jz)->gc.speed = (new_speed))
+#define jz_gc_set_pause(jz, new_pause) ((jz)->gc.pause = (new_pause))
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
 

@@ -36,7 +36,9 @@ jz_str* str_val_new(JZ_STATE, int start, int length, jz_str_value* val) {
 jz_str_value* val_alloc(JZ_STATE, int length) {
   jz_str_value* to_ret;
 
-  assert(length != 0);
+  if (length == 0)
+    return NULL;
+
   to_ret = (jz_str_value*)jz_gc_dyn_malloc(jz, jz_str_valuet,
                                            sizeof(jz_str_value),
                                            sizeof(UChar), length);
@@ -55,7 +57,8 @@ jz_str* jz_str_deep_new(JZ_STATE, int length, const UChar* value) {
   jz_str* to_ret;
   jz_str_value* buffer;
 
-  if (length == 0) return jz_str_null(jz);
+  if (length == 0)
+    return jz_str_null(jz);
 
   to_ret = str_new(jz, 0, length);
   buffer = val_alloc(jz, length);
@@ -75,8 +78,11 @@ jz_str* jz_str_null(JZ_STATE) {
 }
 
 jz_str* jz_str_dup(JZ_STATE, const jz_str* this) {
-  jz_str* to_ret = malloc(sizeof(jz_str));
-  memcpy(to_ret, this, sizeof(jz_str));
+  jz_str* to_ret = (jz_str*)jz_gc_malloc(jz, jz_strt, sizeof(jz_str));
+  JZ_GC_SET_UTAG(to_ret, JZ_GC_UTAG(this));
+  to_ret->start = this->start;
+  to_ret->length = this->length;
+  to_ret->value = this->value;
   return to_ret;
 }
 

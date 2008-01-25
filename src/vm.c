@@ -19,7 +19,7 @@
 #define PUSH_WB(val) {                          \
     jz_tvalue tmp = (val);                      \
     *(stack++) = tmp;                           \
-    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+    if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 
@@ -27,19 +27,13 @@
 #define STACK_SET_WB(i, val) {                  \
     jz_tvalue tmp = (val);                      \
     stack[(i)] = tmp;                           \
-    if (JZ_GC_WRITE_BARRIER_ACTIVE(jz))         \
+    if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 
 #if JZ_DEBUG_BYTECODE
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
-
-typedef struct foo foo;
-
-int foobar(foo* blat) {
-  return 1 + 1;
-}
 
 jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_opcode* code = bytecode->code;
@@ -53,8 +47,8 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
-  printf("Stack length: %lu\n", bytecode->stack_length);
-  printf("Locals length: %lu\n", bytecode->locals_length);
+  printf("Stack length: %d\n", bytecode->stack_length);
+  printf("Locals length: %d\n", bytecode->locals_length);
 #endif
 
   while (true) {
@@ -412,7 +406,7 @@ void print_bytecode(const jz_bytecode* bytecode) {
       break;
     }
 
-    printf("%d: %s (%lu)\n", code - bytecode->code, name, argsize);
+    printf("%d: %s (%d)\n", code - bytecode->code, name, argsize);
     code += argsize;
   }
 }

@@ -25,7 +25,9 @@ static void blacken_str(JZ_STATE, jz_str* str);
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
 static void mark_step(JZ_STATE);
-static void sweep_step(JZ_STATE);
+static bool sweep_step(JZ_STATE);
+
+static void finish_cycle(JZ_STATE);
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
   jz_gc_header* to_ret;
@@ -39,44 +41,68 @@ jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
   to_ret->next = jz->gc.all_objs;
   jz->gc.all_objs = to_ret;
 
+  jz->gc.allocated += size;
+
   return to_ret;
 }
 
 jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number) {
   assert(struct_size - extra_size >= sizeof(jz_gc_header));
-  /* calloc zeroes memory. */
   return jz_gc_malloc(jz, type, struct_size + extra_size * (number - 1));
 }
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
-  if (IS_WHITE(obj)) return false;
-  else {
-    jz_gc_node* node = malloc(sizeof(jz_gc_node));
+  jz_gc_node* node;
 
-    node->next = jz->gc.gray_stack;
-    node->obj = obj;
-    jz->gc.gray_stack = node;
+  /* If the object is already black,
+     we don't need to do anything about it. */
+  if (IS_BLACK(obj))
+    return false;
 
-    JZ_GC_TAG(obj) |= 0x02;
-    return true;
-  }
+  node = malloc(sizeof(jz_gc_node));
+
+  node->next = jz->gc.gray_stack;
+  node->obj = obj;
+  jz->gc.gray_stack = node;
+  MARK_BLACK(obj);
+
+  return true;
 }
 
-void jz_gc_tick(JZ_STATE) {
+void jz_gc_cycle(JZ_STATE) {
+  /* Make sure we finish up an existing cycle
+     before we start a new one. */
+  if (!jz_gc_paused(jz))
+    while (!jz_gc_step(jz));
+  while (!jz_gc_step(jz));
+}
+
+bool jz_gc_steps(JZ_STATE) {
+  unsigned char i;
+  unsigned char steps = jz->gc.speed;
+
+  for (i = 0; i < steps; i++) {
+    if (jz_gc_step(jz))
+      /* We don't want to run over into a new collection cycle. */
+      return true;
+  }
+  return false;
+}
+
+bool jz_gc_step(JZ_STATE) {
   switch (jz->gc.state) {
   case jz_gcs_waiting:
     mark_roots(jz);
     jz->gc.state = jz_gcs_marking;
-    return;
+    return false;
 
   case jz_gcs_marking:
     mark_step(jz);
-    return;
+    return false;
 
   case jz_gcs_sweeping:
-    sweep_step(jz);
-    return;
+    return sweep_step(jz);
 
   default:
     fprintf(stderr, "Unknown garbage-collection state %d\n", jz->gc.state);
@@ -100,14 +126,16 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
-  if (JZ_STR_IS_INT(str)) jz_gc_mark_gray(jz, &str->value.val->gc);
+  if (JZ_STR_IS_INT(str))
+    jz_gc_mark_gray(jz, &str->value.val->gc);
 }
 
 jz_gc_header* pop_gray_stack(JZ_STATE) {
   jz_gc_node* node = jz->gc.gray_stack;
   jz_gc_header* obj;
 
-  if (node == NULL) return NULL;
+  if (node == NULL)
+    return NULL;
 
   obj = node->obj;
   jz->gc.gray_stack = node->next;
@@ -118,14 +146,22 @@ jz_gc_header* pop_gray_stack(JZ_STATE) {
 
 void mark_roots(JZ_STATE) {
   jz_frame* frame = jz->current_frame;
-  jz_tvalue* next = frame->locals_then_stack;
-  jz_tvalue* top = *frame->stack_top;
+  jz_tvalue* next;
+  jz_tvalue* top;
 
-  for (; next != top; next++) JZ_GC_MARK_VAL_GRAY(jz, *next);
+  if (frame == NULL)
+    return;
+
+  next = frame->locals_then_stack;
+  top = *frame->stack_top;
+
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
 
   next = frame->bytecode->consts;
   top = next + frame->bytecode->consts_length;
-  for (; next != top; next++) JZ_GC_MARK_VAL_GRAY(jz, *next);
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
 }
 
 void mark_step(JZ_STATE) {
@@ -138,40 +174,53 @@ void mark_step(JZ_STATE) {
   return;
 }
 
-void sweep_step(JZ_STATE) {
+bool sweep_step(JZ_STATE) {
   jz_gc_header* prev = jz->gc.prev_sweep_obj;
   jz_gc_header* next = jz->gc.next_sweep_obj;
+
+  /* By the time we reach this function,
+     the white and black bits have been flipped.
+     Thus, black objects are colletable and white objects are not. */
 
   if (next == NULL) {
     next = jz->gc.all_objs;
 
     if (next == NULL) {
       /* For some reason, there are no heap-allocated objects. */
-      jz->gc.state = jz_gcs_waiting;
-      return;
+      finish_cycle(jz);
+      return true;
     }
 
     if (IS_BLACK(next)) {
       jz->gc.all_objs = next->next;
       free(next);
-      return;
+      return false;
     }
   }
 
   for (; next != NULL; prev = next, next = next->next) {
-    if (IS_BLACK(next)) {
-      prev->next = next->next;
-      free(next);
+    if (IS_WHITE(next))
+      continue;
 
-      jz->gc.prev_sweep_obj = prev;
-      jz->gc.next_sweep_obj = prev->next;
+    prev->next = next->next;
+    free(next);
 
-      return;
-    }
+    jz->gc.prev_sweep_obj = prev;
+    jz->gc.next_sweep_obj = prev->next;
+
+    return false;
   }
 
+  /* No more black (sweepable) objects left. */
+  finish_cycle(jz);
+
+  return true;
+}
+
+void finish_cycle(JZ_STATE) {
   jz->gc.prev_sweep_obj = NULL;
   jz->gc.next_sweep_obj = NULL;
   jz->gc.state = jz_gcs_waiting;
+  jz->gc.threshold = (jz->gc.pause * jz->gc.allocated)/100;
+  assert(jz->gc.threshold > 0);
 }
-
