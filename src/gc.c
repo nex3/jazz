@@ -105,10 +105,10 @@ bool jz_gc_step(JZ_STATE) {
 
 void blacken(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
-  case jz_strt:
+  case jz_t_str:
     blacken_str(jz, (jz_str*)obj);
     break;
-  case jz_str_valuet:
+  case jz_t_str_value:
     blacken_str_value(jz, (jz_str_value*)obj);
     break;
   default:

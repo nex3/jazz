@@ -9,12 +9,12 @@
 
 typedef enum {
   /* Giving undefined a 0 flag means that zero-ed memory
-     is identified as jz_undef, which saves some manual setting. */
-  jz_undef = 0x00,
-  jz_num   = 0x01,
-  jz_bool  = 0x02,
-  jz_strt  = 0x03,
-  jz_str_valuet = 0x04
+     is identified as jz_t_undef, which saves some manual setting. */
+  jz_t_undef = 0x00,
+  jz_t_num   = 0x01,
+  jz_t_bool  = 0x02,
+  jz_t_str   = 0x03,
+  jz_t_str_value = 0x04
 } jz_type;
 
 typedef union {
@@ -33,7 +33,7 @@ typedef struct {
 #define JZ_TVAL_SET_TYPE(value, type) \
   ((value).tag = ((value).tag & !0x0f) | type)
 
-#define JZ_TVAL_CAN_BE_GCED(value) (JZ_TVAL_TYPE(value) >= jz_strt)
+#define JZ_TVAL_CAN_BE_GCED(value) (JZ_TVAL_TYPE(value) >= jz_t_str)
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)

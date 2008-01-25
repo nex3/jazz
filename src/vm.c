@@ -193,7 +193,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       jz_tvalue v1 = stack[-2];
       jz_tvalue v2 = stack[-1];
 
-      if (JZ_TVAL_TYPE(v1) == jz_strt || JZ_TVAL_TYPE(v2) == jz_strt) {
+      if (JZ_TVAL_TYPE(v1) == jz_t_str || JZ_TVAL_TYPE(v2) == jz_t_str) {
         STACK_SET_WB(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
                                                        jz_to_str(jz, v2))));
       } else {

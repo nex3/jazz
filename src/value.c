@@ -17,12 +17,12 @@ bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   if (JZ_TVAL_TYPE(v1) == JZ_TVAL_TYPE(v2))
     return jz_values_strict_equal(jz, v1, v2);
 
-  if (JZ_TVAL_TYPE(v1) == jz_bool ||
-      (JZ_TVAL_TYPE(v1) == jz_strt && JZ_TVAL_TYPE(v2) == jz_num))
+  if (JZ_TVAL_TYPE(v1) == jz_t_bool ||
+      (JZ_TVAL_TYPE(v1) == jz_t_str && JZ_TVAL_TYPE(v2) == jz_t_num))
     return jz_values_equal(jz, jz_to_wrapped_num(jz, v1), v2);
 
-  if (JZ_TVAL_TYPE(v2) == jz_bool ||
-      (JZ_TVAL_TYPE(v1) == jz_num && JZ_TVAL_TYPE(v2) == jz_strt))
+  if (JZ_TVAL_TYPE(v2) == jz_t_bool ||
+      (JZ_TVAL_TYPE(v1) == jz_t_num && JZ_TVAL_TYPE(v2) == jz_t_str))
     return jz_values_equal(jz, v1, jz_to_wrapped_num(jz, v2));
 
   return false;
@@ -30,15 +30,15 @@ bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
 
 bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   if (JZ_TVAL_TYPE(v1) != JZ_TVAL_TYPE(v2)) return false;
-  if (JZ_TVAL_TYPE(v1) == jz_strt)
+  if (JZ_TVAL_TYPE(v1) == jz_t_str)
     return jz_str_equal(jz, v1.value.str, v2.value.str);
-  if (JZ_TVAL_TYPE(v1) == jz_bool) return v1.value.b == v2.value.b;
-  if (JZ_TVAL_TYPE(v1) == jz_undef) return true;
+  if (JZ_TVAL_TYPE(v1) == jz_t_bool) return v1.value.b == v2.value.b;
+  if (JZ_TVAL_TYPE(v1) == jz_t_undef) return true;
   else {
     double num1 = v1.value.num;
     double num2 = v2.value.num;
     
-    assert(JZ_TVAL_TYPE(v1) == jz_num);
+    assert(JZ_TVAL_TYPE(v1) == jz_t_num);
     return num1 == num2;
   }
 }
@@ -47,7 +47,7 @@ double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   double num1;
   double num2;
 
-  if (JZ_TVAL_TYPE(v1) == jz_strt && JZ_TVAL_TYPE(v2) == jz_strt)
+  if (JZ_TVAL_TYPE(v1) == jz_t_str && JZ_TVAL_TYPE(v2) == jz_t_str)
     return jz_str_comp(jz, v1.value.str, v2.value.str);
 
   num1 = jz_to_num(jz, v1);
@@ -67,31 +67,31 @@ double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
 
 jz_tvalue jz_wrap_num(JZ_STATE, double num) {
   jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_num);
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_num);
   tvalue.value.num = num;
   return tvalue;
 }
 
 jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
   jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_strt);
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_str);
   tvalue.value.str = str;
   return tvalue;
 }
 
 jz_tvalue jz_wrap_bool(JZ_STATE, bool b) {
   jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_bool);
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_bool);
   tvalue.value.b = b;
   return tvalue;
 }
 
 double jz_to_num(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
-  case jz_num:   return val.value.num;
-  case jz_bool:  return (double)(val.value.b);
-  case jz_undef: return JZ_NAN;
-  case jz_strt:  return jz_str_to_num(jz, val.value.str);
+  case jz_t_num:   return val.value.num;
+  case jz_t_bool:  return (double)(val.value.b);
+  case jz_t_undef: return JZ_NAN;
+  case jz_t_str:  return jz_str_to_num(jz, val.value.str);
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
@@ -103,12 +103,12 @@ double jz_to_num(JZ_STATE, jz_tvalue val) {
    It's a source of memory leaks until we get GC going. */
 jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
-  case jz_strt: return val.value.str;
-  case jz_num: return jz_num_to_str(jz, val.value.num);
-  case jz_bool:
+  case jz_t_str: return val.value.str;
+  case jz_t_num: return jz_num_to_str(jz, val.value.num);
+  case jz_t_bool:
     if (val.value.b) return jz_str_from_literal(jz, "true");
     else return jz_str_from_literal(jz, "false");
-  case jz_undef: return jz_str_from_literal(jz, "undefined");
+  case jz_t_undef: return jz_str_from_literal(jz, "undefined");
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
@@ -117,12 +117,12 @@ jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
 
 bool jz_to_bool(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
-  case jz_bool: return val.value.b;
-  case jz_num:
+  case jz_t_bool: return val.value.b;
+  case jz_t_num:
     if (JZ_NUM_IS_NAN(val.value.num)) return false;
     else return (bool)(val.value.num);
-  case jz_strt: return val.value.str->length != 0;
-  case jz_undef: return false;
+  case jz_t_str: return val.value.str->length != 0;
+  case jz_t_undef: return false;
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
