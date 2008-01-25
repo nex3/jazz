@@ -47,8 +47,8 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
-  printf("Stack length: %d\n", bytecode->stack_length);
-  printf("Locals length: %d\n", bytecode->locals_length);
+  printf("Stack length: %lu\n", bytecode->stack_length);
+  printf("Locals length: %lu\n", bytecode->locals_length);
 #endif
 
   while (true) {
@@ -406,7 +406,7 @@ void print_bytecode(const jz_bytecode* bytecode) {
       break;
     }
 
-    printf("%d: %s (%d)\n", code - bytecode->code, name, argsize);
+    printf("%d: %s (%lu)\n", code - bytecode->code, name, argsize);
     code += argsize;
   }
 }
