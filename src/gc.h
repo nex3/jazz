@@ -49,6 +49,13 @@ typedef enum {
 #define JZ_GC_UTAG_OR(obj, val) \
   (JZ_GC_TAG(obj) |= ((val) << 6) & 0xff)
 
+#define JZ_GC_FLAG(obj) (JZ_GC_TAG(obj) & 0x03)
+
+#define jz_gc_is_white(jz, obj)                 \
+  (JZ_GC_FLAG(obj) == !jz->gc.black_bit)
+#define jz_gc_is_black(jz, obj)                 \
+  (JZ_GC_FLAG(obj) == jz->gc.black_bit)
+
 #define JZ_GC_MARK_VAL_GRAY(jz, val) {          \
     if (JZ_TVAL_CAN_BE_GCED(val)) {             \
       jz_gc_header* obj = (val).value.gc;       \
@@ -59,6 +66,12 @@ typedef enum {
 #define jz_gc_write_barrier_active(jz) (jz->gc.state == jz_gcs_marking)
 #define jz_gc_paused(jz) (jz->gc.state == jz_gcs_waiting)
 #define jz_gc_within_threshold(jz) (jz->gc.allocated < jz->gc.threshold)
+
+#define JZ_GC_WRITE_BARRIER(jz, referrer, reference)            \
+  ((jz_gc_write_barrier_active(jz) &&                           \
+    jz_gc_is_black(jz, (jz_gc_header*)(reference)) &&            \
+    jz_gc_is_white(jz, (jz_gc_header*)(referrer))) ?           \
+   jz_gc_mark_gray(jz, (jz_gc_header*)(reference)) : false)
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size);
 jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,

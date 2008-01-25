@@ -11,13 +11,6 @@
 #define MARK_WHITE(obj) \
   (JZ_GC_TAG(obj) = !jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
 
-#define GC_FLAG(obj) (JZ_GC_TAG(obj) & 0x03)
-
-#define IS_WHITE(obj) \
-  (GC_FLAG(obj) == !jz->gc.black_bit)
-#define IS_BLACK(obj) \
-  (GC_FLAG(obj) == jz->gc.black_bit)
-
 static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
@@ -57,7 +50,7 @@ bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
 
   /* If the object is already black,
      we don't need to do anything about it. */
-  if (IS_BLACK(obj))
+  if (jz_gc_is_black(jz, obj))
     return false;
 
   node = malloc(sizeof(jz_gc_node));
@@ -191,7 +184,7 @@ bool sweep_step(JZ_STATE) {
       return true;
     }
 
-    if (IS_BLACK(next)) {
+    if (jz_gc_is_black(jz, next)) {
       jz->gc.all_objs = next->next;
       free(next);
       return false;
@@ -199,7 +192,7 @@ bool sweep_step(JZ_STATE) {
   }
 
   for (; next != NULL; prev = next, next = next->next) {
-    if (IS_WHITE(next))
+    if (jz_gc_is_white(jz, next))
       continue;
 
     prev->next = next->next;

@@ -1,5 +1,7 @@
 #include "string.h"
 #include "lex.h"
+#include "gc.h"
+#include "state.h"
 
 #include <unicode/uchar.h>
 
@@ -29,6 +31,8 @@ jz_str* str_new(JZ_STATE, int start, int length) {
 
 jz_str* str_val_new(JZ_STATE, int start, int length, jz_str_value* val) {
   jz_str* to_ret = str_new(jz, start, length);
+
+  JZ_GC_WRITE_BARRIER(jz, val, to_ret);
   to_ret->value.val = val;
   return to_ret;
 }
