@@ -25,6 +25,18 @@ bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
       (JZ_TVAL_TYPE(v1) == jz_t_num && JZ_TVAL_TYPE(v2) == jz_t_str))
     return jz_values_equal(jz, v1, jz_to_wrapped_num(jz, v2));
 
+  if (JZ_TVAL_TYPE(v1) == jz_t_obj) {
+    if (JZ_TVAL_IS_NULL(v1))
+      return JZ_TVAL_TYPE(v2) == jz_t_undef;
+    fprintf(stderr, "== isn't implemented for full objects.\n");
+  }
+
+  if (JZ_TVAL_TYPE(v2) == jz_t_obj) {
+    if (JZ_TVAL_IS_NULL(v2))
+      return JZ_TVAL_TYPE(v1) == jz_t_undef;
+    fprintf(stderr, "== isn't implemented for full objects.\n");
+  }
+
   return false;
 }
 
@@ -34,6 +46,7 @@ bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
     return jz_str_equal(jz, v1.value.str, v2.value.str);
   if (JZ_TVAL_TYPE(v1) == jz_t_bool) return v1.value.b == v2.value.b;
   if (JZ_TVAL_TYPE(v1) == jz_t_undef) return true;
+  if (JZ_TVAL_TYPE(v1) == jz_t_obj) return v1.value.obj == v2.value.obj;
   else {
     double num1 = v1.value.num;
     double num2 = v2.value.num;
@@ -72,17 +85,24 @@ jz_tvalue jz_wrap_num(JZ_STATE, double num) {
   return tvalue;
 }
 
-jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_str);
-  tvalue.value.str = str;
-  return tvalue;
-}
-
 jz_tvalue jz_wrap_bool(JZ_STATE, bool b) {
   jz_tvalue tvalue;
   JZ_TVAL_SET_TYPE(tvalue, jz_t_bool);
   tvalue.value.b = b;
+  return tvalue;
+}
+
+jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj) {
+  jz_tvalue tvalue;
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_obj);
+  tvalue.value.obj = obj;
+  return tvalue;
+}
+
+jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
+  jz_tvalue tvalue;
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_str);
+  tvalue.value.str = str;
   return tvalue;
 }
 
@@ -91,7 +111,12 @@ double jz_to_num(JZ_STATE, jz_tvalue val) {
   case jz_t_num:   return val.value.num;
   case jz_t_bool:  return (double)(val.value.b);
   case jz_t_undef: return JZ_NAN;
-  case jz_t_str:  return jz_str_to_num(jz, val.value.str);
+  case jz_t_str:   return jz_str_to_num(jz, val.value.str);
+  case jz_t_obj:
+    if (JZ_TVAL_IS_NULL(val))
+      return 0;
+    fprintf(stderr, "ToNumber isn't implemented for full objects.\n");
+    exit(1);
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);
@@ -108,6 +133,11 @@ jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
   case jz_t_bool:
     if (val.value.b) return jz_str_from_literal(jz, "true");
     else return jz_str_from_literal(jz, "false");
+  case jz_t_obj:
+    if (JZ_TVAL_IS_NULL(val))
+      return jz_str_from_literal(jz, "null");
+    fprintf(stderr, "ToString isn't implemented for full objects.\n");
+    exit(1);
   case jz_t_undef: return jz_str_from_literal(jz, "undefined");
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
@@ -123,6 +153,11 @@ bool jz_to_bool(JZ_STATE, jz_tvalue val) {
     else return (bool)(val.value.num);
   case jz_t_str: return val.value.str->length != 0;
   case jz_t_undef: return false;
+  case jz_t_obj:
+    if (JZ_TVAL_IS_NULL(val))
+      return false;
+    fprintf(stderr, "ToBoolean isn't implemented for full objects.\n");
+    exit(1);
   default:
     fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
     exit(1);

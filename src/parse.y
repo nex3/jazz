@@ -3,6 +3,7 @@
 #include "lex.h"
 #include "state.h"
 #include "string.h"
+#include "object.h"
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -59,7 +60,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
-%token <none> TRUE_VAL FALSE_VAL UNDEF_VAL NAN_VAL INF_VAL
+%token <none> TRUE_VAL FALSE_VAL NULL_VAL UNDEF_VAL NAN_VAL INF_VAL
 
 /* Keyword Tokens */
 %token <none> RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
@@ -87,7 +88,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
              primary_expr identifier literal number string boolean undefined
-             not_a_number infinity
+             not_a_number infinity null
 
 %type <boolean> bool_val
 
@@ -309,6 +310,7 @@ literal: number  { $$ = $1; }
   | undefined    { $$ = $1; }
   | not_a_number { $$ = $1; }
   | infinity     { $$ = $1; }
+  | null         { $$ = $1; }
 
 number: NUMBER {
   $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_num(jz, $1)));
@@ -335,6 +337,10 @@ not_a_number: NAN_VAL {
 
 infinity: INF_VAL {
   $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_num(jz, JZ_INF)));
+ }
+
+null: NULL_VAL {
+  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, JZ_NULL));
  }
 
 %%

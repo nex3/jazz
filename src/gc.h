@@ -1,6 +1,8 @@
 #ifndef JZ_GC_H
 #define JZ_GC_H
 
+#include <stdlib.h>
+
 #include "jazz.h"
 #include "value.h"
 

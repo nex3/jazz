@@ -3,4 +3,5 @@ return (!true === false) &&
     (!!12 === true) &&
     (!!0 === false) &&
     (!!NaN === false) &&
-    (!!undefined === false);
+    (!!undefined === false) &&
+    (!!null === false);

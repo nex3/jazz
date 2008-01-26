@@ -28,6 +28,11 @@ return ((undefined == undefined) == true) &&
     ("foo" != "foobar") &&
     ("bar" != "foobar") &&
     (undefined != "blah") &&
+    (null == undefined) &&
+    (undefined == null) &&
+    (null == null) &&
+    (null != "foo") &&
+    (13 != null) &&
 
     ((undefined != undefined) == false) &&
     ((NaN != NaN) == true) &&

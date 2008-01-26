@@ -105,6 +105,9 @@ bool jz_gc_step(JZ_STATE) {
 
 void blacken(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
+  case jz_t_obj:
+    fprintf(stderr, "TODO: Garbage collect objects.");
+    break;
   case jz_t_str:
     blacken_str(jz, (jz_str*)obj);
     break;

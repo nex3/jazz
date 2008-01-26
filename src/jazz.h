@@ -3,6 +3,7 @@
 
 /* Prototype structs that would cause ciruclar-reference problems otherwise. */ 
 typedef struct jz_state jz_state;
+typedef struct jz_obj jz_obj;
 typedef struct jz_str jz_str;
 typedef struct jz_gc_header jz_gc_header;
 

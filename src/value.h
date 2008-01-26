@@ -14,13 +14,17 @@ typedef enum {
   jz_t_num,
   jz_t_bool,
   jz_t_str,
-  jz_t_str_value
+  jz_t_str_value,
+  jz_t_obj
 } jz_type;
 
 typedef union {
   double num;
   bool b;
+  /* All types past this point
+     should be pointers to types with jz_gc_header headers. */
   jz_gc_header* gc;
+  jz_obj* obj;
   jz_str* str;
 } jz_value;
 
@@ -35,6 +39,9 @@ typedef struct {
 
 #define JZ_TVAL_CAN_BE_GCED(val) \
   (JZ_TVAL_TYPE(val) >= jz_t_str && (val).value.gc != NULL)
+
+#define JZ_TVAL_IS_NULL(val) \
+  (JZ_TVAL_TYPE(val) == jz_t_obj && (val).value.obj == NULL)
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
@@ -55,14 +62,15 @@ double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2);
 
 #define jz_to_wrapped_num(jz, val) \
   (jz_wrap_num(jz, jz_to_num(jz, val)))
-#define jz_to_wrapped_str(jz, val) \
-  (jz_wrap_str(jz, jz_to_str(jz, val)))
 #define jz_to_wrapped_bool(jz, val) \
   (jz_wrap_bool(jz, jz_to_bool(jz, val)))
+#define jz_to_wrapped_str(jz, val) \
+  (jz_wrap_str(jz, jz_to_str(jz, val)))
 
 jz_tvalue jz_wrap_num(JZ_STATE, double num);
-jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
 jz_tvalue jz_wrap_bool(JZ_STATE, bool b);
+jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj);
+jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
 
 double jz_to_num(JZ_STATE, jz_tvalue val);
 jz_str* jz_to_str(JZ_STATE, jz_tvalue val);

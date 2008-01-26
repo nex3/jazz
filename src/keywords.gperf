@@ -5,6 +5,7 @@ struct hash_result { char* name; int token; }
 #
 true,      TRUE_VAL
 false,     FALSE_VAL
+null,      NULL_VAL
 # This is an extension to ECMAscript.
 # The specification doesn't require support for an undefined literal.
 undefined, UNDEF_VAL
