@@ -52,6 +52,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
   jz_str* str;
   double num;
   char boolean;
+  int operation;
   char none;
 }
 
@@ -81,7 +82,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              statement block statements statement_list var_statement
              var_decls var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
-             iter_statement do_while_statement while_statement for_statement
+             iter_statement do_while_statement while_statement for_statement first_for_expr
              opt_expr switch_statement case_block case_block_list case_clauses
              case_clause default_clause expr expr_list
              assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
@@ -91,6 +92,9 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              not_a_number infinity null
 
 %type <boolean> bool_val
+
+%type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
+                  add_expr_op mult_expr_op unary_expr_op postfix_expr_op
 
 %start program
 
@@ -162,18 +166,17 @@ while_statement: WHILE LPAREN expr RPAREN statement {
   $$ = jz_pnode_cons(jz, jz_parse_while, $3, $5);
  }
 
-for_statement
-  : FOR LPAREN opt_expr SEMICOLON
+for_statement: FOR LPAREN first_for_expr SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
     $$ = jz_pnode_list(jz, jz_parse_for, 4, $3, $5, $7, $9);
  }
-  | FOR LPAREN VAR var_decls SEMICOLON
-    opt_expr SEMICOLON opt_expr RPAREN statement {
-    $$ = jz_pnode_list(jz, jz_parse_for, 4, $4, $6, $8, $10);
- }  
+
+first_for_expr: opt_expr { $$ = $1; }
+  | VAR var_decls { $$ = $2; }
 
 opt_expr: expr { $$ = $1; }
   | /* empty */ { $$ = NULL; }
+
 
 switch_statement: SWITCH LPAREN expr RPAREN LCURLY case_block RCURLY {
   $$ = jz_pnode_cons(jz, jz_parse_switch, $3, $6);
@@ -201,34 +204,25 @@ expr: expr_list { $$ = reverse_list(jz, $1); }
 
 expr_list: assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
   | expr_list COMMA assign_expr {
-    $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
+     $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
  }
 
 assign_expr: cond_expr { $$ = $1; }
-  | left_hand_expr EQUALS     assign_expr
-     { $$ = binop_node(jz, jz_op_assign,     $1, $3); }
-  | left_hand_expr TIMES_EQ   assign_expr
-     { $$ = binop_node(jz, jz_op_times_eq,   $1, $3); }
-  | left_hand_expr DIV_EQ     assign_expr
-     { $$ = binop_node(jz, jz_op_div_eq,     $1, $3); }
-  | left_hand_expr MOD_EQ     assign_expr
-     { $$ = binop_node(jz, jz_op_mod_eq,     $1, $3); }
-  | left_hand_expr PLUS_EQ    assign_expr
-     { $$ = binop_node(jz, jz_op_add_eq,     $1, $3); }
-  | left_hand_expr MINUS_EQ   assign_expr
-     { $$ = binop_node(jz, jz_op_sub_eq,     $1, $3); }
-  | left_hand_expr LSHIFT_EQ  assign_expr
-     { $$ = binop_node(jz, jz_op_lshift_eq,  $1, $3); }
-  | left_hand_expr RSHIFT_EQ  assign_expr
-     { $$ = binop_node(jz, jz_op_rshift_eq,  $1, $3); }
-  | left_hand_expr URSHIFT_EQ assign_expr
-     { $$ = binop_node(jz, jz_op_urshift_eq, $1, $3); }
-  | left_hand_expr BW_AND_EQ  assign_expr
-     { $$ = binop_node(jz, jz_op_bw_and_eq,  $1, $3); }
-  | left_hand_expr XOR_EQ     assign_expr
-     { $$ = binop_node(jz, jz_op_xor_eq,     $1, $3); }
-  | left_hand_expr BW_OR_EQ   assign_expr
-     { $$ = binop_node(jz, jz_op_bw_or_eq,   $1, $3); }
+  | left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
+
+assign_expr_op: EQUALS { $$ = jz_op_assign; }
+  | TIMES_EQ   { $$ = jz_op_times_eq; }
+  | DIV_EQ     { $$ = jz_op_div_eq; }
+  | MOD_EQ     { $$ = jz_op_mod_eq; }
+  | PLUS_EQ    { $$ = jz_op_add_eq; }
+  | MINUS_EQ   { $$ = jz_op_sub_eq; }
+  | LSHIFT_EQ  { $$ = jz_op_lshift_eq; }
+  | RSHIFT_EQ  { $$ = jz_op_rshift_eq; }
+  | URSHIFT_EQ { $$ = jz_op_urshift_eq; }
+  | BW_AND_EQ  { $$ = jz_op_bw_and_eq; }
+  | XOR_EQ     { $$ = jz_op_xor_eq; }
+  | BW_OR_EQ   { $$ = jz_op_bw_or_eq; }
+
 
 cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION assign_expr COLON assign_expr {
@@ -251,46 +245,67 @@ bw_and_expr: eq_expr { $$ = $1; }
   | bw_and_expr BW_AND eq_expr { $$ = binop_node(jz, jz_op_bw_and, $1, $3); }
 
 eq_expr: rel_expr { $$ = $1; }
-  | eq_expr EQ_EQ     rel_expr { $$ = binop_node(jz, jz_op_equals,    $1, $3); }
-  | eq_expr STRICT_EQ rel_expr { $$ = binop_node(jz, jz_op_strict_eq, $1, $3); }
-  | eq_expr NOT_EQ    rel_expr {
-    $$ = unop_node(jz, jz_op_not, binop_node(jz, jz_op_equals, $1, $3));
+  | eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
+  | eq_expr neq_expr_op rel_expr {
+    $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
  }
-  | eq_expr NOT_STRICT_EQ rel_expr {
-    $$ = unop_node(jz, jz_op_not, binop_node(jz, jz_op_strict_eq, $1, $3));
- }
+
+eq_expr_op: EQ_EQ { $$ = jz_op_equals; }
+  | STRICT_EQ { $$ = jz_op_strict_eq; }
+
+neq_expr_op: NOT_EQ { $$ = jz_op_equals; }
+  | NOT_STRICT_EQ { $$ = jz_op_strict_eq; }
+
 
 rel_expr: shift_expr { $$ = $1; }
-  | rel_expr LESS_THAN    shift_expr { $$ = binop_node(jz, jz_op_lt,    $1, $3); }
-  | rel_expr GREATER_THAN shift_expr { $$ = binop_node(jz, jz_op_gt,    $1, $3); }
-  | rel_expr LT_EQ        shift_expr { $$ = binop_node(jz, jz_op_lt_eq, $1, $3); }
-  | rel_expr GT_EQ        shift_expr { $$ = binop_node(jz, jz_op_gt_eq, $1, $3); }
+  | rel_expr rel_expr_op shift_expr { $$ = binop_node(jz, $2, $1, $3); }
+
+rel_expr_op: LESS_THAN { $$ = jz_op_lt; }
+  | GREATER_THAN { $$ = jz_op_gt; }
+  | LT_EQ        { $$ = jz_op_lt_eq; }
+  | GT_EQ        { $$ = jz_op_gt_eq; }
+
 
 shift_expr: add_expr { $$ = $1; }
-  | shift_expr LSHIFT  add_expr { $$ = binop_node(jz, jz_op_lshift,  $1, $3); }
-  | shift_expr RSHIFT  add_expr { $$ = binop_node(jz, jz_op_rshift,  $1, $3); }
-  | shift_expr URSHIFT add_expr { $$ = binop_node(jz, jz_op_urshift, $1, $3); }
+  | shift_expr shift_expr_op add_expr { $$ = binop_node(jz, $2, $1, $3); }
+
+shift_expr_op: LSHIFT { $$ = jz_op_lshift; }
+  | RSHIFT  { $$ = jz_op_rshift; }
+  | URSHIFT { $$ = jz_op_urshift; }
+
 
 add_expr: mult_expr { $$ = $1; }
-  | add_expr PLUS  mult_expr { $$ = binop_node(jz, jz_op_add, $1, $3); }
-  | add_expr MINUS mult_expr { $$ = binop_node(jz, jz_op_sub, $1, $3); };
+  | add_expr add_expr_op mult_expr { $$ = binop_node(jz, $2, $1, $3); }
+
+add_expr_op: PLUS { $$ = jz_op_add; }
+  | MINUS { $$ = jz_op_sub; }
+
 
 mult_expr: unary_expr { $$ = $1; }
-  | mult_expr TIMES unary_expr { $$ = binop_node(jz, jz_op_times, $1, $3); }
-  | mult_expr DIV   unary_expr { $$ = binop_node(jz, jz_op_div,   $1, $3); }
-  | mult_expr MOD   unary_expr { $$ = binop_node(jz, jz_op_mod,   $1, $3); };
+  | mult_expr mult_expr_op unary_expr { $$ = binop_node(jz, $2, $1, $3); }
+
+mult_expr_op: TIMES { $$ = jz_op_times; }
+  | DIV { $$ = jz_op_div; }
+  | MOD { $$ = jz_op_mod; }
+
 
 unary_expr: postfix_expr { $$ = $1; }
-  | PLUS        unary_expr { $$ = unop_node(jz, jz_op_add,     $2); }
-  | MINUS       unary_expr { $$ = unop_node(jz, jz_op_sub,     $2); }
-  | BW_NOT      unary_expr { $$ = unop_node(jz, jz_op_bw_not,  $2); }
-  | NOT         unary_expr { $$ = unop_node(jz, jz_op_not,     $2); }
-  | PLUS_PLUS   unary_expr { $$ = unop_node(jz, jz_op_pre_inc, $2); }
-  | MINUS_MINUS unary_expr { $$ = unop_node(jz, jz_op_pre_dec, $2); }
+  | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
+
+unary_expr_op: PLUS { $$ = jz_op_add; }
+  | MINUS       { $$ = jz_op_sub; }
+  | BW_NOT      { $$ = jz_op_bw_not; }
+  | NOT         { $$ = jz_op_not; }
+  | PLUS_PLUS   { $$ = jz_op_pre_inc; }
+  | MINUS_MINUS { $$ = jz_op_pre_dec; }
+
 
 postfix_expr: left_hand_expr   { $$ = $1; }
-  | left_hand_expr PLUS_PLUS   { $$ = unop_node(jz, jz_op_post_inc, $1); }
-  | left_hand_expr MINUS_MINUS { $$ = unop_node(jz, jz_op_post_dec, $1); }
+  | left_hand_expr postfix_expr_op { $$ = unop_node(jz, $2, $1); }
+
+postfix_expr_op: PLUS_PLUS { $$ = jz_op_post_inc; }
+  | MINUS_MINUS { $$ = jz_op_post_dec; }
+
 
 left_hand_expr: new_expr { $$ = $1; }
 new_expr: member_expr { $$ = $1; }
