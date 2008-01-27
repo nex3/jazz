@@ -439,7 +439,7 @@ jz_parse_node* jz_plist_concat(JZ_STATE, jz_parse_node* list1, jz_parse_node* li
 
 jz_parse_node* jz_parse_string(JZ_STATE, const jz_str* code) {
   jz_parse_node* root = NULL;
-  jz_lex_state* state = jz_lex_init(jz, code);
+  jz_lex_state* state = jz_lex_new(jz, code);
   int result = yyparse(jz, &root, state);
 
   free(state);

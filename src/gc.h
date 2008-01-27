@@ -92,4 +92,6 @@ bool jz_gc_step(JZ_STATE);
 
 bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
 
+void jz_gc_init(JZ_STATE);
+
 #endif

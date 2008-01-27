@@ -226,3 +226,16 @@ void finish_cycle(JZ_STATE) {
   jz->gc.threshold = (jz->gc.pause * jz->gc.allocated)/100;
   assert(jz->gc.threshold > 0);
 }
+
+void jz_gc_init(JZ_STATE) {
+  jz->gc.state = jz_gcs_waiting;
+  jz->gc.speed = JZ_GC_DEFAULT_SPEED;
+  jz->gc.pause = JZ_GC_DEFAULT_PAUSE;
+  jz->gc.allocated = 0;
+  jz->gc.threshold = 1;
+  jz->gc.black_bit = false;
+  jz->gc.all_objs = NULL;
+  jz->gc.gray_stack = NULL;
+  jz->gc.prev_sweep_obj = NULL;
+  jz->gc.next_sweep_obj = NULL;
+}
