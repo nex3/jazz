@@ -13,6 +13,8 @@ typedef enum {
   jz_t_undef = 0x00,
   jz_t_num,
   jz_t_bool,
+  /* All type flags past this point
+     must refer to types with jz_gc_header headers. */
   jz_t_str,
   jz_t_str_value,
   jz_t_obj
@@ -21,8 +23,6 @@ typedef enum {
 typedef union {
   double num;
   bool b;
-  /* All types past this point
-     should be pointers to types with jz_gc_header headers. */
   jz_gc_header* gc;
   jz_obj* obj;
   jz_str* str;
