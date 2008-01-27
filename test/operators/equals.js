@@ -1,3 +1,4 @@
+var a = {};
 return ((undefined == undefined) == true) &&
     ((NaN == NaN) == false) &&
     ((NaN == 12) == false) &&
@@ -33,6 +34,12 @@ return ((undefined == undefined) == true) &&
     (null == null) &&
     (null != "foo") &&
     (13 != null) &&
+    ("foo" != {}) &&
+    ("[object Object]" == {}) &&
+    (0 != {}) &&
+    ({} == "[object Object]") &&
+    ({} != {}) &&
+    (a == a) &&
 
     ((undefined != undefined) == false) &&
     ((NaN != NaN) == true) &&

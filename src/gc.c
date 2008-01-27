@@ -12,6 +12,7 @@
   (JZ_GC_TAG(obj) = !jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
 
 static void blacken(JZ_STATE, jz_gc_header* obj);
+static void blacken_obj(JZ_STATE, jz_obj* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
 
@@ -106,7 +107,7 @@ bool jz_gc_step(JZ_STATE) {
 void blacken(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
   case jz_t_obj:
-    fprintf(stderr, "TODO: Garbage collect objects.");
+    blacken_obj(jz, (jz_obj*)obj);
     break;
   case jz_t_str:
     blacken_str(jz, (jz_str*)obj);
@@ -120,6 +121,10 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   }
   /* We don't actually need to blacken the object in this method,
      because it was blackened when it was added to the gray stack. */
+}
+
+void blacken_obj(JZ_STATE, jz_obj* obj) {
+  /* TODO: Implement marking of objects once objects hold references. */
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {

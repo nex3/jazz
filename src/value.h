@@ -33,6 +33,12 @@ typedef struct {
   jz_value value;
 } jz_tvalue;
 
+typedef enum {
+  jz_hint_none,
+  jz_hint_number,
+  jz_hint_string
+} jz_to_primitive_hint;
+
 #define JZ_TVAL_TYPE(value) ((value).tag & 0x0f)
 #define JZ_TVAL_SET_TYPE(value, type) \
   ((value).tag = ((value).tag & !0x0f) | type)
@@ -42,6 +48,9 @@ typedef struct {
 
 #define JZ_TVAL_IS_NULL(val) \
   (JZ_TVAL_TYPE(val) == jz_t_obj && (val).value.obj == NULL)
+
+#define JZ_TVAL_IS_PRIMITIVE(val) \
+  (JZ_TVAL_TYPE(val) != jz_t_obj || JZ_TVAL_IS_NULL(val))
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
@@ -77,6 +86,8 @@ jz_str* jz_to_str(JZ_STATE, jz_tvalue val);
 bool jz_to_bool(JZ_STATE, jz_tvalue val);
 int jz_to_int32(JZ_STATE, jz_tvalue val);
 unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val);
+jz_tvalue jz_to_primitive(JZ_STATE, jz_tvalue val,
+                          jz_to_primitive_hint hint);
 
 double jz_num_mod(JZ_STATE, jz_tvalue val1, jz_tvalue val2);
 jz_str* jz_num_to_str(JZ_STATE, double num);

@@ -19,6 +19,10 @@ return ((NaN < NaN) == false) &&
     ("foo" < "foobar") &&
     (("foo" < "foo") == false) &&
     ("-17" < true) &&
+    (({} < {}) == false) &&
+    (({} > {}) == false) &&
+    ({} <= {}) &&
+    ({} >= {}) &&
 
     ((NaN <= NaN) == false) &&
     ((NaN <= 12) == false) &&
