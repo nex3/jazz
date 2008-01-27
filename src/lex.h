@@ -8,6 +8,7 @@
 
 #include <unicode/ustring.h>
 #include "jazz.h"
+#include "value.h"
 #include "y.tab.h"
 
 typedef struct {

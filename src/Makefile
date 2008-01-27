@@ -40,7 +40,7 @@ gc.h: jazz.h value.h
 vector.h: jazz.h
 value.h: jazz.h
 parse.h: jazz.h value.h
-lex.h: jazz.h y.tab.h
+lex.h: jazz.h value.h y.tab.h
 string.h: jazz.h value.h gc.h
 frame.h: jazz.h compile.h value.h
 compile.h: jazz.h parse.h opcode.h vector.h	

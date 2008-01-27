@@ -53,6 +53,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
   double num;
   char boolean;
   int operation;
+  jz_tvalue tvalue;
   char none;
 }
 
@@ -88,13 +89,14 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
              bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
              unary_expr postfix_expr left_hand_expr new_expr member_expr
-             primary_expr identifier literal number string boolean undefined
-             not_a_number infinity null
-
-%type <boolean> bool_val
+             primary_expr identifier literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
                   add_expr_op mult_expr_op unary_expr_op postfix_expr_op
+
+%type <tvalue> literal_tval
+
+%type <boolean> bool_val
 
 %start program
 
@@ -319,44 +321,18 @@ identifier: IDENTIFIER {
   $$ = jz_pnode_wrap(jz, jz_parse_identifier, jz_str_deep_dup(jz, $1));
  }
 
-literal: number  { $$ = $1; }
-  | string       { $$ = $1; }
-  | boolean      { $$ = $1; }
-  | undefined    { $$ = $1; }
-  | not_a_number { $$ = $1; }
-  | infinity     { $$ = $1; }
-  | null         { $$ = $1; }
+literal: literal_tval { $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, $1)); }
 
-number: NUMBER {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_num(jz, $1)));
- }
-
-string: STRING {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_str(jz, $1)));
- }
-
-boolean: bool_val {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_bool(jz, $1)));
- };
+literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
+| STRING { $$ = jz_wrap_str(jz, $1); }
+| bool_val { $$ = jz_wrap_bool(jz, $1); }
+| UNDEF_VAL { $$ = JZ_UNDEFINED; }
+| NAN_VAL { $$ = jz_wrap_num(jz, JZ_NAN); }
+| INF_VAL { $$ = jz_wrap_num(jz, JZ_INF); }
+| NULL_VAL { $$ = JZ_NULL; }
 
 bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }
-
-undefined: UNDEF_VAL {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, JZ_UNDEFINED));
- }
-
-not_a_number: NAN_VAL {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_num(jz, JZ_NAN)));
- }
-
-infinity: INF_VAL {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_num(jz, JZ_INF)));
- }
-
-null: NULL_VAL {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, JZ_NULL));
- }
 
 %%
 
