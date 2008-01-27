@@ -84,12 +84,20 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              var_decls var_decl_list var_decl
              expr_statement return_statement empty_statement if_statement else
              iter_statement do_while_statement while_statement for_statement first_for_expr
-             opt_expr switch_statement case_block case_block_list case_clauses
-             case_clause default_clause expr expr_list
-             assign_expr cond_expr or_expr and_expr bw_or_expr xor_expr
-             bw_and_expr eq_expr rel_expr shift_expr add_expr mult_expr
-             unary_expr postfix_expr left_hand_expr new_expr member_expr
-             primary_expr identifier literal
+             opt_expr switch_statement case_block case_block_list case_clauses case_clause default_clause
+                  expr      expr_list      assign_expr      cond_expr
+             stmt_expr stmt_expr_list stmt_assign_expr stmt_cond_expr
+                  or_expr      and_expr      bw_or_expr      xor_expr
+             stmt_or_expr stmt_and_expr stmt_bw_or_expr stmt_xor_expr
+                  bw_and_expr      eq_expr      rel_expr      shift_expr
+             stmt_bw_and_expr stmt_eq_expr stmt_rel_expr stmt_shift_expr
+                  add_expr      mult_expr      unary_expr
+             stmt_add_expr stmt_mult_expr stmt_unary_expr
+                  postfix_expr      left_hand_expr      new_expr
+             stmt_postfix_expr stmt_left_hand_expr stmt_new_expr
+                  member_expr      primary_expr
+             stmt_member_expr stmt_primary_expr
+             identifier literal object_literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
                   add_expr_op mult_expr_op unary_expr_op postfix_expr_op
@@ -142,7 +150,7 @@ var_decl: IDENTIFIER {
     $$ = jz_pnode_cons(jz, jz_parse_var, jz_str_deep_dup(jz, $1), $3);
  }
 
-expr_statement: expr SEMICOLON { $$ = $1; }
+expr_statement: stmt_expr SEMICOLON { $$ = $1; }
 
 return_statement: RETURN expr SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, $2); }
   | RETURN SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, NULL); }
@@ -203,14 +211,21 @@ default_clause: DEFAULT COLON statement_list { $$ = jz_pnode_wrap(jz, jz_parse_c
 | DEFAULT COLON { $$ = jz_pnode_wrap(jz, jz_parse_cases, jz_pnode_new(jz, jz_parse_case)); }
 
 expr: expr_list { $$ = reverse_list(jz, $1); }
+stmt_expr: stmt_expr_list { $$ = reverse_list(jz, $1); }
 
 expr_list: assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
   | expr_list COMMA assign_expr {
      $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
  }
+stmt_expr_list: stmt_assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
+  | stmt_expr_list COMMA assign_expr {
+     $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
+ }
 
 assign_expr: cond_expr { $$ = $1; }
   | left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
+stmt_assign_expr: stmt_cond_expr { $$ = $1; }
+  | stmt_left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 assign_expr_op: EQUALS { $$ = jz_op_assign; }
   | TIMES_EQ   { $$ = jz_op_times_eq; }
@@ -230,25 +245,44 @@ cond_expr: or_expr { $$ = $1; }
   | or_expr QUESTION assign_expr COLON assign_expr {
     $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
  }
+stmt_cond_expr: stmt_or_expr { $$ = $1; }
+  | stmt_or_expr QUESTION assign_expr COLON assign_expr {
+    $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
+ }
 
 or_expr: and_expr { $$ = $1; }
   | or_expr OR and_expr { $$ = binop_node(jz, jz_op_or, $1, $3); }
+stmt_or_expr: stmt_and_expr { $$ = $1; }
+  | stmt_or_expr OR and_expr { $$ = binop_node(jz, jz_op_or, $1, $3); }
 
 and_expr: bw_or_expr { $$ = $1; }
   | and_expr AND bw_or_expr { $$ = binop_node(jz, jz_op_and, $1, $3); }
+stmt_and_expr: stmt_bw_or_expr { $$ = $1; }
+  | stmt_and_expr AND bw_or_expr { $$ = binop_node(jz, jz_op_and, $1, $3); }
 
 bw_or_expr: xor_expr { $$ = $1; }
   | bw_or_expr BW_OR xor_expr { $$ = binop_node(jz, jz_op_bw_or, $1, $3); }
+stmt_bw_or_expr: stmt_xor_expr { $$ = $1; }
+  | stmt_bw_or_expr BW_OR xor_expr { $$ = binop_node(jz, jz_op_bw_or, $1, $3); }
 
 xor_expr: bw_and_expr { $$ = $1; }
   | xor_expr XOR bw_and_expr { $$ = binop_node(jz, jz_op_xor, $1, $3); }
+stmt_xor_expr: stmt_bw_and_expr { $$ = $1; }
+  | stmt_xor_expr XOR bw_and_expr { $$ = binop_node(jz, jz_op_xor, $1, $3); }
 
 bw_and_expr: eq_expr { $$ = $1; }
   | bw_and_expr BW_AND eq_expr { $$ = binop_node(jz, jz_op_bw_and, $1, $3); }
+stmt_bw_and_expr: stmt_eq_expr { $$ = $1; }
+  | stmt_bw_and_expr BW_AND eq_expr { $$ = binop_node(jz, jz_op_bw_and, $1, $3); }
 
 eq_expr: rel_expr { $$ = $1; }
   | eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
   | eq_expr neq_expr_op rel_expr {
+    $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
+ }
+stmt_eq_expr: stmt_rel_expr { $$ = $1; }
+  | stmt_eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
+  | stmt_eq_expr neq_expr_op rel_expr {
     $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
  }
 
@@ -261,6 +295,8 @@ neq_expr_op: NOT_EQ { $$ = jz_op_equals; }
 
 rel_expr: shift_expr { $$ = $1; }
   | rel_expr rel_expr_op shift_expr { $$ = binop_node(jz, $2, $1, $3); }
+stmt_rel_expr: stmt_shift_expr { $$ = $1; }
+  | stmt_rel_expr rel_expr_op shift_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 rel_expr_op: LESS_THAN { $$ = jz_op_lt; }
   | GREATER_THAN { $$ = jz_op_gt; }
@@ -270,6 +306,8 @@ rel_expr_op: LESS_THAN { $$ = jz_op_lt; }
 
 shift_expr: add_expr { $$ = $1; }
   | shift_expr shift_expr_op add_expr { $$ = binop_node(jz, $2, $1, $3); }
+stmt_shift_expr: stmt_add_expr { $$ = $1; }
+  | stmt_shift_expr shift_expr_op add_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 shift_expr_op: LSHIFT { $$ = jz_op_lshift; }
   | RSHIFT  { $$ = jz_op_rshift; }
@@ -278,6 +316,8 @@ shift_expr_op: LSHIFT { $$ = jz_op_lshift; }
 
 add_expr: mult_expr { $$ = $1; }
   | add_expr add_expr_op mult_expr { $$ = binop_node(jz, $2, $1, $3); }
+stmt_add_expr: stmt_mult_expr { $$ = $1; }
+  | stmt_add_expr add_expr_op mult_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 add_expr_op: PLUS { $$ = jz_op_add; }
   | MINUS { $$ = jz_op_sub; }
@@ -285,6 +325,8 @@ add_expr_op: PLUS { $$ = jz_op_add; }
 
 mult_expr: unary_expr { $$ = $1; }
   | mult_expr mult_expr_op unary_expr { $$ = binop_node(jz, $2, $1, $3); }
+stmt_mult_expr: stmt_unary_expr { $$ = $1; }
+  | stmt_mult_expr mult_expr_op unary_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 mult_expr_op: TIMES { $$ = jz_op_times; }
   | DIV { $$ = jz_op_div; }
@@ -292,6 +334,8 @@ mult_expr_op: TIMES { $$ = jz_op_times; }
 
 
 unary_expr: postfix_expr { $$ = $1; }
+  | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
+stmt_unary_expr: stmt_postfix_expr { $$ = $1; }
   | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
 
 unary_expr_op: PLUS { $$ = jz_op_add; }
@@ -304,16 +348,25 @@ unary_expr_op: PLUS { $$ = jz_op_add; }
 
 postfix_expr: left_hand_expr   { $$ = $1; }
   | left_hand_expr postfix_expr_op { $$ = unop_node(jz, $2, $1); }
+stmt_postfix_expr: stmt_left_hand_expr   { $$ = $1; }
+  | stmt_left_hand_expr postfix_expr_op { $$ = unop_node(jz, $2, $1); }
 
 postfix_expr_op: PLUS_PLUS { $$ = jz_op_post_inc; }
   | MINUS_MINUS { $$ = jz_op_post_dec; }
 
 
 left_hand_expr: new_expr { $$ = $1; }
-new_expr: member_expr { $$ = $1; }
-member_expr: primary_expr { $$ = $1; }
+stmt_left_hand_expr: stmt_new_expr { $$ = $1; }
 
-primary_expr: identifier { $$ = $1; }
+new_expr: member_expr { $$ = $1; }
+stmt_new_expr: stmt_member_expr { $$ = $1; }
+
+member_expr: primary_expr { $$ = $1; }
+stmt_member_expr: stmt_primary_expr { $$ = $1; }
+
+primary_expr: stmt_primary_expr
+  | object_literal { $$ = $1; }
+stmt_primary_expr: identifier { $$ = $1; }
   | literal { $$ = $1; }
   | LPAREN expr RPAREN { $$ = $2; }
 
@@ -333,6 +386,10 @@ literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
 
 bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }
+
+object_literal: LCURLY RCURLY {
+  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_obj(jz, jz_obj_new(jz))));
+ }
 
 %%
 

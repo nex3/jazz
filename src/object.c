@@ -1,3 +1,5 @@
 #include "object.h"
 
-/* Nothing really here yet. */
+jz_obj* jz_obj_new(JZ_STATE) {
+  return (jz_obj*)jz_gc_malloc(jz, jz_t_obj, sizeof(jz_obj));
+}
