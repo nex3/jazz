@@ -13,6 +13,8 @@
 #define SET_EXT(str) (JZ_GC_UTAG_OR((str), 1))
 #define SET_INT(str) (JZ_GC_UTAG_AND((str), ~1))
 
+#define SET_HASHED(str) (JZ_GC_UTAG_OR((str), 2))
+
 static bool is_whitespace_char(UChar c);
 static jz_str* str_new(JZ_STATE, int start, int length);
 static jz_str_value* val_alloc(JZ_STATE, int length);
@@ -228,4 +230,49 @@ jz_str* jz_str_from_chars(JZ_STATE, const char* value, int length) {
   }
 
   return to_ret;
+}
+
+/* This is based on Paul Hsieh's SuperFastHash.
+   See http://www.azillionmonkeys.com/qed/hash.html.
+
+   TODO: uint32 all around. */
+unsigned int jz_str_hash(JZ_STATE, jz_str* this) {
+  unsigned int len = this->length, hash = this->length, tmp;
+  const UChar* data = JZ_STR_PTR(this);
+
+  if (len == 0)
+    return 0;
+
+  if (JZ_STR_IS_HASHED(this))
+    return this->hash;
+
+  len >>= 1;
+
+  for (; len > 0; len--) {
+    hash  += data[0];
+    tmp    = (data[1] << 11) ^ hash;
+    hash   = (hash << 16) ^ tmp;
+    data  += 2;
+    hash  += hash >> 11;
+  }
+
+  /* Handle odd last character */
+  if (len & 1) {
+    hash += data[0];
+    hash ^= hash << 11;
+    hash += hash >> 17;
+  }
+
+  /* Force "avalanching" of final 127 bits */
+  hash ^= hash << 3;
+  hash += hash >> 5;
+  hash ^= hash << 4;
+  hash += hash >> 17;
+  hash ^= hash << 25;
+  hash += hash >> 6;
+
+  this->hash = hash;
+  SET_HASHED(this);
+
+  return hash;
 }

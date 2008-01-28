@@ -17,6 +17,7 @@ struct jz_str {
   jz_gc_header gc;
   int start;
   int length;
+  unsigned int hash; /* TODO: uint32 */
   union {
     const UChar* ext;
     jz_str_value* val;
@@ -25,6 +26,8 @@ struct jz_str {
 
 #define JZ_STR_IS_EXT(str) (JZ_GC_UTAG(str) & 1)
 #define JZ_STR_IS_INT(str) (!JZ_STR_IS_EXT(str))
+
+#define JZ_STR_IS_HASHED(str) (JZ_GC_UTAG(str) & 2)
 
 #define JZ_STR_PTR(string)                              \
   ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \
