@@ -13,6 +13,8 @@
 #define SET_EXT(str) (JZ_GC_UTAG_OR((str), 1))
 #define SET_INT(str) (JZ_GC_UTAG_AND((str), ~1))
 
+#define SET_HASHED(str) (JZ_GC_UTAG_AND((str), 2))
+
 static bool is_whitespace_char(UChar c);
 static jz_str* str_new(JZ_STATE, int start, int length);
 static jz_str_value* val_alloc(JZ_STATE, int length);
@@ -228,4 +230,66 @@ jz_str* jz_str_from_chars(JZ_STATE, const char* value, int length) {
   }
 
   return to_ret;
+}
+
+/* This is based heavily on Bob Jenkins' universal hash code,
+   available in the public domain at
+   http://www.burtleburtle.net/bob/hash/doobs.html.
+
+   TODO: Make this use jz_uint32 when it exists. */
+
+/* If we really want to optimize this,
+   we could put the literal table values in here,
+   but that would bloat the code.
+   Worth testing later on. */
+#define TWIDDLE_HASH(ch, hash, table) {         \
+    if (ch & 0x01)   hash ^= table[i + 0];      \
+    if (ch & 0x02)   hash ^= table[i + 1];      \
+    if (ch & 0x04)   hash ^= table[i + 2];      \
+    if (ch & 0x08)   hash ^= table[i + 3];      \
+    if (ch & 0x10)   hash ^= table[i + 4];      \
+    if (ch & 0x20)   hash ^= table[i + 5];      \
+    if (ch & 0x40)   hash ^= table[i + 6];      \
+    if (ch & 0x80)   hash ^= table[i + 7];      \
+    if (ch & 0x100)  hash ^= table[i + 0];      \
+    if (ch & 0x200)  hash ^= table[i + 1];      \
+    if (ch & 0x400)  hash ^= table[i + 2];      \
+    if (ch & 0x800)  hash ^= table[i + 3];      \
+    if (ch & 0x1000) hash ^= table[i + 4];      \
+    if (ch & 0x2000) hash ^= table[i + 5];      \
+    if (ch & 0x4000) hash ^= table[i + 6];      \
+    if (ch & 0x8000) hash ^= table[i + 7];      \
+  }
+
+const unsigned int uhash_table1[16] = {
+  0x1b8f81ba, 0x35bf02eb, 0x320f8b96, 0xf002bcd6, 0x697a01cd, 0x1558ebcc,
+  0x83b0ed10, 0x5fe7ca65, 0x64ed00d4, 0x688a2bd, 0x515b4bd0, 0xa8b27d90,
+  0x1c4278d6, 0xe9fd6745, 0x4e42dd21, 0xcb012ef8
+};
+
+const unsigned int uhash_table2[16] = {
+  0x31470ff7, 0xb2ff6c3e, 0xc5ca2ba9, 0x93f84faa, 0x82148f0d, 0x458bf77c,
+  0x53ec7216, 0xbf34800e, 0x42144502, 0xa3653def, 0xc0372859, 0xf466a9bd,
+  0x5e6b0f5f, 0x20f8199b, 0x1162070a, 0x6fb2d2f4
+};
+
+void jz_str_compute_hashes(JZ_STATE, jz_str* this) {
+  int length = this->length;
+  unsigned int hash1 = length;
+  unsigned int hash2 = length;
+  const UChar* str = JZ_STR_PTR(this);
+  ptrdiff_t i;
+
+  if (JZ_STR_IS_HASHED(this))
+    return;
+
+  for (i = 0; i < (length << 3); i += 8)
+  {
+    register UChar ch = str[i >> 3];
+    TWIDDLE_HASH(ch, hash1, uhash_table1);
+    TWIDDLE_HASH(ch, hash2, uhash_table2);
+  }
+
+  this->hash1 = hash1;
+  this->hash2 = hash2;
 }
