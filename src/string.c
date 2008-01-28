@@ -144,7 +144,11 @@ jz_str* jz_str_concat(JZ_STATE, const jz_str* s1, const jz_str* s2) {
 }
 
 bool jz_str_equal(JZ_STATE, const jz_str* s1, const jz_str* s2) {
-  if (s1->length != s2->length) return false;
+  if (s1->length != s2->length)
+    return false;
+  if (JZ_STR_IS_HASHED(s1) && JZ_STR_IS_HASHED(s2) &&
+      (s1->hash1 != s2->hash1 || s1->hash2 != s2->hash2))
+    return false;
 
   return u_strncmp(JZ_STR_PTR(s1), JZ_STR_PTR(s2), s1->length) == 0;
 }
