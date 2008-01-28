@@ -29,6 +29,11 @@ typedef union {
 } jz_value;
 
 typedef struct {
+  /* The lower four bits of the tag field define the type of the value.
+     The upper four bits are used as property flags
+     when storing the value in an object.
+     The value of these flags is undefined
+     unless otherwise specified by the function returning the tvalue.*/
   unsigned char tag;
   jz_value value;
 } jz_tvalue;
