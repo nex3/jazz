@@ -95,6 +95,8 @@ int jz_str_comp(JZ_STATE, const jz_str* s1, const jz_str* s2);
 
 double jz_str_to_num(JZ_STATE, const jz_str* this);
 
+unsigned int jz_str_hash(JZ_STATE, jz_str* this);
+
 /* Returns a newly allocated character array containing 'this'
    transcoded into UTF-8. */
 char* jz_str_to_chars(JZ_STATE, const jz_str* this);
