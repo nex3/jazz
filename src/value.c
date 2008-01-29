@@ -148,6 +148,23 @@ jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
   }
 }
 
+jz_obj* jz_to_obj(JZ_STATE, jz_tvalue val) {
+  switch (JZ_TVAL_TYPE(val)) {
+  case jz_t_obj:
+    if (!JZ_TVAL_IS_NULL(val))
+      return val.value.obj;
+    fprintf(stderr, "TypeError: Can't convert `null' to object");
+    exit(1);
+  case jz_t_undef:
+    fprintf(stderr, "TypeError: Can't convert `undefined' to object");
+    exit(1);
+  default:
+    fprintf(stderr, "ToObject not implemented for jz_tvalue type %d\n",
+            JZ_TVAL_TYPE(val));
+    exit(1);
+  }
+}
+
 bool jz_to_bool(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_t_bool: return val.value.b;

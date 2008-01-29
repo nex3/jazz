@@ -181,7 +181,8 @@ typedef enum {
   jz_op_pre_inc,
   jz_op_pre_dec,
   jz_op_post_inc,
-  jz_op_post_dec
+  jz_op_post_dec,
+  jz_op_index
 } jz_op_type;
 
 typedef struct jz_parse_node jz_parse_node;

@@ -117,16 +117,10 @@ source_elements: source_element_list { $$ = reverse_list(jz, $1); }
 source_element_list: source_element { $$ = jz_pnode_wrap(jz, jz_parse_statements, $1); }
   | source_element_list source_element { $$ = jz_pnode_cons(jz, jz_parse_statements, $2, $1); }
 
-source_element: statement { $$ = $1; }
+source_element: statement
 
-statement: block     { $$ = $1; }
-  | expr_statement   { $$ = $1; }
-  | var_statement    { $$ = $1; }
-  | empty_statement  { $$ = $1; }
-  | return_statement { $$ = $1; }
-  | if_statement     { $$ = $1; }
-  | iter_statement   { $$ = $1; }
-  | switch_statement { $$ = $1; }
+statement: block | expr_statement | var_statement | empty_statement
+  | return_statement | if_statement | iter_statement  | switch_statement
 
 block: LCURLY statements RCURLY { $$ = $2; }
   | LCURLY RCURLY { $$ = jz_pnode_new(jz, jz_parse_empty); }
@@ -150,7 +144,7 @@ var_decl: IDENTIFIER {
     $$ = jz_pnode_cons(jz, jz_parse_var, jz_str_deep_dup(jz, $1), $3);
  }
 
-expr_statement: stmt_expr SEMICOLON { $$ = $1; }
+expr_statement: stmt_expr SEMICOLON
 
 return_statement: RETURN expr SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, $2); }
   | RETURN SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, NULL); }
@@ -164,9 +158,7 @@ if_statement: IF LPAREN expr RPAREN statement else {
 else: ELSE statement { $$ = $2; }
   | /* empty */ { $$ = NULL; }
 
-iter_statement: do_while_statement { $$ = $1; }
-  | while_statement { $$ = $1; }
-  | for_statement { $$ = $1; }
+iter_statement: do_while_statement | while_statement | for_statement
 
 do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
   $$ = jz_pnode_cons(jz, jz_parse_do_while, $5, $2);
@@ -181,10 +173,10 @@ for_statement: FOR LPAREN first_for_expr SEMICOLON
     $$ = jz_pnode_list(jz, jz_parse_for, 4, $3, $5, $7, $9);
  }
 
-first_for_expr: opt_expr { $$ = $1; }
+first_for_expr: opt_expr
   | VAR var_decls { $$ = $2; }
 
-opt_expr: expr { $$ = $1; }
+opt_expr: expr
   | /* empty */ { $$ = NULL; }
 
 
@@ -194,8 +186,7 @@ switch_statement: SWITCH LPAREN expr RPAREN LCURLY case_block RCURLY {
 
 case_block: case_block_list { $$ = reverse_list(jz, $1); }
 
-case_block_list: case_clauses { $$ = $1; }
-  | default_clause { $$ = $1; }
+case_block_list: case_clauses | default_clause
   | case_clauses default_clause { $$ = jz_plist_concat(jz, $2, $1); }
   | default_clause case_clauses { $$ = jz_plist_concat(jz, $2, $1); }
   | case_clauses default_clause case_clauses { $$ = jz_plist_concat(jz, jz_plist_concat(jz, $3, $2), $1); }
@@ -222,9 +213,9 @@ stmt_expr_list: stmt_assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
      $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
  }
 
-assign_expr: cond_expr { $$ = $1; }
+assign_expr: cond_expr
   | left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
-stmt_assign_expr: stmt_cond_expr { $$ = $1; }
+stmt_assign_expr: stmt_cond_expr
   | stmt_left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 assign_expr_op: EQUALS { $$ = jz_op_assign; }
@@ -241,46 +232,46 @@ assign_expr_op: EQUALS { $$ = jz_op_assign; }
   | BW_OR_EQ   { $$ = jz_op_bw_or_eq; }
 
 
-cond_expr: or_expr { $$ = $1; }
+cond_expr: or_expr
   | or_expr QUESTION assign_expr COLON assign_expr {
     $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
  }
-stmt_cond_expr: stmt_or_expr { $$ = $1; }
+stmt_cond_expr: stmt_or_expr
   | stmt_or_expr QUESTION assign_expr COLON assign_expr {
     $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
  }
 
-or_expr: and_expr { $$ = $1; }
+or_expr: and_expr
   | or_expr OR and_expr { $$ = binop_node(jz, jz_op_or, $1, $3); }
-stmt_or_expr: stmt_and_expr { $$ = $1; }
+stmt_or_expr: stmt_and_expr
   | stmt_or_expr OR and_expr { $$ = binop_node(jz, jz_op_or, $1, $3); }
 
-and_expr: bw_or_expr { $$ = $1; }
+and_expr: bw_or_expr
   | and_expr AND bw_or_expr { $$ = binop_node(jz, jz_op_and, $1, $3); }
-stmt_and_expr: stmt_bw_or_expr { $$ = $1; }
+stmt_and_expr: stmt_bw_or_expr
   | stmt_and_expr AND bw_or_expr { $$ = binop_node(jz, jz_op_and, $1, $3); }
 
-bw_or_expr: xor_expr { $$ = $1; }
+bw_or_expr: xor_expr
   | bw_or_expr BW_OR xor_expr { $$ = binop_node(jz, jz_op_bw_or, $1, $3); }
-stmt_bw_or_expr: stmt_xor_expr { $$ = $1; }
+stmt_bw_or_expr: stmt_xor_expr
   | stmt_bw_or_expr BW_OR xor_expr { $$ = binop_node(jz, jz_op_bw_or, $1, $3); }
 
-xor_expr: bw_and_expr { $$ = $1; }
+xor_expr: bw_and_expr
   | xor_expr XOR bw_and_expr { $$ = binop_node(jz, jz_op_xor, $1, $3); }
-stmt_xor_expr: stmt_bw_and_expr { $$ = $1; }
+stmt_xor_expr: stmt_bw_and_expr
   | stmt_xor_expr XOR bw_and_expr { $$ = binop_node(jz, jz_op_xor, $1, $3); }
 
-bw_and_expr: eq_expr { $$ = $1; }
+bw_and_expr: eq_expr
   | bw_and_expr BW_AND eq_expr { $$ = binop_node(jz, jz_op_bw_and, $1, $3); }
-stmt_bw_and_expr: stmt_eq_expr { $$ = $1; }
+stmt_bw_and_expr: stmt_eq_expr
   | stmt_bw_and_expr BW_AND eq_expr { $$ = binop_node(jz, jz_op_bw_and, $1, $3); }
 
-eq_expr: rel_expr { $$ = $1; }
+eq_expr: rel_expr
   | eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
   | eq_expr neq_expr_op rel_expr {
     $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
  }
-stmt_eq_expr: stmt_rel_expr { $$ = $1; }
+stmt_eq_expr: stmt_rel_expr
   | stmt_eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
   | stmt_eq_expr neq_expr_op rel_expr {
     $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
@@ -293,9 +284,9 @@ neq_expr_op: NOT_EQ { $$ = jz_op_equals; }
   | NOT_STRICT_EQ { $$ = jz_op_strict_eq; }
 
 
-rel_expr: shift_expr { $$ = $1; }
+rel_expr: shift_expr
   | rel_expr rel_expr_op shift_expr { $$ = binop_node(jz, $2, $1, $3); }
-stmt_rel_expr: stmt_shift_expr { $$ = $1; }
+stmt_rel_expr: stmt_shift_expr
   | stmt_rel_expr rel_expr_op shift_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 rel_expr_op: LESS_THAN { $$ = jz_op_lt; }
@@ -304,9 +295,9 @@ rel_expr_op: LESS_THAN { $$ = jz_op_lt; }
   | GT_EQ        { $$ = jz_op_gt_eq; }
 
 
-shift_expr: add_expr { $$ = $1; }
+shift_expr: add_expr
   | shift_expr shift_expr_op add_expr { $$ = binop_node(jz, $2, $1, $3); }
-stmt_shift_expr: stmt_add_expr { $$ = $1; }
+stmt_shift_expr: stmt_add_expr
   | stmt_shift_expr shift_expr_op add_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 shift_expr_op: LSHIFT { $$ = jz_op_lshift; }
@@ -314,18 +305,18 @@ shift_expr_op: LSHIFT { $$ = jz_op_lshift; }
   | URSHIFT { $$ = jz_op_urshift; }
 
 
-add_expr: mult_expr { $$ = $1; }
+add_expr: mult_expr
   | add_expr add_expr_op mult_expr { $$ = binop_node(jz, $2, $1, $3); }
-stmt_add_expr: stmt_mult_expr { $$ = $1; }
+stmt_add_expr: stmt_mult_expr
   | stmt_add_expr add_expr_op mult_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 add_expr_op: PLUS { $$ = jz_op_add; }
   | MINUS { $$ = jz_op_sub; }
 
 
-mult_expr: unary_expr { $$ = $1; }
+mult_expr: unary_expr
   | mult_expr mult_expr_op unary_expr { $$ = binop_node(jz, $2, $1, $3); }
-stmt_mult_expr: stmt_unary_expr { $$ = $1; }
+stmt_mult_expr: stmt_unary_expr
   | stmt_mult_expr mult_expr_op unary_expr { $$ = binop_node(jz, $2, $1, $3); }
 
 mult_expr_op: TIMES { $$ = jz_op_times; }
@@ -333,9 +324,9 @@ mult_expr_op: TIMES { $$ = jz_op_times; }
   | MOD { $$ = jz_op_mod; }
 
 
-unary_expr: postfix_expr { $$ = $1; }
+unary_expr: postfix_expr
   | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
-stmt_unary_expr: stmt_postfix_expr { $$ = $1; }
+stmt_unary_expr: stmt_postfix_expr
   | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
 
 unary_expr_op: PLUS { $$ = jz_op_add; }
@@ -346,28 +337,28 @@ unary_expr_op: PLUS { $$ = jz_op_add; }
   | MINUS_MINUS { $$ = jz_op_pre_dec; }
 
 
-postfix_expr: left_hand_expr   { $$ = $1; }
+postfix_expr: left_hand_expr
   | left_hand_expr postfix_expr_op { $$ = unop_node(jz, $2, $1); }
-stmt_postfix_expr: stmt_left_hand_expr   { $$ = $1; }
+stmt_postfix_expr: stmt_left_hand_expr
   | stmt_left_hand_expr postfix_expr_op { $$ = unop_node(jz, $2, $1); }
 
 postfix_expr_op: PLUS_PLUS { $$ = jz_op_post_inc; }
   | MINUS_MINUS { $$ = jz_op_post_dec; }
 
 
-left_hand_expr: new_expr { $$ = $1; }
-stmt_left_hand_expr: stmt_new_expr { $$ = $1; }
+left_hand_expr: new_expr
+stmt_left_hand_expr: stmt_new_expr
 
-new_expr: member_expr { $$ = $1; }
-stmt_new_expr: stmt_member_expr { $$ = $1; }
+new_expr: member_expr
+stmt_new_expr: stmt_member_expr
 
-member_expr: primary_expr { $$ = $1; }
-stmt_member_expr: stmt_primary_expr { $$ = $1; }
+member_expr: primary_expr
+  | member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
+stmt_member_expr: stmt_primary_expr
+  | stmt_member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
 
-primary_expr: stmt_primary_expr
-  | object_literal { $$ = $1; }
-stmt_primary_expr: identifier { $$ = $1; }
-  | literal { $$ = $1; }
+primary_expr: stmt_primary_expr | object_literal
+stmt_primary_expr: identifier | literal
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {

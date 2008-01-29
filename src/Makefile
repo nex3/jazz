@@ -24,7 +24,7 @@ main.o: main.c state.h string.h parse.h compile.h vm.h
 
 value.o: value.c value.h string.h object.h
 compile.o: compile.c compile.h string.h
-vm.o: vm.c vm.h frame.h state.h string.h gc.h Makefile
+vm.o: vm.c vm.h frame.h state.h string.h gc.h object.h Makefile
 lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h gc.h state.h
 state.o: state.c state.h

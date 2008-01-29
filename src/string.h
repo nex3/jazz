@@ -17,8 +17,7 @@ struct jz_str {
   jz_gc_header gc;
   int start;
   int length;
-  unsigned int hash1;
-  unsigned int hash2;
+  unsigned int hash; /* TODO: uint32 */
   union {
     const UChar* ext;
     jz_str_value* val;
@@ -36,13 +35,6 @@ struct jz_str {
 
 #define JZ_STR_INT_PTR(string) \
   (assert(!JZ_STR_IS_EXT(string)), (string)->value.val->str + (string)->start)
-
-#define JZ_STR_HASH1(jz, string)                        \
-  (JZ_STR_IS_HASHED(this) ?                             \
-   jz_str_compute_hashes(jz, this) : 0, (this)->hash1)
-#define JZ_STR_HASH2(jz, string)                        \
-  (JZ_STR_IS_HASHED(this) ?                             \
-   jz_str_compute_hashes(jz, this) : 0, (this)->hash2)
 
 /* Creates a new jz_str* from external string data.
    This is shallow,
@@ -103,6 +95,8 @@ int jz_str_comp(JZ_STATE, const jz_str* s1, const jz_str* s2);
 
 double jz_str_to_num(JZ_STATE, const jz_str* this);
 
+unsigned int jz_str_hash(JZ_STATE, jz_str* this);
+
 /* Returns a newly allocated character array containing 'this'
    transcoded into UTF-8. */
 char* jz_str_to_chars(JZ_STATE, const jz_str* this);
@@ -111,7 +105,5 @@ char* jz_str_to_chars(JZ_STATE, const jz_str* this);
   jz_str_from_chars(jz, value, sizeof(value) - 1)
 
 jz_str* jz_str_from_chars(JZ_STATE, const char* value, int length);
-
-void jz_str_compute_hashes(JZ_STATE, jz_str* this);
 
 #endif
