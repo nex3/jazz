@@ -353,7 +353,9 @@ new_expr: member_expr
 stmt_new_expr: stmt_member_expr
 
 member_expr: primary_expr
+  | member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
 stmt_member_expr: stmt_primary_expr
+  | stmt_member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
 
 primary_expr: stmt_primary_expr | object_literal
 stmt_primary_expr: identifier | literal

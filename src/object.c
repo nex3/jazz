@@ -41,6 +41,7 @@ jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
   return cell->value;
 }
 
+/* TODO: Write-barrier this */
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
   jz_obj_cell* cell;
 

@@ -88,6 +88,7 @@ jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
 
 double jz_to_num(JZ_STATE, jz_tvalue val);
 jz_str* jz_to_str(JZ_STATE, jz_tvalue val);
+jz_obj* jz_to_obj(JZ_STATE, jz_tvalue val);
 bool jz_to_bool(JZ_STATE, jz_tvalue val);
 int jz_to_int32(JZ_STATE, jz_tvalue val);
 unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val);

@@ -46,6 +46,9 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 #define PUSH_ARG(arg) \
   push_multibyte_arg(jz, state, &(arg), sizeof(arg)/sizeof(jz_opcode))
 
+#define IS_INDEX_OP(node) \
+  ((node)->type == jz_parse_binop && *CAR(node).op_type == jz_op_index)
+
 static jz_tvalue* consts_to_array(STATE);
 
 static void compile_statements(STATE, jz_parse_node* node);
@@ -630,6 +633,8 @@ void compile_binop(STATE, jz_parse_node* node) {
   ASSIGN_BINOP_CASE(xor)
   ASSIGN_BINOP_CASE(bw_or)
 
+  SIMPLE_BINOP_CASE(index)
+
   default:
     fprintf(stderr, "Unknown operator %d\n", *CAR(node).op_type);
     exit(1);
@@ -663,40 +668,65 @@ void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op) {
 
   compile_expr(jz, state, CDDR(node).node);
   right_cap = state->stack_length;
-  PUSH_OPCODE(op);
+
+  if (op != jz_oc_noop)
+    PUSH_OPCODE(op);
 
   state->stack_length = MAX(left_cap, right_cap + 1);
 }
 
 void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op) {
+  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* right = CDDR(node).node;
   lvar_node* var;
 
-  if (CDAR(node).node->type != jz_parse_identifier) {
-    fprintf(stderr, "Illegal left-hand side of assignment.\n");
-    exit(1);
-  }
+  if (left->type == jz_parse_identifier) {
+    /* Noop signals that this is just a plain assignment.
+       Otherwise we want to run an operation before assigning. */
+    if (op == jz_oc_noop) {
+      var = get_lvar(jz, state, CAR(left).str);
+      compile_expr(jz, state, right);
+    } else {
+      var = compile_identifier(jz, state, left);
+      compile_expr(jz, state, right);
+      PUSH_OPCODE(op);
+    }
 
-  /* Noop signals that this is just a plain assignment.
-     Otherwise we want to run an operation before assigning. */
-  if (op != jz_oc_noop) {
-    var = compile_identifier(jz, state, CDAR(node).node);
-    compile_expr(jz, state, CDDR(node).node);
-    PUSH_OPCODE(op);
+    if (var == NULL) {
+      fprintf(stderr, "Undefined identifier \"%s\"\n",
+              jz_str_to_chars(jz, CAR(left).str));
+      exit(1);
+    }
+
+    state->stack_length++;
+    PUSH_OPCODE(jz_oc_dup);
+    PUSH_OPCODE(jz_oc_store);
+    PUSH_ARG(var->index);
+  } else if (IS_INDEX_OP(left)) {
+    /* Noop signals that this is just a plain assignment.
+       Otherwise we want to run an operation before assigning. */
+    if (op == jz_oc_noop) {
+      int left_cap, right_cap;
+
+      /* Set up target and index on stack */
+      compile_simple_binop(jz, state, left, jz_oc_noop);
+      left_cap = state->stack_length;
+
+      compile_expr(jz, state, right);
+      right_cap = state->stack_length;
+
+      /* PUSH_OPCODE(jz_oc_dup); */
+      PUSH_OPCODE(jz_oc_index_store);
+
+      state->stack_length = MAX(left_cap, right_cap + 3);
+    } else {
+      fprintf(stderr, "Op-assigns not yet supported for properties.\n");
+      exit(1);
+    }
   } else {
-    var = get_lvar(jz, state, CDAAR(node).str);
-    compile_expr(jz, state, CDDR(node).node);
-  }
-
-  if (var == NULL) {
-    fprintf(stderr, "Undefined identifier \"%s\"\n",
-            jz_str_to_chars(jz, CDAAR(node).str));
+    fprintf(stderr, "Invalid left-hand side of assignment.\n");
     exit(1);
   }
-
-  state->stack_length++;
-  PUSH_OPCODE(jz_oc_dup);
-  PUSH_OPCODE(jz_oc_store);
-  PUSH_ARG(var->index);
 }
 
 void compile_triop(STATE, jz_parse_node* node) {
