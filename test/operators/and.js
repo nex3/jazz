@@ -1,3 +1,4 @@
+12 && 13;
 return ((true && true) == true) &&
     ((true && false) == false) &&
     ((false && true) == false) &&
