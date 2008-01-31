@@ -35,4 +35,6 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val);
 jz_tvalue jz_obj_to_str(JZ_STATE, jz_obj* obj);
 jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj);
 
+void jz_obj_free(JZ_STATE, jz_obj* obj);
+
 #endif

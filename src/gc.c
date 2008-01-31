@@ -21,6 +21,7 @@ static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
 static void mark_step(JZ_STATE);
 static bool sweep_step(JZ_STATE);
+static void gc_free(JZ_STATE, jz_gc_header* obj);
 
 static void finish_cycle(JZ_STATE);
 
@@ -206,7 +207,7 @@ bool sweep_step(JZ_STATE) {
 
     if (jz_gc_is_black(jz, next)) {
       jz->gc.all_objs = next->next;
-      free(next);
+      gc_free(jz, next);
       return false;
     }
   }
@@ -216,7 +217,7 @@ bool sweep_step(JZ_STATE) {
       continue;
 
     prev->next = next->next;
-    free(next);
+    gc_free(jz, next);
 
     jz->gc.prev_sweep_obj = prev;
     jz->gc.next_sweep_obj = prev->next;
@@ -228,6 +229,16 @@ bool sweep_step(JZ_STATE) {
   finish_cycle(jz);
 
   return true;
+}
+
+void gc_free(JZ_STATE, jz_gc_header* obj) {
+  switch (JZ_GC_TYPE(obj)) {
+  case jz_t_obj:
+    jz_obj_free(jz, (jz_obj*)obj);
+    return;
+  default:
+    free(obj);
+  }
 }
 
 void finish_cycle(JZ_STATE) {

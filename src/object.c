@@ -106,3 +106,8 @@ jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj) {
   /* TODO: Replace calls to this with actual calls to toString(). */
   return jz_wrap_obj(jz, obj);
 }
+
+void jz_obj_free(JZ_STATE, jz_obj* obj) {
+  free(obj->table);
+  free(obj);
+}
