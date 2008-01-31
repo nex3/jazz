@@ -2,6 +2,7 @@ var a = NaN + 1;
 var b = 1 + NaN;
 var c = NaN + NaN;
 var d = Infinity + -Infinity;
+1 + 1;
 return ((1 + 1) == 2) &&
     ((1.6 + 5) == 6.6) &&
     ((5 + -2) == 3) &&
