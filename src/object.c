@@ -1,10 +1,10 @@
+#include <stdio.h>
 #include <assert.h>
 
 #include "object.h"
 #include "string.h"
-
-#define EMPTY_KEY   ((jz_str*)0)
-#define REMOVED_KEY ((jz_str*)1)
+#include "gc.h"
+#include "state.h"
 
 #define MASK(obj, hash) ((hash) & ((obj)->capacity - 1))
 
@@ -28,7 +28,7 @@ jz_obj* jz_obj_new(JZ_STATE) {
   this->capacity = 1 << DEFAULT_ORDER;
   this->order = DEFAULT_ORDER;
   this->size = 0;
-  this->table = calloc(sizeof(jz_tvalue), 1 << DEFAULT_ORDER);
+  this->table = calloc(sizeof(jz_obj_cell), this->capacity);
   return this;
 }
 
@@ -41,9 +41,11 @@ jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
   return cell->value;
 }
 
-/* TODO: Write-barrier this */
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
   jz_obj_cell* cell;
+
+  JZ_GC_WRITE_BARRIER(jz, this, key);
+  JZ_GC_WRITE_BARRIER_VAL(jz, this, val);
 
   this->size++;
   if ((this->size * 100)/this->capacity > LOAD_CAPACITY)
@@ -52,6 +54,7 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
   cell = get_cell(jz, this, key, true);
 
   cell->value = val;
+  cell->key = key;
 }
 
 jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
@@ -63,15 +66,18 @@ jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
   hash = MASK(this, hash);
   cell = this->table + hash;
 
-  for (; cell->key != EMPTY_KEY; cell++) {
-    if (cell == this->table + this->capacity)
-      cell = this->table;
-
+  for (; cell->key != JZ_OBJ_EMPTY_KEY; cell++) {
     if (removed) {
-      if (cell->key == REMOVED_KEY)
+      if (cell->key == JZ_OBJ_REMOVED_KEY)
         return cell;
-    } else if (jz_str_equal(jz, cell->key, key))
+    }
+
+    if (jz_str_equal(jz, cell->key, key))
       return cell;
+
+    /* Wrap around */
+    if (cell == this->table + this->capacity - 1)
+      cell = this->table;
   }
 
   return cell;
@@ -81,12 +87,12 @@ void grow(JZ_STATE, jz_obj* this) {
   jz_obj_cell* old_table = this->table;
   jz_obj_cell* old_table_end = this->table + this->capacity;
 
-  this->order <<= ORDER_INCREMENT;
+  this->order += ORDER_INCREMENT;
   this->capacity = 1 << this->order;
   this->table = calloc(sizeof(jz_obj_cell), this->capacity);
 
   for (; old_table < old_table_end; old_table++) {
-    if (old_table->key != EMPTY_KEY && old_table->key != REMOVED_KEY)
+    if (old_table->key != JZ_OBJ_EMPTY_KEY && old_table->key != JZ_OBJ_REMOVED_KEY)
       jz_obj_put(jz, this, old_table->key, old_table->value);
   }
 }

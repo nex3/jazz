@@ -93,8 +93,10 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     }
 
     case jz_oc_index_store: {
+
       jz_obj_put(jz, jz_to_obj(jz, stack[-3]),
                  jz_to_str(jz, stack[-2]), stack[-1]);
+
       stack -= 3;
       break;
     }
@@ -349,6 +351,10 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_dup:
       name = "dup";
+      break;
+
+    case jz_oc_dup2:
+      name = "dup2";
       break;
 
     case jz_oc_rot4:

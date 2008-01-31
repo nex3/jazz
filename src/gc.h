@@ -71,9 +71,16 @@ typedef enum {
 
 #define JZ_GC_WRITE_BARRIER(jz, referrer, reference)            \
   ((jz_gc_write_barrier_active(jz) &&                           \
-    jz_gc_is_black(jz, (jz_gc_header*)(reference)) &&            \
-    jz_gc_is_white(jz, (jz_gc_header*)(referrer))) ?           \
+    jz_gc_is_black(jz, (jz_gc_header*)(referrer)) &&            \
+    jz_gc_is_white(jz, (jz_gc_header*)(reference))) ?           \
    jz_gc_mark_gray(jz, (jz_gc_header*)(reference)) : false)
+
+#define JZ_GC_WRITE_BARRIER_VAL(jz, referrer, val) {    \
+    if (JZ_TVAL_CAN_BE_GCED(val)) {                     \
+      jz_gc_header* obj = (val).value.gc;               \
+      JZ_GC_WRITE_BARRIER((jz), referrer, obj);         \
+    }                                                   \
+  }
 
 jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size);
 jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,

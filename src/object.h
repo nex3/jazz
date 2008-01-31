@@ -21,6 +21,9 @@ struct jz_obj {
   jz_obj_cell* table;
 };
 
+#define JZ_OBJ_EMPTY_KEY   ((jz_str*)0)
+#define JZ_OBJ_REMOVED_KEY ((jz_str*)1)
+
 jz_obj* jz_obj_new(JZ_STATE);
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key);

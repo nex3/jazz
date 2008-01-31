@@ -5,6 +5,7 @@
 #include "gc.h"
 #include "state.h"
 #include "string.h"
+#include "object.h"
 
 #define MARK_BLACK(obj) \
   (JZ_GC_TAG(obj) = jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
@@ -124,7 +125,17 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
 }
 
 void blacken_obj(JZ_STATE, jz_obj* obj) {
-  /* TODO: Implement marking of objects once objects hold references. */
+  int i;
+
+  for (i = 0; i < obj->capacity; i++) {
+    jz_obj_cell* cell = obj->table + i;
+
+    if (cell->key == JZ_OBJ_EMPTY_KEY || cell->key == JZ_OBJ_REMOVED_KEY)
+      continue;
+
+    jz_gc_mark_gray(jz, &cell->key->gc);
+    JZ_GC_MARK_VAL_GRAY(jz, cell->value);
+  }
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
