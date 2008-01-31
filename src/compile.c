@@ -74,8 +74,10 @@ static void compile_unit_shortcut(STATE, jz_parse_node* node,
 static void compile_binop(STATE, jz_parse_node* node, bool value);
 static void compile_logical_binop(STATE, jz_parse_node* node, bool value);
 static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
-static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_triop(STATE, jz_parse_node* node, bool value);
+static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
+static void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
+static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
 
 static jz_tvalue* get_literal_value(jz_parse_node* node);
 
@@ -697,48 +699,10 @@ void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) 
 
   if (op != jz_oc_noop)
     PUSH_OPCODE(op);
-
-  if (!value)
+  else if (!value)
     PUSH_OPCODE(jz_oc_pop);
 
   state->stack_length = MAX(left_cap, right_cap + 1);
-}
-
-void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
-  jz_parse_node* left = CDAR(node).node;
-  jz_parse_node* right = CDDR(node).node;
-  lvar_node* var;
-
-  if (left->type != jz_parse_identifier) {
-    fprintf(stderr, "Non-identifier lvalues are forbidden for the time being.\n");
-    exit(1);
-  }
-
-  /* Noop signals that this is just a plain assignment.
-     Otherwise we want to run an operation before assigning. */
-  if (op == jz_oc_noop) {
-    var = get_lvar(jz, state, CAR(left).str);
-    compile_expr(jz, state, right, true);
-  } else {
-    var = compile_identifier(jz, state, left, true);
-    assert(var != NULL);
-    compile_expr(jz, state, right, true);
-    PUSH_OPCODE(op);
-  }
-
-  if (var == NULL) {
-    fprintf(stderr, "Undefined identifier \"%s\"\n",
-            jz_str_to_chars(jz, CAR(left).str));
-    exit(1);
-  }
-
-  state->stack_length++;
-
-  if (value)
-    PUSH_OPCODE(jz_oc_dup);
-
-  PUSH_OPCODE(jz_oc_store);
-  PUSH_ARG(var->index);
 }
 
 void compile_triop(STATE, jz_parse_node* node, bool value) {
@@ -765,6 +729,86 @@ void compile_triop(STATE, jz_parse_node* node, bool value) {
   jump_to_top_from(jz, state, branch1_jump);
 
   state->stack_length = MAX(MAX(cap1, cap2), cap3);
+}
+
+void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+  jz_parse_node* left = CDAR(node).node;
+
+  if (left->type == jz_parse_identifier)
+    compile_identifier_assign(jz, state, node, op, value);
+  else if (IS_INDEX_OP(left))
+    compile_index_assign(jz, state, node, op, value);
+  else {
+    fprintf(stderr, "Invalid left-hand side of assignment.\n");
+    exit(1);
+  }
+}
+
+void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* right = CDDR(node).node;
+  lvar_node* var;
+
+  /* Noop signals that this is just a plain assignment.
+     Otherwise we want to run an operation before assigning. */
+  if (op == jz_oc_noop) {
+    var = get_lvar(jz, state, CAR(left).str);
+    compile_expr(jz, state, right, true);
+  } else {
+    var = compile_identifier(jz, state, left, true);
+
+    assert(var != NULL);
+    compile_expr(jz, state, right, true);
+    PUSH_OPCODE(op);
+  }
+
+  if (var == NULL) {
+    fprintf(stderr, "Undefined identifier \"%s\"\n",
+            jz_str_to_chars(jz, CAR(left).str));
+    exit(1);
+  }
+
+  state->stack_length++;
+
+  if (value)
+    PUSH_OPCODE(jz_oc_dup);
+
+  PUSH_OPCODE(jz_oc_store);
+  PUSH_ARG(var->index);
+}
+
+void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* right = CDDR(node).node;
+  int left_cap, right_cap;
+  char base_stack_size = 2;
+
+  compile_simple_binop(jz, state, left, jz_oc_noop, true);
+  left_cap = state->stack_length;
+
+  /* Noop signals that this is just a plain assignment.
+     Otherwise we want to run an operation before assigning. */
+  if (op != jz_oc_noop) {
+    PUSH_OPCODE(jz_oc_dup2);
+    PUSH_OPCODE(jz_oc_index);
+    base_stack_size++;
+  }
+
+  compile_expr(jz, state, right, true);
+  right_cap = state->stack_length;
+
+  if (op != jz_oc_noop)
+    PUSH_OPCODE(op);
+
+  if (value) {
+    PUSH_OPCODE(jz_oc_dup);
+    PUSH_OPCODE(jz_oc_rot4);
+  }
+
+  PUSH_OPCODE(jz_oc_index_store);
+
+  state->stack_length = MAX(left_cap, right_cap + base_stack_size) +
+    (value || op != jz_oc_noop ? 1 : 0);
 }
 
 /* Get the jz_tvalue of a jz_parse_exprs node if it's just a literal value,

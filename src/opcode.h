@@ -18,6 +18,8 @@ typedef enum {
   jz_oc_index_store,
   jz_oc_pop,
   jz_oc_dup,
+  jz_oc_dup2,
+  jz_oc_rot4,
   jz_oc_bw_or,
   jz_oc_xor,
   jz_oc_bw_and,

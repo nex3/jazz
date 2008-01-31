@@ -109,6 +109,23 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_dup2: {
+      stack[0] = stack[-2];
+      stack[1] = stack[-1];
+      stack += 2;
+      break;
+    }
+
+    case jz_oc_rot4: {
+      jz_tvalue tmp = stack[-1];
+
+      stack[-1] = stack[-2];
+      stack[-2] = stack[-3];
+      stack[-3] = stack[-4];
+      stack[-4] = tmp;
+      break;
+    }
+
     case jz_oc_bw_or:
       STACK_SET(-2, jz_wrap_num(jz, jz_to_int32(jz, stack[-2]) |
                                 jz_to_int32(jz, stack[-1])));
@@ -332,6 +349,10 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_dup:
       name = "dup";
+      break;
+
+    case jz_oc_rot4:
+      name = "rot4";
       break;
 
     case jz_oc_bw_or:
