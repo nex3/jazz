@@ -514,7 +514,7 @@ lvar_node* compile_identifier(STATE, jz_parse_node* node, bool value) {
   }
 
   if (!value) {
-    state->stack_length = 1;
+    state->stack_length = 0;
     return NULL;
   }
 
