@@ -65,7 +65,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
 %token <none> TRUE_VAL FALSE_VAL NULL_VAL
 
 /* Keyword Tokens */
-%token <none> RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
+%token <none> THIS RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
 
 /* Punctuation tokens */
 %token <none> LCURLY    RCURLY      LPAREN    RPAREN    LSQUARE      RSQUARE
@@ -359,6 +359,7 @@ stmt_member_expr: stmt_primary_expr
 
 primary_expr: stmt_primary_expr | object_literal
 stmt_primary_expr: identifier | literal
+  | THIS { $$ = jz_pnode_list(jz, jz_parse_this, 0); }
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {

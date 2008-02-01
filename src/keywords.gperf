@@ -9,6 +9,7 @@ null,      NULL_VAL
 #
 # Keywords
 #
+this,    THIS
 return,  RETURN
 var,     VAR
 if,      IF

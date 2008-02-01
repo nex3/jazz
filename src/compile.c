@@ -82,6 +82,7 @@ static void compile_expr(STATE, jz_parse_node* node, bool value);
 static variable compile_identifier(STATE, jz_parse_node* node, bool value);
 static void compile_identifier_store(STATE, variable var);
 static void compile_literal(STATE, jz_parse_node* node, bool value);
+static void compile_this(STATE, jz_parse_node* node, bool value);
 static void compile_unop(STATE, jz_parse_node* node, bool value);
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
                                   jz_opcode op, bool pre, bool value);
@@ -491,6 +492,10 @@ void compile_expr(STATE, jz_parse_node* node, bool value) {
     compile_literal(jz, state, node, value);
     break;
 
+  case jz_parse_this:
+    compile_this(jz, state, node, value);
+    break;
+
   case jz_parse_exprs:
     compile_exprs(jz, state, node, value);
     break;
@@ -584,6 +589,14 @@ void compile_literal(STATE, jz_parse_node* node, bool value) {
   state->stack_length = 1;
   PUSH_OPCODE(jz_oc_push_literal);
   PUSH_ARG(index);
+}
+
+void compile_this(STATE, jz_parse_node* node, bool value) {
+  if (!value)
+    return;
+
+  state->stack_length = 1;
+  PUSH_OPCODE(jz_oc_push_global);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
@@ -1049,6 +1062,7 @@ void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
     free(CDR(root).node);
     break;
   case jz_parse_identifier:
+  case jz_parse_this:
   case jz_parse_empty: break;
   default:
     fprintf(stderr, "Unrecognized node type %d\n", root->type);

@@ -136,8 +136,9 @@ typedef enum {
                           cdddr.node is the third argument. */
   jz_parse_literal,    /* A literal value.
                           car.val is the value. */
-  jz_parse_identifier  /* An identifier.
+  jz_parse_identifier, /* An identifier.
                           car.str is the name. */
+  jz_parse_this        /* The `this' keyword. */
 } jz_parse_type;
 
 /* Operator types for unary, binary, and trinary operators. */

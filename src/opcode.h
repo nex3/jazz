@@ -10,6 +10,7 @@ typedef unsigned short int jz_index;
 
 typedef enum {
   jz_oc_push_literal,
+  jz_oc_push_global,
   jz_oc_jump,
   jz_oc_jump_unless,
   jz_oc_jump_if,

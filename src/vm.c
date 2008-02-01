@@ -62,6 +62,11 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_push_global: {
+      PUSH(jz_wrap_obj(jz, jz->global_obj));
+      break;
+    }
+
     case jz_oc_jump: {
       READ_ARG_INTO(ptrdiff_t, jump);
       code += jump;
@@ -326,6 +331,10 @@ void print_bytecode(const jz_bytecode* bytecode) {
     case jz_oc_push_literal:
       name = "push_literal";
       argsize = JZ_OCS_INDEX;
+      break;
+
+    case jz_oc_push_global:
+      name = "push_global";
       break;
 
     case jz_oc_jump:
