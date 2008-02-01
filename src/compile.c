@@ -886,6 +886,9 @@ variable get_var(STATE, jz_str* name) {
   /* Not a local, so it must be a global */
   var.type = global_var;
   var.val.name = name;
+
+  /* Precompute hash code */
+  jz_str_hash(jz, var.val.name);
   return var;
 }
 
