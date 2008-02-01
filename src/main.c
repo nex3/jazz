@@ -36,7 +36,6 @@ int main(int argc, char** argv) {
     printf("%s\n", result);
 
     free(result);
-    jz_gc_cycle(jz);
     jz_free_bytecode(jz, bytecode);
     jz_free_state(jz);
   }

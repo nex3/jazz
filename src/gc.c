@@ -177,7 +177,8 @@ void mark_roots(JZ_STATE) {
   for (; next != top; next++)
     JZ_GC_MARK_VAL_GRAY(jz, *next);
 
-  jz_gc_mark_gray(jz, &jz->global_obj->gc);
+  if (jz->global_obj != NULL)
+    jz_gc_mark_gray(jz, &jz->global_obj->gc);
 }
 
 void mark_step(JZ_STATE) {

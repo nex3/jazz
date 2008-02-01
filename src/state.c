@@ -6,6 +6,7 @@
 #include "object.h"
 
 static void init_global_object(JZ_STATE);
+static void free_global_object(JZ_STATE);
 
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
@@ -42,5 +43,7 @@ void init_global_object(JZ_STATE) {
 
 void jz_free_state(JZ_STATE) {
   jz_lex_free(jz);
+  jz->global_obj = NULL;
+  jz_gc_cycle(jz);
   free(jz);
 }
