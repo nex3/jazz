@@ -62,7 +62,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
-%token <none> TRUE_VAL FALSE_VAL NULL_VAL UNDEF_VAL NAN_VAL INF_VAL
+%token <none> TRUE_VAL FALSE_VAL NULL_VAL
 
 /* Keyword Tokens */
 %token <none> RETURN VAR IF ELSE DO WHILE FOR SWITCH CASE DEFAULT
@@ -368,12 +368,9 @@ identifier: IDENTIFIER {
 literal: literal_tval { $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, $1)); }
 
 literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
-| STRING { $$ = jz_wrap_str(jz, $1); }
-| bool_val { $$ = jz_wrap_bool(jz, $1); }
-| UNDEF_VAL { $$ = JZ_UNDEFINED; }
-| NAN_VAL { $$ = jz_wrap_num(jz, JZ_NAN); }
-| INF_VAL { $$ = jz_wrap_num(jz, JZ_INF); }
-| NULL_VAL { $$ = JZ_NULL; }
+  | STRING { $$ = jz_wrap_str(jz, $1); }
+  | bool_val { $$ = jz_wrap_bool(jz, $1); }
+  | NULL_VAL { $$ = JZ_NULL; }
 
 bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }

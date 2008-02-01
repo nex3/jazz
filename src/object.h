@@ -4,6 +4,7 @@
 #include "jazz.h"
 #include "gc.h"
 #include "value.h"
+#include "string.h"
 
 typedef struct {
   jz_str* key; /* NULL when the cell is empty. */
@@ -28,6 +29,8 @@ jz_obj* jz_obj_new(JZ_STATE);
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key);
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val);
+#define jz_obj_put2(jz, this, key, val)                         \
+  jz_obj_put(jz, this, jz_str_from_literal(jz, key), val)
 
 #define jz_obj_null(jz) ((jz_obj*)NULL)
 #define jz_obj_is_null(jz, obj) ((obj) == NULL)

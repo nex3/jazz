@@ -86,18 +86,39 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_index_store:
+      jz_obj_put(jz, jz_to_obj(jz, stack[-3]),
+                 jz_to_str(jz, stack[-2]), stack[-1]);
+
+      stack -= 3;
+      break;
+
+    case jz_oc_store_global: {
+      READ_ARG_INTO(jz_index, index);
+
+      jz_obj_put(jz, jz->global_obj, jz_to_str(jz, consts[index]), POP());
+      break;
+    }
+
     case jz_oc_retrieve: {
       READ_ARG_INTO(jz_index, index);
       PUSH(locals[index]);
       break;
     }
 
-    case jz_oc_index_store: {
+    case jz_oc_index:
+      if (JZ_TVAL_TYPE(stack[-2]) != jz_t_obj) {
+        fprintf(stderr, "Indexing not yet implemented for non-object values.\n");
+        exit(1);
+      }
+      STACK_SET(-2, jz_obj_get(jz, stack[-2].value.obj, jz_to_str(jz, stack[-1])));
+      stack--;
+      break;
 
-      jz_obj_put(jz, jz_to_obj(jz, stack[-3]),
-                 jz_to_str(jz, stack[-2]), stack[-1]);
+    case jz_oc_load_global: {
+      READ_ARG_INTO(jz_index, index);
 
-      stack -= 3;
+      PUSH(jz_obj_get(jz, jz->global_obj, jz_to_str(jz, consts[index])));
       break;
     }
 
@@ -254,15 +275,6 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       stack--;
       break;
 
-    case jz_oc_index:
-      if (JZ_TVAL_TYPE(stack[-2]) != jz_t_obj) {
-        fprintf(stderr, "Indexing not yet implemented for non-object values.\n");
-        exit(1);
-      }
-      STACK_SET(-2, jz_obj_get(jz, stack[-2].value.obj, jz_to_str(jz, stack[-1])));
-      stack--;
-      break;
-
     case jz_oc_to_num:
       STACK_SET(-1, jz_wrap_num(jz, jz_to_num(jz, stack[-1])));
       break;
@@ -336,13 +348,27 @@ void print_bytecode(const jz_bytecode* bytecode) {
       argsize = JZ_OCS_INDEX;
       break;
 
+    case jz_oc_index_store:
+      name = "index_store";
+      break;
+
+    case jz_oc_store_global:
+      name = "store_global";
+      argsize = JZ_OCS_INDEX;
+      break;
+
     case jz_oc_retrieve:
       name = "retrieve";
       argsize = JZ_OCS_INDEX;
       break;
 
-    case jz_oc_index_store:
-      name = "index_store";
+    case jz_oc_index:
+      name = "index";
+      break;
+
+    case jz_oc_load_global:
+      name = "load_global";
+      argsize = JZ_OCS_INDEX;
       break;
 
     case jz_oc_pop:
@@ -427,10 +453,6 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_mod:
       name = "mod";
-      break;
-
-    case jz_oc_index:
-      name = "index";
       break;
 
     case jz_oc_to_num:

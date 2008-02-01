@@ -9,6 +9,7 @@
 
 struct jz_state {
   jz_frame* current_frame;
+  jz_obj* global_obj;
   jz_tvalue undefined_val;
   jz_tvalue null_val;
   jz_tvalue true_val;

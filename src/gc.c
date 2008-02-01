@@ -176,6 +176,8 @@ void mark_roots(JZ_STATE) {
   top = next + frame->bytecode->consts_length;
   for (; next != top; next++)
     JZ_GC_MARK_VAL_GRAY(jz, *next);
+
+  jz_gc_mark_gray(jz, &jz->global_obj->gc);
 }
 
 void mark_step(JZ_STATE) {

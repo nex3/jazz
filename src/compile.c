@@ -3,6 +3,19 @@
 
 #include <stdio.h>
 
+typedef enum {
+  local_var,
+  global_var
+} variable_type;
+
+typedef struct variable {
+  variable_type type;
+  union {
+    jz_index index;
+    jz_str* name;
+  } val;
+} variable;
+
 typedef struct lvar_node lvar_node;
 struct lvar_node {
   lvar_node* next;
@@ -66,7 +79,8 @@ static void compile_switch_statements(STATE, jz_parse_node* node, jz_ptrdiff_vec
 
 static void compile_exprs(STATE, jz_parse_node* node, bool value);
 static void compile_expr(STATE, jz_parse_node* node, bool value);
-static lvar_node* compile_identifier(STATE, jz_parse_node* node, bool value);
+static variable compile_identifier(STATE, jz_parse_node* node, bool value);
+static void compile_identifier_store(STATE, variable var);
 static void compile_literal(STATE, jz_parse_node* node, bool value);
 static void compile_unop(STATE, jz_parse_node* node, bool value);
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
@@ -81,6 +95,7 @@ static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool 
 
 static jz_tvalue* get_literal_value(jz_parse_node* node);
 
+static variable get_var(STATE, jz_str* name);
 static lvar_node* add_lvar(STATE, jz_str* name, bool* new);
 static lvar_node* get_lvar(STATE, jz_str* name);
 
@@ -498,31 +513,64 @@ void compile_expr(STATE, jz_parse_node* node, bool value) {
   }
 }
 
-lvar_node* compile_identifier(STATE, jz_parse_node* node, bool value) {
-  lvar_node* local;
+variable compile_identifier(STATE, jz_parse_node* node, bool value) {
+  variable var;
 
   if (node->type != jz_parse_identifier) {
     fprintf(stderr, "Invalid identifier.\n");
     exit(1);
   }
 
-  local = get_lvar(jz, state, CAR(node).str);
-
-  if (local == NULL) {
-    fprintf(stderr, "Undefined variable %s\n", jz_str_to_chars(jz, CAR(node).str));
-    exit(1);
-  }
+  var = get_var(jz, state, CAR(node).str);
 
   if (!value) {
     state->stack_length = 0;
-    return NULL;
+    return var;
+  }
+
+  switch (var.type) {
+  case local_var:
+    PUSH_OPCODE(jz_oc_retrieve);
+    PUSH_ARG(var.val.index);
+    break;
+
+  case global_var: {
+    jz_index index = add_const(jz, state, jz_wrap_str(jz, var.val.name));
+
+    PUSH_OPCODE(jz_oc_load_global);
+    PUSH_ARG(index);
+    break;
+  }
+
+  default:
+    fprintf(stderr, "Unrecognized variable type %d\n", var.type);
+    exit(1);
   }
 
   state->stack_length = 1;
-  PUSH_OPCODE(jz_oc_retrieve);
-  PUSH_ARG(local->index);
 
-  return local;
+  return var;
+}
+
+void compile_identifier_store(STATE, variable var) {
+  switch (var.type) {
+  case local_var:
+    PUSH_OPCODE(jz_oc_store);
+    PUSH_ARG(var.val.index);
+    break;
+
+  case global_var: {
+    jz_index index = add_const(jz, state, jz_wrap_str(jz, var.val.name));
+
+    PUSH_OPCODE(jz_oc_store_global);
+    PUSH_ARG(index);
+    break;
+  }
+
+  default:
+    fprintf(stderr, "Unrecognized variable type %d\n", var.type);
+    exit(1);
+  }
 }
 
 void compile_literal(STATE, jz_parse_node* node, bool value) {
@@ -581,8 +629,7 @@ void compile_unop(STATE, jz_parse_node* node, bool value) {
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
                                   jz_opcode op, bool pre, bool value) {
   jz_index unit_index = add_const(jz, state, jz_wrap_num(jz, 1));
-  lvar_node* var = compile_identifier(jz, state, CDR(node).node, true);
-  assert(var != NULL);
+  variable var = compile_identifier(jz, state, CDR(node).node, true);
 
   if (!pre && value)
     PUSH_OPCODE(jz_oc_dup);
@@ -594,8 +641,7 @@ static void compile_unit_shortcut(STATE, jz_parse_node* node,
   if (pre && value)
     PUSH_OPCODE(jz_oc_dup);
 
-  PUSH_OPCODE(jz_oc_store);
-  PUSH_ARG(var->index);
+  compile_identifier_store(jz, state, var);
 
   /* If it's a prefix op, we duplicate the value
      after we increment or decrement it,
@@ -747,25 +793,18 @@ void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) 
 void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
   jz_parse_node* left = CDAR(node).node;
   jz_parse_node* right = CDDR(node).node;
-  lvar_node* var;
+  variable var;
 
   /* Noop signals that this is just a plain assignment.
      Otherwise we want to run an operation before assigning. */
   if (op == jz_oc_noop) {
-    var = get_lvar(jz, state, CAR(left).str);
+    var = get_var(jz, state, CAR(left).str);
     compile_expr(jz, state, right, true);
   } else {
     var = compile_identifier(jz, state, left, true);
 
-    assert(var != NULL);
     compile_expr(jz, state, right, true);
     PUSH_OPCODE(op);
-  }
-
-  if (var == NULL) {
-    fprintf(stderr, "Undefined identifier \"%s\"\n",
-            jz_str_to_chars(jz, CAR(left).str));
-    exit(1);
   }
 
   state->stack_length++;
@@ -773,8 +812,7 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool va
   if (value)
     PUSH_OPCODE(jz_oc_dup);
 
-  PUSH_OPCODE(jz_oc_store);
-  PUSH_ARG(var->index);
+  compile_identifier_store(jz, state, var);
 }
 
 void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
@@ -820,6 +858,22 @@ jz_tvalue* get_literal_value(jz_parse_node* node) {
       CAR(node).node->type != jz_parse_literal)
     return NULL;
   return CAAR(node).val;
+}
+
+variable get_var(STATE, jz_str* name) {
+  lvar_node* local = get_lvar(jz, state, name);
+  variable var;
+
+  if (local != NULL) {
+    var.type = local_var;
+    var.val.index = local->index;
+    return var;
+  }
+
+  /* Not a local, so it must be a global */
+  var.type = global_var;
+  var.val.name = name;
+  return var;
 }
 
 lvar_node* add_lvar(STATE, jz_str* name, bool* new) {
