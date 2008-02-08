@@ -47,12 +47,12 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 #define CAR(n) ((n)->car)
 #define CDR(n) ((n)->cdr)
 #define CAAR(n) (CAR(CAR(n).node))
-#define CADR(n) (CDR(CAR(n).node))
-#define CDAR(n) (CAR(CDR(n).node))
+#define CDAR(n) (CDR(CAR(n).node))
+#define CADR(n) (CAR(CDR(n).node))
 #define CDDR(n) (CDR(CDR(n).node))
 #define CAAAR(n) (CAR(CAAR(n).node))
-#define CDAAR(n) (CAR(CDAR(n).node))
-#define CDDAR(n) (CAR(CDDR(n).node))
+#define CAADR(n) (CAR(CADR(n).node))
+#define CADDR(n) (CAR(CDDR(n).node))
 #define CDDDR(n) (CDR(CDDR(n).node))
 
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(jz, state->code, opcode)
@@ -266,7 +266,7 @@ void compile_if(STATE, jz_parse_node* node) {
   PUSH_OPCODE(jz_oc_jump_unless);
   jump = push_placeholder(jz, state, JZ_OCS_PTRDIFF);
 
-  compile_statement(jz, state, CDAR(node).node);
+  compile_statement(jz, state, CADR(node).node);
 
   if (CDDR(node).node == NULL) {
     jump_to_top_from(jz, state, jump);
@@ -357,14 +357,14 @@ void compile_for(STATE, jz_parse_node* node) {
     cap = state->stack_length;
   } else cap = 0;
 
-  inc_expr = CDDAR(node).node;
+  inc_expr = CADDR(node).node;
   if (inc_expr != NULL) {
     inc_expr = jz_pnode_wrap(jz, jz_parse_exprs, inc_expr);
     body = jz_pnode_cons(jz, jz_parse_statements, inc_expr,
                          jz_pnode_wrap(jz, jz_parse_statements, CDDDR(node).node));
   } else body = CDDDR(node).node;
 
-  while_statement = jz_pnode_cons(jz, jz_parse_while, CDAR(node).node, body);
+  while_statement = jz_pnode_cons(jz, jz_parse_while, CADR(node).node, body);
   compile_statement(jz, state, while_statement);
 
   state->stack_length = MAX(cap, state->stack_length);
@@ -728,7 +728,7 @@ void compile_logical_binop(STATE, jz_parse_node* node, bool value) {
   int left_cap, right_cap;
   ptrdiff_t jump;
 
-  compile_expr(jz, state, CDAR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, true);
   left_cap = state->stack_length;
 
   if (value)
@@ -750,7 +750,7 @@ void compile_logical_binop(STATE, jz_parse_node* node, bool value) {
 void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
   int left_cap, right_cap;
 
-  compile_expr(jz, state, CDAR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, true);
   left_cap = state->stack_length;
 
   compile_expr(jz, state, CDDR(node).node, true);
@@ -770,13 +770,13 @@ void compile_triop(STATE, jz_parse_node* node, bool value) {
 
   assert(*CAR(node).op_type == jz_op_cond);
 
-  compile_expr(jz, state, CDAR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, true);
   cap1 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
   cond_jump = push_placeholder(jz, state, JZ_OCS_PTRDIFF);
 
-  compile_expr(jz, state, CDDAR(node).node, value);
+  compile_expr(jz, state, CADDR(node).node, value);
   cap2 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump);
@@ -791,7 +791,7 @@ void compile_triop(STATE, jz_parse_node* node, bool value) {
 }
 
 void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
-  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* left = CADR(node).node;
 
   if (left->type == jz_parse_identifier)
     compile_identifier_assign(jz, state, node, op, value);
@@ -804,7 +804,7 @@ void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) 
 }
 
 void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
-  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* left = CADR(node).node;
   jz_parse_node* right = CDDR(node).node;
   variable var;
 
@@ -829,7 +829,7 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool va
 }
 
 void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
-  jz_parse_node* left = CDAR(node).node;
+  jz_parse_node* left = CADR(node).node;
   jz_parse_node* right = CDDR(node).node;
   int left_cap, right_cap;
   char base_stack_size = 2;
@@ -1022,14 +1022,14 @@ void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
     break;
   case jz_parse_binop:
     free(CAR(root).op_type);
-    jz_free_parse_tree(jz, CDAR(root).node);
+    jz_free_parse_tree(jz, CADR(root).node);
     jz_free_parse_tree(jz, CDDR(root).node);
     free(CDR(root).node);
     break;
   case jz_parse_triop:
     free(CAR(root).op_type);
-    jz_free_parse_tree(jz, CDAR(root).node);
-    jz_free_parse_tree(jz, CDDAR(root).node);
+    jz_free_parse_tree(jz, CADR(root).node);
+    jz_free_parse_tree(jz, CADDR(root).node);
     jz_free_parse_tree(jz, CDDDR(root).node);
     free(CDDR(root).node);
     free(CDR(root).node);
@@ -1052,14 +1052,14 @@ void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
     break;
   case jz_parse_if:
     jz_free_parse_tree(jz, CAR(root).node);
-    jz_free_parse_tree(jz, CDAR(root).node);
+    jz_free_parse_tree(jz, CADR(root).node);
     jz_free_parse_tree(jz, CDDR(root).node);
     free(CDR(root).node);
     break;
   case jz_parse_for:
     jz_free_parse_tree(jz, CAR(root).node);
-    jz_free_parse_tree(jz, CDAR(root).node);
-    jz_free_parse_tree(jz, CDDAR(root).node);
+    jz_free_parse_tree(jz, CADR(root).node);
+    jz_free_parse_tree(jz, CADDR(root).node);
     jz_free_parse_tree(jz, CDDDR(root).node);
     free(CDDR(root).node);
     free(CDR(root).node);
