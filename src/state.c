@@ -5,6 +5,7 @@
 #include "lex.h"
 #include "object.h"
 
+static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
 static void free_global_object(JZ_STATE);
 
@@ -24,9 +25,15 @@ jz_state* jz_init() {
 
   jz_gc_init(state);
   jz_lex_init(state);
+  init_prototypes(state);
   init_global_object(state);
 
   return state;
+}
+
+void init_prototypes(JZ_STATE) {
+  jz->prototypes = jz_obj_new_bare(jz);
+  jz_init_obj_proto(jz);
 }
 
 /* TODO: Free the global object
