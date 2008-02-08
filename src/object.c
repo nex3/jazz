@@ -5,7 +5,6 @@
 #include "string.h"
 #include "gc.h"
 #include "state.h"
-#include "prototype.h"
 
 #define MASK(obj, hash) ((hash) & ((obj)->capacity - 1))
 
@@ -24,35 +23,19 @@ static jz_obj_cell* get_cell(JZ_STATE, jz_obj* this, jz_str* key, bool removed);
 static void grow(JZ_STATE, jz_obj* this);
 
 jz_obj* jz_obj_new(JZ_STATE) {
-  /* Integrate with [[Constructor]] */
-  jz_obj* obj = jz_inst(jz, "Object");
-
-  /* Note: the prototype property of a plain object
-     is not specified by ECMAscript. */
-  jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, obj->prototype));
-
-  return obj;
-}
-
-jz_obj* jz_obj_new_bare(JZ_STATE) {
   jz_obj* this = (jz_obj*)jz_gc_malloc(jz, jz_t_obj, sizeof(jz_obj));
 
   this->capacity = 1 << DEFAULT_ORDER;
   this->order = DEFAULT_ORDER;
   this->size = 0;
   this->table = calloc(sizeof(jz_obj_cell), this->capacity);
-  this->prototype = NULL;
-  this->class = jz_str_null(jz);
-
   return this;
 }
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
   jz_obj_cell* cell = get_cell(jz, this, key, false);
 
-  if (JZ_TVAL_TYPE(cell->value) == jz_t_undef && this->prototype != NULL)
-    return jz_obj_get(jz, this->prototype, key);
-
+  /* TODO: Check prototype */
   /* Handily enough, a missing cell has a nulled value,
      and a fully null tvalue is not-so-coincidentally undefined. */
   return cell->value;
@@ -127,8 +110,4 @@ jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj) {
 void jz_obj_free(JZ_STATE, jz_obj* obj) {
   free(obj->table);
   free(obj);
-}
-
-void jz_init_obj_proto(JZ_STATE) {
-  jz_proto_new(jz, "Object");
 }

@@ -15,8 +15,6 @@ typedef struct {
    See http://citeseer.ist.psu.edu/pagh01cuckoo.html. */
 struct jz_obj {
   jz_gc_header gc;
-  jz_str* class;
-  jz_obj* prototype;
   /* TODO: uint32 */
   unsigned int capacity; /* The number of cells in the table. */
   unsigned char order; /* 1 << capacity */
@@ -28,7 +26,6 @@ struct jz_obj {
 #define JZ_OBJ_REMOVED_KEY ((jz_str*)1)
 
 jz_obj* jz_obj_new(JZ_STATE);
-jz_obj* jz_obj_new_bare(JZ_STATE);
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key);
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val);
@@ -42,7 +39,5 @@ jz_tvalue jz_obj_to_str(JZ_STATE, jz_obj* obj);
 jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj);
 
 void jz_obj_free(JZ_STATE, jz_obj* obj);
-
-void jz_init_obj_proto(JZ_STATE);
 
 #endif

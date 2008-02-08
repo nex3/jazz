@@ -97,6 +97,7 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              stmt_postfix_expr stmt_left_hand_expr stmt_new_expr
                   member_expr      primary_expr
              stmt_member_expr stmt_primary_expr
+             member_accessor
              identifier literal object_literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
@@ -353,9 +354,13 @@ new_expr: member_expr
 stmt_new_expr: stmt_member_expr
 
 member_expr: primary_expr
-  | member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
+  | member_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
 stmt_member_expr: stmt_primary_expr
-  | stmt_member_expr LSQUARE expr RSQUARE { $$ = binop_node(jz, jz_op_index, $1, $3); }
+  | stmt_member_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
+
+member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
+  /* TODO: This is hideous and belongs in a compilation transformation. */
+  | DOT identifier { $$ = reverse_list(jz, jz_pnode_wrap(jz, jz_parse_exprs, jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_str(jz, $2->car.str))))); }
 
 primary_expr: stmt_primary_expr | object_literal
 stmt_primary_expr: identifier | literal
