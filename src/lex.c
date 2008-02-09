@@ -101,6 +101,7 @@ bool try_filler(STATE) {
   if (try_re(jz, state, jz->lex.whitespace_re)) return true;
   if (try_re(jz, state, jz->lex.line_terminator_re)) return true;
   if (try_re(jz, state, jz->lex.one_line_comment_re)) return true;
+  if (try_re(jz, state, jz->lex.multiline_comment_re)) return true;
   return false;
 }
 
@@ -349,19 +350,20 @@ jz_lex_state* jz_lex_new(JZ_STATE, const jz_str* code) {
 #define LINE_TERMINATOR_CHARS       "\\n\\r\\u2028\\u2029"
 
 void jz_lex_init(JZ_STATE) {
-  jz->lex.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
-  jz->lex.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
-  jz->lex.line_terminator_re  = create_re("\\A[" LINE_TERMINATOR_CHARS "]");
-  jz->lex.one_line_comment_re = create_re("\\A//[^" LINE_TERMINATOR_CHARS "]*");
-  jz->lex.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
+  jz->lex.identifier_re        = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
+  jz->lex.whitespace_re        = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
+  jz->lex.line_terminator_re   = create_re("\\A[" LINE_TERMINATOR_CHARS "]");
+  jz->lex.one_line_comment_re  = create_re("\\A//[^" LINE_TERMINATOR_CHARS "]*");
+  jz->lex.multiline_comment_re = create_re("\\A/\\*(.|[" LINE_TERMINATOR_CHARS"])*?\\*/");
+  jz->lex.punctuation_re       = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                              ">>>=?|={1,3}|\\+\\+|--|&&|\\|\\||"
                                              "<<=?|>>=?|!=?=?|\\+=?|-=?|\\*=?|%=?|"
                                              ">=?|<=?|&=?|\\|=?|\\^=?|\\/=?)");
-  jz->lex.hex_literal_re      = create_re("\\A0[xX][0-9a-fA-F]+");
-  jz->lex.decimal_literal_re1 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
-  jz->lex.decimal_literal_re2 = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
-  jz->lex.decimal_literal_re3 = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
-  jz->lex.string_literal_re   = create_re("\\A('|\")((?:[^\\1\\\\" LINE_TERMINATOR_CHARS "]|"
+  jz->lex.hex_literal_re       = create_re("\\A0[xX][0-9a-fA-F]+");
+  jz->lex.decimal_literal_re1  = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "(\\.[0-9]*)" EXPONENT_PART_RE "?");
+  jz->lex.decimal_literal_re2  = create_re("\\A()(\\.[0-9]+)" EXPONENT_PART_RE "?");
+  jz->lex.decimal_literal_re3  = create_re("\\A" DECIMAL_INTEGER_LITERAL_RE "()" EXPONENT_PART_RE "?");
+  jz->lex.string_literal_re    = create_re("\\A('|\")((?:[^\\1\\\\" LINE_TERMINATOR_CHARS "]|"
                                              "\\\\(?:[^1-9" LINE_TERMINATOR_CHARS "]))*?)\\1");
 }
 
