@@ -31,6 +31,7 @@ struct jz_state {
     URegularExpression* identifier_re;
     URegularExpression* whitespace_re;
     URegularExpression* line_terminator_re;
+    URegularExpression* one_line_comment_re;
     URegularExpression* punctuation_re;
     URegularExpression* hex_literal_re;
     URegularExpression* decimal_literal_re1;

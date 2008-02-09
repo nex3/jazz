@@ -100,6 +100,7 @@ int yylex(YYSTYPE* lex_val, STATE) {
 bool try_filler(STATE) {
   if (try_re(jz, state, jz->lex.whitespace_re)) return true;
   if (try_re(jz, state, jz->lex.line_terminator_re)) return true;
+  if (try_re(jz, state, jz->lex.one_line_comment_re)) return true;
   return false;
 }
 
@@ -351,6 +352,7 @@ void jz_lex_init(JZ_STATE) {
   jz->lex.identifier_re       = create_re("\\A" IDENTIFIER_START_RE IDENTIFIER_PART_RE "*");
   jz->lex.whitespace_re       = create_re("\\A[\\p{Zs}\\t\\x0B\\f]");
   jz->lex.line_terminator_re  = create_re("\\A[" LINE_TERMINATOR_CHARS "]");
+  jz->lex.one_line_comment_re = create_re("\\A//[^" LINE_TERMINATOR_CHARS "]*");
   jz->lex.punctuation_re      = create_re("\\A(?:[\\{\\}\\(\\)\\[\\]\\.;,~\\?:]|"
                                              ">>>=?|={1,3}|\\+\\+|--|&&|\\|\\||"
                                              "<<=?|>>=?|!=?=?|\\+=?|-=?|\\*=?|%=?|"
