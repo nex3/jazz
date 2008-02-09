@@ -179,6 +179,9 @@ void mark_roots(JZ_STATE) {
 
   if (jz->global_obj != NULL)
     jz_gc_mark_gray(jz, &jz->global_obj->gc);
+
+  if (jz->prototypes != NULL)
+    jz_gc_mark_gray(jz, &jz->prototypes->gc);
 }
 
 void mark_step(JZ_STATE) {
