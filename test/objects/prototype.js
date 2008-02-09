@@ -1,3 +1,4 @@
+// TODO: Change non-standard ({}).prototype tests to Object.prototype.
 ({}).prototype.foo = 12;
 var a = {};
 a.foo = 15;
