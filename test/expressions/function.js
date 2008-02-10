@@ -10,4 +10,6 @@ return ((function() { return 12; })() == 12 &&
         c != function() {1;} &&
         c() == undefined &&
         function() { b = "Woop!"; } &&
-        b == "goodbye");
+        b == "goodbye" &&
+        (function() { a = "blather"; })() &&
+        a == "blather");
