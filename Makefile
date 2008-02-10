@@ -19,6 +19,7 @@ gcov: clean
 	cd src && $(MAKE) MY_CFLAGS="-ftest-coverage -fprofile-arcs" MY_LFLAGS="-ftest-coverage -fprofile-arcs"
 	$(MAKE) test
 	cd src && gcov *.c
+	cd src/core && gcov *.c
 	$(MAKE) clean-except-gcov
 
 coverage: gcov
