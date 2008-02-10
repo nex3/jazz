@@ -3,6 +3,7 @@
 
 #include "jazz.h"
 #include "value.h"
+#include "compile.h"
 
 /* Note that the argument list for this type is empty
    to allow arbitary arguments to be passed.
@@ -47,6 +48,8 @@ typedef struct jz_args {
 jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv);
 
 #define JZ_ARITY_VAR -1
+
+jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity);
 
 #define jz_def(jz, obj, name, fn, arity)                  \
   jz_obj_put2(jz, obj, name, jz_wrap_fn(jz, fn, arity))

@@ -9,17 +9,18 @@ null,      NULL_VAL
 #
 # Keywords
 #
-this,    THIS
-return,  RETURN
-var,     VAR
-if,      IF
-else,    ELSE
-do,      DO
-while,   WHILE
-for,     FOR
-switch,  SWITCH
-case,    CASE
-default, DEFAULT
+this,     THIS
+return,   RETURN
+var,      VAR
+if,       IF
+else,     ELSE
+do,       DO
+while,    WHILE
+for,      FOR
+switch,   SWITCH
+case,     CASE
+default,  DEFAULT
+function, FUNCTION
 #
 # Operators
 #

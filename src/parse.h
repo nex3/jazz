@@ -142,8 +142,11 @@ typedef enum {
   jz_parse_call,       /* A function call.
                           car.node is the function,
                           cdr.node is a jz_parse_args. */
-  jz_parse_args        /* A list of arguments to a function.
+  jz_parse_args,       /* A list of arguments to a function.
                           car.node is the value of the argument. */
+  jz_parse_func        /* A function declaration.
+                          car.node is a jz_parse_statements
+                          containing the source code of the function. */
 } jz_parse_type;
 
 /* Operator types for unary, binary, and trinary operators. */

@@ -5,12 +5,18 @@
 #include "object.h"
 #include "prototype.h"
 #include "state.h"
+#include "vm.h"
 
 #define ARG(i) ((i) < argc ? argv[i] : JZ_UNDEFINED)
 
 typedef struct func_data {
   int arity;
+  jz_bytecode* code;
 } func_data;
+
+static jz_obj* create_func(JZ_STATE, int arity, func_data** data);
+static jz_tvalue call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv);
+static void finalizer(JZ_STATE, jz_obj* obj);
 
 jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv) {
   jz_args* args;
@@ -70,23 +76,55 @@ jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv) {
   return ret;
 }
 
-jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {
+jz_obj* create_func(JZ_STATE, int arity, func_data** data) {
   jz_obj* obj = jz_inst(jz, "Function");
   jz_obj* proto = jz_obj_new(jz);
-  func_data* data = malloc(sizeof(func_data));
 
-  obj->call = fn;
+  *data = malloc(sizeof(func_data));
+  (*data)->code = NULL;
+  (*data)->arity = 0;
+  obj->data = *data;
 
-  data->arity = arity;
-  obj->data = data;
   jz_obj_put2(jz, obj, "length", jz_wrap_num(jz, arity));
-
   jz_obj_put2(jz, proto, "constructor", jz_wrap_obj(jz, obj));
   jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, proto));
 
   return obj;
 }
 
+jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
+  func_data* data;
+  jz_obj* obj = create_func(jz, arity, &data);
+
+  obj->call = call_jazz_func;
+  data->arity = JZ_ARITY_VAR;
+  data->code = code;
+
+  return obj;
+}
+
+jz_tvalue call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv) {
+  return jz_vm_run(jz, ((func_data*)args->callee->data)->code);
+}
+
+jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {
+  func_data* data;
+  jz_obj* obj = create_func(jz, arity, &data);
+
+  obj->call = fn;
+  data->arity = arity;
+
+  return obj;
+}
+
 void jz_init_func_proto(JZ_STATE) {
-  jz_proto_new(jz, "Function");
+  jz_proto* proto = jz_proto_new(jz, "Function");
+
+  proto->finalizer = finalizer;
+}
+
+void finalizer(JZ_STATE, jz_obj* obj) {
+  func_data* data = (func_data*)obj->data;
+  jz_free_bytecode(jz, data->code);
+  free(data);
 }

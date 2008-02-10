@@ -1,5 +1,6 @@
 #include "compile.h"
 #include "string.h"
+#include "function.h"
 
 #include <stdio.h>
 
@@ -91,6 +92,7 @@ static void compile_logical_binop(STATE, jz_parse_node* node, bool value);
 static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_triop(STATE, jz_parse_node* node, bool value);
 static void compile_call(STATE, jz_parse_node* node, bool value);
+static void compile_func(STATE, jz_parse_node* node, bool value);
 static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
@@ -517,6 +519,10 @@ void compile_expr(STATE, jz_parse_node* node, bool value) {
     compile_call(jz, state, node, value);
     break;
 
+  case jz_parse_func:
+    compile_func(jz, state, node, value);
+    break;
+
   default:
     printf("Unrecognized expression node type %d\n", node->type);
     exit(1);
@@ -821,6 +827,26 @@ void compile_call(STATE, jz_parse_node* node, bool value) {
     PUSH_OPCODE(jz_oc_pop);
 }
 
+void compile_func(STATE, jz_parse_node* node, bool value) {
+  jz_bytecode* code;
+  jz_index index;
+
+  if (!value) {
+    /* TODO: Once function exprs can be named,
+       this won't always be appropriate. */
+    state->stack_length = 0;
+    return;
+  }
+
+  code = jz_compile(jz, CAR(node).node);
+
+  index = add_const(jz, state, jz_wrap_obj(jz, jz_func_new(jz, code, 0)));
+  PUSH_OPCODE(jz_oc_push_literal);
+  PUSH_ARG(index);
+
+  state->stack_length = 1;
+}
+
 void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
   jz_parse_node* left = CADR(node).node;
 
@@ -1073,6 +1099,7 @@ void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
     free_list(jz, root);
     return;
   case jz_parse_return:
+  case jz_parse_func:
     jz_free_parse_tree(jz, CAR(root).node);
     break;
   case jz_parse_call:
