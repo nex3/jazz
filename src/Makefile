@@ -36,7 +36,7 @@ frame.o: frame.c frame.h
 gc.o: gc.c gc.h state.h string.h object.h
 object.o: object.c object.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
-function.o: function.c function.h object.h prototype.h
+function.o: function.c function.h object.h prototype.h state.h
 
 core/core.o: core/core.c core/core.h core/global.h
 core/global.o: core/global.c core/global.h state.h function.h object.h

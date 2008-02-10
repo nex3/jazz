@@ -4,6 +4,9 @@
 #include "function.h"
 #include "object.h"
 #include "prototype.h"
+#include "state.h"
+
+#define ARG(i) ((i) < argc ? argv[i] : JZ_UNDEFINED)
 
 jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv) {
   jz_args* args;
@@ -37,9 +40,37 @@ jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv) {
   case 0:
     ret = func->call(jz, args);
     break;
-  default:
-    fprintf(stderr, "Fancy functions not yet implemented.\n");
-    exit(1);
+
+    /* This is hideous, but I don't think there's a better way to do it. */
+  case 1:
+    ret = func->call(jz, args, ARG(0));
+    break;
+  case 2:
+    ret = func->call(jz, args, ARG(0), ARG(1));
+    break;
+  case 3:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2));
+    break;
+  case 4:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2),
+                     ARG(4));
+    break;
+  case 5:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2),
+                     ARG(4), ARG(5));
+    break;
+  case 6:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2),
+                     ARG(4), ARG(5), ARG(6));
+    break;
+  case 7:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2),
+                     ARG(4), ARG(5), ARG(6), ARG(7));
+    break;
+  case 8:
+    ret = func->call(jz, args, ARG(0), ARG(1), ARG(2),
+                     ARG(4), ARG(5), ARG(6), ARG(7), ARG(8));
+    break;
   }
 
   free(args);
