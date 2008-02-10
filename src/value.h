@@ -17,7 +17,8 @@ typedef enum {
      must refer to types with jz_gc_header headers. */
   jz_t_str,
   jz_t_str_value,
-  jz_t_obj
+  jz_t_obj,
+  jz_t_proto
 } jz_type;
 
 typedef union {
@@ -26,6 +27,7 @@ typedef union {
   jz_gc_header* gc;
   jz_obj* obj;
   jz_str* str;
+  jz_proto* proto;
 } jz_value;
 
 typedef struct {
@@ -85,6 +87,7 @@ jz_tvalue jz_wrap_num(JZ_STATE, double num);
 jz_tvalue jz_wrap_bool(JZ_STATE, bool b);
 jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj);
 jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
+jz_tvalue jz_wrap_proto(JZ_STATE, jz_proto* proto);
 
 double jz_to_num(JZ_STATE, jz_tvalue val);
 jz_str* jz_to_str(JZ_STATE, jz_tvalue val);

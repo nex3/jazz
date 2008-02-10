@@ -114,6 +114,13 @@ jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
   return tvalue;
 }
 
+jz_tvalue jz_wrap_proto(JZ_STATE, jz_proto* proto) {
+  jz_tvalue tvalue;
+  JZ_TVAL_SET_TYPE(tvalue, jz_t_proto);
+  tvalue.value.proto = proto;
+  return tvalue;
+}
+
 double jz_to_num(JZ_STATE, jz_tvalue val) {
   switch (JZ_TVAL_TYPE(val)) {
   case jz_t_num:   return val.value.num;

@@ -6,6 +6,7 @@
 #include "state.h"
 #include "string.h"
 #include "object.h"
+#include "prototype.h"
 
 #define MARK_BLACK(obj) \
   (JZ_GC_TAG(obj) = jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
@@ -16,6 +17,7 @@ static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_obj(JZ_STATE, jz_obj* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
+static void blacken_proto(JZ_STATE, jz_proto* proto);
 
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
@@ -117,6 +119,9 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   case jz_t_str_value:
     blacken_str_value(jz, (jz_str_value*)obj);
     break;
+  case jz_t_proto:
+    blacken_proto(jz, (jz_proto*)obj);
+    break;
   default:
     fprintf(stderr, "Unknown GC type %d\n", JZ_GC_TYPE(obj));
     exit(1);
@@ -137,11 +142,19 @@ void blacken_obj(JZ_STATE, jz_obj* obj) {
     jz_gc_mark_gray(jz, &cell->key->gc);
     JZ_GC_MARK_VAL_GRAY(jz, cell->value);
   }
+
+  if (obj->prototype != NULL)
+    jz_gc_mark_gray(jz, &obj->prototype->gc);
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
   if (JZ_STR_IS_INT(str) && str->value.val != NULL)
     jz_gc_mark_gray(jz, &str->value.val->gc);
+}
+
+void blacken_proto(JZ_STATE, jz_proto* proto) {
+  jz_gc_mark_gray(jz, &proto->obj->gc);
+  jz_gc_mark_gray(jz, &proto->class->gc);
 }
 
 jz_gc_header* pop_gray_stack(JZ_STATE) {

@@ -16,8 +16,7 @@ typedef struct {
    See http://citeseer.ist.psu.edu/pagh01cuckoo.html. */
 struct jz_obj {
   jz_gc_header gc;
-  jz_str* class;
-  jz_obj* prototype;
+  jz_proto* prototype;
   jz_fn* call;
   /* TODO: uint32 */
   unsigned int capacity; /* The number of cells in the table. */

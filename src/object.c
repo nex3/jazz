@@ -29,7 +29,7 @@ jz_obj* jz_obj_new(JZ_STATE) {
 
   /* Note: the prototype property of a plain object
      is not specified by ECMAscript. */
-  jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, obj->prototype));
+  jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, obj->prototype->obj));
 
   return obj;
 }
@@ -43,7 +43,6 @@ jz_obj* jz_obj_new_bare(JZ_STATE) {
   this->table = calloc(sizeof(jz_obj_cell), this->capacity);
   this->prototype = NULL;
   this->call = NULL;
-  this->class = jz_str_null(jz);
 
   return this;
 }
@@ -52,7 +51,7 @@ jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
   jz_obj_cell* cell = get_cell(jz, this, key, false);
 
   if (JZ_TVAL_TYPE(cell->value) == jz_t_undef && this->prototype != NULL)
-    return jz_obj_get(jz, this->prototype, key);
+    return jz_obj_get(jz, this->prototype->obj, key);
 
   /* Handily enough, a missing cell has a nulled value,
      and a fully null tvalue is not-so-coincidentally undefined. */
