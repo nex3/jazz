@@ -3,6 +3,7 @@
 #include "parse.h"
 #include "compile.h"
 #include "vm.h"
+#include "core/core.h"
 
 #include <stdlib.h>
 #include <unicode/ustdio.h>
@@ -21,6 +22,8 @@ int main(int argc, char** argv) {
     jz_parse_node* root; 
     jz_bytecode* bytecode;
     char* result;
+
+    jz_init_core(jz);
 
     root = jz_parse_string(jz, input);
     if (!root) exit(1);

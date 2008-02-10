@@ -7,10 +7,10 @@ all:
 	ln -fs src/jazz jazz
 
 clean: clean-except-gcov
-	rm -rf src/*.gc* src/y.tab.*
+	rm -rf src/{,core/}*.gc* src/y.tab.*
 
 clean-except-gcov:
-	rm -rf jazz src/jazz src/libjazz.a src/keywords.gp.c  src/*.o coverage/
+	rm -rf jazz src/jazz src/{,core/}*.a src/keywords.gp.c  src/{,core/}*.o coverage/
 
 test: all never_up_to_date
 	bash test/test.sh
