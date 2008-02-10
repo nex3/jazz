@@ -49,6 +49,9 @@ jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv);
 
 #define JZ_ARITY_VAR -1
 
+#define jz_def(jz, obj, name, fn, arity)                  \
+  jz_obj_put2(jz, obj, name, jz_wrap_fn(jz, fn, arity))
+
 #define jz_wrap_fn(jz, fn, arity) jz_wrap_obj(jz, jz_fn_to_obj(jz, fn, arity))
 jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity);
 

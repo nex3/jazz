@@ -52,7 +52,7 @@ void init_global_object(JZ_STATE) {
 
   /* TODO: Move this to general lib initializer
      (Probably not even here - in main or something) */
-  jz_obj_put2(jz, jz->global_obj, "print", jz_wrap_fn(jz, jz_print, -1));
+  jz_def(jz, jz->global_obj, "print", jz_print, JZ_ARITY_VAR);
 }
 
 void jz_free_state(JZ_STATE) {
