@@ -7,10 +7,10 @@ all:
 	ln -fs src/jazz jazz
 
 clean: clean-except-gcov
-	rm -rf src/{,core/}*.gc* src/y.tab.*
+	rm -rf src/*.gc* src/core/*.gc* src/y.tab.*
 
 clean-except-gcov:
-	rm -rf jazz src/jazz src/{,core/}*.a src/keywords.gp.c  src/{,core/}*.o coverage/
+	rm -rf jazz src/jazz src/*.a src/core/*.a src/keywords.gp.c  src/*.o src/core/*.o coverage/
 
 test: all never_up_to_date
 	bash test/test.sh
@@ -24,7 +24,7 @@ gcov: clean
 
 coverage: gcov
 	mkdir -p coverage/
-	cd src && lcov -c -d . -o ../coverage/lcov.info
+	cd src && lcov -c -d . -b . -o ../coverage/lcov.info
 	lcov -r coverage/lcov.info y.tab.c -o coverage/lcov.info
 	genhtml -o coverage/ coverage/lcov.info
 
