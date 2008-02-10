@@ -3,11 +3,14 @@
 #include "function.h"
 #include "object.h"
 
+#include <stdio.h>
+
 static jz_tvalue is_nan(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv) {
   double num;
 
   if (argc < 1)
-    return JZ_FALSE;
+    /* Treat nonexistant args as undefined, so... */
+    return JZ_TRUE;
 
   num = jz_to_num(jz, *argv);
   return jz_wrap_bool(jz, JZ_NUM_IS_NAN(num));
