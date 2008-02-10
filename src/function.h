@@ -35,8 +35,7 @@
 
    Note also that if the arity property of a function
    should be different than the arity given here,
-   one can set that property manually on the function object.
-   (TODO: Implement this) */
+   one can set that property manually on the function object. */
 typedef jz_tvalue jz_fn();
 
 typedef struct jz_args {

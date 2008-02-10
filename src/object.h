@@ -18,6 +18,7 @@ struct jz_obj {
   jz_gc_header gc;
   jz_proto* prototype;
   jz_fn* call;
+  void* data;
   /* TODO: uint32 */
   unsigned int capacity; /* The number of cells in the table. */
   unsigned char order; /* 1 << capacity */

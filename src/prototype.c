@@ -3,10 +3,14 @@
 #include "prototype.h"
 #include "state.h"
 
+static void default_finalizer(JZ_STATE, jz_obj* obj);
+
 jz_proto* jz_proto_new1(JZ_STATE, jz_str* name) {
   jz_proto* proto = (jz_proto*)jz_gc_malloc(jz, jz_t_proto, sizeof(jz_proto));
   jz_str* obj_str = jz_str_from_literal(jz, "Object");
 
+  proto->finalizer = default_finalizer;
+  proto->class = name;
   proto->obj = jz_obj_new_bare(jz);
 
   /* All prototypes other than Object have the Object prototype
@@ -14,7 +18,6 @@ jz_proto* jz_proto_new1(JZ_STATE, jz_str* name) {
   if (!jz_str_equal(jz, name, obj_str))
     proto->obj->prototype = jz_get_proto1(jz, obj_str);
 
-  proto->class = name;
   jz_obj_put(jz, jz->prototypes, name, jz_wrap_proto(jz, proto));
 
   return proto;
@@ -41,4 +44,8 @@ jz_obj* jz_inst1(JZ_STATE, jz_str* name) {
   obj->prototype = proto;
 
   return obj;
+}
+
+void default_finalizer(JZ_STATE, jz_obj* obj) {
+  free(obj->data);
 }

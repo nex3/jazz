@@ -126,6 +126,11 @@ jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj) {
 
 void jz_obj_free(JZ_STATE, jz_obj* obj) {
   free(obj->table);
+  obj->table = NULL;
+
+  if (obj->prototype && obj->prototype->finalizer)
+    obj->prototype->finalizer(jz, obj);
+
   free(obj);
 }
 

@@ -4,10 +4,23 @@
 #include "jazz.h"
 #include "object.h"
 
+/* Note: any Jazz objects referenced by obj
+   may be garbage collected before the finalizer is run.
+   Thus, finalizers shouldn't attempt to dereference Jazz objects
+   that aren't referenced elsewhere.
+
+   Also note that the default finalizer
+   just frees obj->data if it exists.
+
+   TODO: Might want to find some way to fix this.
+   Other languages' solutions seem to be very complicated. */
+typedef void jz_finalizer(JZ_STATE, jz_obj* obj);
+
 struct jz_proto {
   jz_gc_header gc;
   jz_obj* obj;
   jz_str* class;
+  jz_finalizer* finalizer;
 };
 
 #define jz_proto_new(jz, name) jz_proto_new1(jz, jz_str_from_literal(jz, name))
