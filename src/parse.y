@@ -95,9 +95,9 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              stmt_add_expr stmt_mult_expr stmt_unary_expr
                   postfix_expr      left_hand_expr      new_expr
              stmt_postfix_expr stmt_left_hand_expr stmt_new_expr
-                  member_expr      primary_expr
-             stmt_member_expr stmt_primary_expr
-             member_accessor
+                  call_expr      call_or_member_expr      member_expr      primary_expr
+             stmt_call_expr stmt_call_or_member_expr stmt_member_expr stmt_primary_expr
+             arguments argument_list member_accessor
              identifier literal object_literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
@@ -347,8 +347,22 @@ postfix_expr_op: PLUS_PLUS { $$ = jz_op_post_inc; }
   | MINUS_MINUS { $$ = jz_op_post_dec; }
 
 
-left_hand_expr: new_expr
-stmt_left_hand_expr: stmt_new_expr
+left_hand_expr: new_expr | call_expr
+stmt_left_hand_expr: stmt_new_expr | stmt_call_expr
+
+call_expr: call_or_member_expr arguments { $$ = jz_pnode_cons(jz, jz_parse_call, $1, $2); }
+  | call_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
+stmt_call_expr: stmt_call_or_member_expr arguments { $$ = jz_pnode_cons(jz, jz_parse_call, $1, $2); }
+  | stmt_call_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
+
+arguments: LPAREN RPAREN { $$ = NULL; }
+  | LPAREN argument_list RPAREN { $$ = reverse_list(jz, $2); }
+
+argument_list: assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_args, $1); }
+  | argument_list COMMA assign_expr { $$ = jz_pnode_cons(jz, jz_parse_args, $3, $1); }
+
+call_or_member_expr: member_expr | call_expr
+stmt_call_or_member_expr: stmt_member_expr | stmt_call_expr
 
 new_expr: member_expr
 stmt_new_expr: stmt_member_expr

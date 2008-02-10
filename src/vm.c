@@ -67,6 +67,23 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_call: {
+      jz_tvalue obj;
+      READ_ARG_INTO(jz_index, argc);
+
+      obj = stack[-argc - 1];
+
+      if (JZ_TVAL_TYPE(obj) != jz_t_obj) {
+        fprintf(stderr, "TypeError: %s is not an object.\n",
+                jz_str_to_chars(jz, jz_to_str(jz, obj)));
+        exit(1);
+      }
+
+      STACK_SET_WB(-argc - 1, jz_call_arr(jz, obj.value.obj, argc, stack - argc));
+      stack -= argc;
+      break;
+    }
+
     case jz_oc_jump: {
       READ_ARG_INTO(ptrdiff_t, jump);
       code += jump;
@@ -377,6 +394,11 @@ void print_bytecode(const jz_bytecode* bytecode) {
 
     case jz_oc_load_global:
       name = "load_global";
+      argsize = JZ_OCS_INDEX;
+      break;
+
+    case jz_oc_call:
+      name = "call";
       argsize = JZ_OCS_INDEX;
       break;
 

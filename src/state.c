@@ -4,9 +4,12 @@
 #include "state.h"
 #include "lex.h"
 #include "object.h"
+#include "function.h"
 
 static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
+
+static jz_tvalue jz_print(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv);
 
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
@@ -33,6 +36,7 @@ jz_state* jz_init() {
 void init_prototypes(JZ_STATE) {
   jz->prototypes = jz_obj_new_bare(jz);
   jz_init_obj_proto(jz);
+  jz_init_func_proto(jz);
 }
 
 /* TODO: Free the global object
@@ -45,6 +49,10 @@ void init_global_object(JZ_STATE) {
   /* This is an extension to ECMAscript.
      The specification doesn't require support for a global undefined property. */
   jz_obj_put2(jz, jz->global_obj, "undefined", JZ_UNDEFINED);
+
+  /* TODO: Move this to general lib initializer
+     (Probably not even here - in main or something) */
+  jz_obj_put2(jz, jz->global_obj, "print", jz_wrap_fn(jz, jz_print, -1));
 }
 
 void jz_free_state(JZ_STATE) {
@@ -53,4 +61,19 @@ void jz_free_state(JZ_STATE) {
   jz->prototypes = NULL;
   jz_gc_cycle(jz);
   free(jz);
+}
+
+/* TODO: This definitely doesn't belong here.
+   Move it to src/io.c? lib/io.c? */
+jz_tvalue jz_print(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv) {
+  int i;
+
+  for (i = 0; i < argc; i++) {
+    char* str = jz_str_to_chars(jz, jz_to_str(jz, argv[i]));
+    
+    printf("%s\n", str);
+    free(str);
+  }
+
+  return JZ_UNDEFINED;
 }

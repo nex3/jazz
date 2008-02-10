@@ -90,6 +90,7 @@ static void compile_binop(STATE, jz_parse_node* node, bool value);
 static void compile_logical_binop(STATE, jz_parse_node* node, bool value);
 static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_triop(STATE, jz_parse_node* node, bool value);
+static void compile_call(STATE, jz_parse_node* node, bool value);
 static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
 static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
@@ -512,6 +513,10 @@ void compile_expr(STATE, jz_parse_node* node, bool value) {
     compile_triop(jz, state, node, value);
     break;
 
+  case jz_parse_call:
+    compile_call(jz, state, node, value);
+    break;
+
   default:
     printf("Unrecognized expression node type %d\n", node->type);
     exit(1);
@@ -790,6 +795,32 @@ void compile_triop(STATE, jz_parse_node* node, bool value) {
   state->stack_length = MAX(MAX(cap1, cap2), cap3);
 }
 
+void compile_call(STATE, jz_parse_node* node, bool value) {
+  int cap;
+  jz_index arg_count = 0;
+  jz_parse_node* arg = CDR(node).node;
+
+  compile_expr(jz, state, CAR(node).node, true);
+  cap = state->stack_length;
+
+  while (arg != NULL) {
+    compile_expr(jz, state, CAR(arg).node, true);
+
+    cap = MAX(cap, state->stack_length + arg_count + 1);
+    arg_count++;
+
+    arg = CDR(arg).node;
+  }
+
+  state->stack_length = cap;
+
+  PUSH_OPCODE(jz_oc_call);
+  PUSH_ARG(arg_count);
+
+  if (!value)
+    PUSH_OPCODE(jz_oc_pop);
+}
+
 void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
   jz_parse_node* left = CADR(node).node;
 
@@ -1037,12 +1068,14 @@ void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
   case jz_parse_statements:
   case jz_parse_cases:
   case jz_parse_vars:
+  case jz_parse_args:
   case jz_parse_exprs:
     free_list(jz, root);
     return;
   case jz_parse_return:
     jz_free_parse_tree(jz, CAR(root).node);
     break;
+  case jz_parse_call:
   case jz_parse_do_while:
   case jz_parse_while:
   case jz_parse_switch:

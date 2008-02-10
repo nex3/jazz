@@ -5,6 +5,7 @@
 #include "gc.h"
 #include "value.h"
 #include "string.h"
+#include "function.h"
 
 typedef struct {
   jz_str* key; /* NULL when the cell is empty. */
@@ -17,6 +18,7 @@ struct jz_obj {
   jz_gc_header gc;
   jz_str* class;
   jz_obj* prototype;
+  jz_fn* call;
   /* TODO: uint32 */
   unsigned int capacity; /* The number of cells in the table. */
   unsigned char order; /* 1 << capacity */
@@ -31,6 +33,9 @@ jz_obj* jz_obj_new(JZ_STATE);
 jz_obj* jz_obj_new_bare(JZ_STATE);
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key);
+#define jz_obj_get2(jz, this, key)              \
+  jz_obj_get(jz, this, jz_str_from_literal(jz, key))
+
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val);
 #define jz_obj_put2(jz, this, key, val)                         \
   jz_obj_put(jz, this, jz_str_from_literal(jz, key), val)

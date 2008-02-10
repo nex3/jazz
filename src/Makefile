@@ -15,7 +15,7 @@ jazz: main.o libjazz.a
 	$(CC) $(LFLAGS) -o $@ main.o libjazz.a
 
 libjazz.a: lex.o string.o y.tab.o vm.o compile.o value.o state.o frame.o gc.o \
-  object.o prototype.o
+  object.o prototype.o function.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -27,11 +27,12 @@ compile.o: compile.c compile.h string.h
 vm.o: vm.c vm.h frame.h state.h string.h gc.h object.h Makefile
 lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h gc.h state.h
-state.o: state.c state.h
+state.o: state.c state.h lex.h object.h function.h
 frame.o: frame.c frame.h
 gc.o: gc.c gc.h state.h string.h object.h
 object.o: object.c object.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
+function.o: function.c function.h object.h prototype.h
 
 %.h:
 	touch $@
@@ -47,8 +48,9 @@ frame.h: jazz.h compile.h value.h
 compile.h: jazz.h parse.h opcode.h vector.h	
 vm.h: jazz.h value.h compile.h
 state.h: jazz.h value.h frame.h gc.h
-object.h: jazz.h gc.h value.h string.h
+object.h: jazz.h gc.h value.h string.h function.h
 prototype.h: jazz.h object.h
+function.h: jazz.h value.h
 
 keywords.gp.c: keywords.gperf
 	gperf --output-file=$@ -I -t -C -E $?

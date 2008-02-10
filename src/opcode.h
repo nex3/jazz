@@ -20,6 +20,7 @@ typedef enum {
   jz_oc_retrieve,
   jz_oc_index,
   jz_oc_load_global,
+  jz_oc_call,
   jz_oc_pop,
   jz_oc_dup,
   jz_oc_dup2,

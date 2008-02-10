@@ -138,7 +138,12 @@ typedef enum {
                           car.val is the value. */
   jz_parse_identifier, /* An identifier.
                           car.str is the name. */
-  jz_parse_this        /* The `this' keyword. */
+  jz_parse_this,       /* The `this' keyword. */
+  jz_parse_call,       /* A function call.
+                          car.node is the function,
+                          cdr.node is a jz_parse_args. */
+  jz_parse_args        /* A list of arguments to a function.
+                          car.node is the value of the argument. */
 } jz_parse_type;
 
 /* Operator types for unary, binary, and trinary operators. */

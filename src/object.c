@@ -42,6 +42,7 @@ jz_obj* jz_obj_new_bare(JZ_STATE) {
   this->size = 0;
   this->table = calloc(sizeof(jz_obj_cell), this->capacity);
   this->prototype = NULL;
+  this->call = NULL;
   this->class = jz_str_null(jz);
 
   return this;
