@@ -7,6 +7,8 @@
 
 #include "jazz.h"
 
+typedef unsigned char jz_tag;
+
 typedef enum {
   /* Giving undefined a 0 flag means that zero-ed memory
      is identified as jz_t_undef, which saves some manual setting. */
@@ -36,7 +38,7 @@ typedef struct {
      when storing the value in an object.
      The value of these flags is undefined
      unless otherwise specified by the function returning the tvalue.*/
-  unsigned char tag;
+  jz_tag tag;
   jz_value value;
 } jz_tvalue;
 

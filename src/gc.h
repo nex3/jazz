@@ -18,7 +18,7 @@
 
 struct jz_gc_header {
   jz_gc_header* next;
-  unsigned char tag;
+  jz_tag tag;
 };
 
 typedef struct jz_gc_node jz_gc_node;
