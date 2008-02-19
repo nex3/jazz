@@ -19,9 +19,9 @@ jz_state* jz_init() {
   JZ_TVAL_SET_TYPE(state->null_val, jz_t_obj);
   state->null_val.value.obj = NULL;
   JZ_TVAL_SET_TYPE(state->true_val, jz_t_bool);
-  state->true_val.value.b = jz_true;
+  state->true_val.value.b = true;
   JZ_TVAL_SET_TYPE(state->false_val, jz_t_bool);
-  state->false_val.value.b = jz_false;
+  state->false_val.value.b = false;
 
   state->current_frame = NULL;
 

@@ -1,10 +1,6 @@
 #ifndef JZ_JAZZ_H
 #define JZ_JAZZ_H
 
-typedef unsigned char jz_bool;
-#define jz_true  1
-#define jz_false 0
-
 /* Prototype structs that would cause ciruclar-reference problems otherwise. */ 
 typedef struct jz_state jz_state;
 typedef struct jz_obj jz_obj;

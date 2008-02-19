@@ -5,6 +5,7 @@
 #include "string.h"
 #include "object.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -398,8 +399,8 @@ literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
   | bool_val { $$ = jz_wrap_bool(jz, $1); }
   | NULL_VAL { $$ = JZ_NULL; }
 
-bool_val: TRUE_VAL { $$ = jz_true; }
-  | FALSE_VAL { $$ = jz_false; }
+bool_val: TRUE_VAL { $$ = true; }
+  | FALSE_VAL { $$ = false; }
 
 object_literal: LCURLY RCURLY {
   $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_obj(jz, jz_obj_new(jz))));

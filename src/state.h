@@ -21,7 +21,7 @@ struct jz_state {
     unsigned char pause;
     size_t allocated;
     size_t threshold;
-    jz_bool black_bit;
+    bool black_bit;
     jz_gc_header* all_objs;
     jz_gc_node* gray_stack;
     jz_gc_header* prev_sweep_obj;
