@@ -20,7 +20,7 @@
    its new capacity is old_capacity * (2 ** ORDER_INCREMENT) */
 #define ORDER_INCREMENT (2)
 
-static jz_obj_cell* get_cell(JZ_STATE, jz_obj* this, jz_str* key, bool removed);
+static jz_obj_cell* get_cell(JZ_STATE, jz_obj* this, jz_str* key, jz_bool removed);
 static void grow(JZ_STATE, jz_obj* this);
 
 jz_obj* jz_obj_new(JZ_STATE) {
@@ -48,7 +48,7 @@ jz_obj* jz_obj_new_bare(JZ_STATE) {
 }
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
-  jz_obj_cell* cell = get_cell(jz, this, key, false);
+  jz_obj_cell* cell = get_cell(jz, this, key, jz_false);
 
   if (JZ_TVAL_TYPE(cell->value) == jz_t_undef && this->prototype != NULL)
     return jz_obj_get(jz, this->prototype->obj, key);
@@ -68,14 +68,14 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
   if ((this->size * 100)/this->capacity > LOAD_CAPACITY)
     grow(jz, this);
 
-  cell = get_cell(jz, this, key, true);
+  cell = get_cell(jz, this, key, jz_true);
 
   cell->value = val;
   cell->key = key;
 }
 
 jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
-                      jz_str* key, bool removed) {
+                      jz_str* key, jz_bool removed) {
   jz_obj_cell* cell;
   /* TODO: uint32 */
   unsigned int hash = jz_str_hash(jz, key);

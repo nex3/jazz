@@ -6,7 +6,6 @@
 #include "object.h"
 
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
 
@@ -52,7 +51,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   printf("Locals length: %lu\n", (unsigned long)bytecode->locals_length);
 #endif
 
-  while (true) {
+  while (jz_true) {
     jz_gc_tick(jz);
 
     switch (NEXT_OPCODE) {
@@ -204,7 +203,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_lt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
       else STACK_SET(-2, jz_wrap_bool(jz, comp < 0));
 
       stack--;
@@ -214,7 +213,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_gt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
       else STACK_SET(-2, jz_wrap_bool(jz, comp > 0));
 
       stack--;
@@ -224,7 +223,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_lt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
       else STACK_SET(-2, jz_wrap_bool(jz, comp <= 0));
 
       stack--;
@@ -234,7 +233,7 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_gt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, false));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
       else STACK_SET(-2, jz_wrap_bool(jz, comp >= 0));
 
       stack--;

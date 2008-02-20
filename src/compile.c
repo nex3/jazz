@@ -78,29 +78,29 @@ static void compile_switch(STATE, jz_parse_node* node);
 static jz_ptrdiff_vector* compile_switch_conditionals(STATE, jz_parse_node* node);
 static void compile_switch_statements(STATE, jz_parse_node* node, jz_ptrdiff_vector* placeholders);
 
-static void compile_exprs(STATE, jz_parse_node* node, bool value);
-static void compile_expr(STATE, jz_parse_node* node, bool value);
-static variable compile_identifier(STATE, jz_parse_node* node, bool value);
+static void compile_exprs(STATE, jz_parse_node* node, jz_bool value);
+static void compile_expr(STATE, jz_parse_node* node, jz_bool value);
+static variable compile_identifier(STATE, jz_parse_node* node, jz_bool value);
 static void compile_identifier_store(STATE, variable var);
-static void compile_literal(STATE, jz_parse_node* node, bool value);
-static void compile_this(STATE, jz_parse_node* node, bool value);
-static void compile_unop(STATE, jz_parse_node* node, bool value);
+static void compile_literal(STATE, jz_parse_node* node, jz_bool value);
+static void compile_this(STATE, jz_parse_node* node, jz_bool value);
+static void compile_unop(STATE, jz_parse_node* node, jz_bool value);
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
-                                  jz_opcode op, bool pre, bool value);
-static void compile_binop(STATE, jz_parse_node* node, bool value);
-static void compile_logical_binop(STATE, jz_parse_node* node, bool value);
-static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
-static void compile_triop(STATE, jz_parse_node* node, bool value);
-static void compile_call(STATE, jz_parse_node* node, bool value);
-static void compile_func(STATE, jz_parse_node* node, bool value);
-static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value);
-static void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
-static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value);
+                                  jz_opcode op, jz_bool pre, jz_bool value);
+static void compile_binop(STATE, jz_parse_node* node, jz_bool value);
+static void compile_logical_binop(STATE, jz_parse_node* node, jz_bool value);
+static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
+static void compile_triop(STATE, jz_parse_node* node, jz_bool value);
+static void compile_call(STATE, jz_parse_node* node, jz_bool value);
+static void compile_func(STATE, jz_parse_node* node, jz_bool value);
+static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
+static void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
+static void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
 
 static jz_tvalue* get_literal_value(jz_parse_node* node);
 
 static variable get_var(STATE, jz_str* name);
-static lvar_node* add_lvar(STATE, jz_str* name, bool* new);
+static lvar_node* add_lvar(STATE, jz_str* name, jz_bool* new);
 static lvar_node* get_lvar(STATE, jz_str* name);
 
 static jz_index add_const(STATE, jz_tvalue value);
@@ -190,7 +190,7 @@ static void compile_statement(STATE, jz_parse_node* node) {
     break;
       
   case jz_parse_exprs:
-    compile_exprs(jz, state, node, false);
+    compile_exprs(jz, state, node, jz_false);
     break;
 
   case jz_parse_if:
@@ -230,7 +230,7 @@ void compile_vars(STATE, jz_parse_node* node) {
 
 void compile_var(STATE, jz_parse_node* node) {
   int old_cap;
-  bool new_node;
+  jz_bool new_node;
   jz_index index;
   jz_parse_node* expr;
 
@@ -241,7 +241,7 @@ void compile_var(STATE, jz_parse_node* node) {
   expr = CDR(node).node;
 
   if (expr != NULL) {
-    compile_expr(jz, state, expr, true);
+    compile_expr(jz, state, expr, jz_true);
 
     PUSH_OPCODE(jz_oc_store);
     PUSH_ARG(index);
@@ -254,7 +254,7 @@ void compile_return(STATE, jz_parse_node* node) {
   if (node == NULL)
     PUSH_OPCODE(jz_oc_end);
   else {
-    compile_exprs(jz, state, node, true);
+    compile_exprs(jz, state, node, jz_true);
     PUSH_OPCODE(jz_oc_ret);
   }
 }
@@ -263,7 +263,7 @@ void compile_if(STATE, jz_parse_node* node) {
   int expr_cap, if_cap;
   ptrdiff_t jump;
 
-  compile_exprs(jz, state, CAR(node).node, true);
+  compile_exprs(jz, state, CAR(node).node, jz_true);
   expr_cap = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
@@ -301,7 +301,7 @@ void compile_do_while(STATE, jz_parse_node* node) {
 
   /* If the conditional is a literal value that evaluates to true,
      we don't bother to check it. */
-  bool skip_conditional = conditional_literal != NULL &&
+  jz_bool skip_conditional = conditional_literal != NULL &&
     jz_to_bool(jz, *conditional_literal);
 
   jump = state->code->next - state->code->values;
@@ -311,7 +311,7 @@ void compile_do_while(STATE, jz_parse_node* node) {
   if (skip_conditional)
     PUSH_OPCODE(jz_oc_jump);
   else {
-    compile_exprs(jz, state, CAR(node).node, true);
+    compile_exprs(jz, state, CAR(node).node, jz_true);
     PUSH_OPCODE(jz_oc_jump_if);
   }
 
@@ -327,15 +327,15 @@ void compile_while(STATE, jz_parse_node* node) {
 
   /* If the conditional is NULL or a literal value that evaluates to true,
      we don't bother to check it.
-     This makes stuff like "for (;;)" and "while (true)" faster. */
-  bool skip_conditional = CAR(node).node == NULL ||
+     This makes stuff like "for (;;)" and "while (jz_true)" faster. */
+  jz_bool skip_conditional = CAR(node).node == NULL ||
     (conditional_literal != NULL && jz_to_bool(jz, *conditional_literal));
 
   index = state->code->next - state->code->values;
 
   if (skip_conditional) cap = 0;
   else {
-    compile_exprs(jz, state, CAR(node).node, true);
+    compile_exprs(jz, state, CAR(node).node, jz_true);
     cap = state->stack_length;
 
     PUSH_OPCODE(jz_oc_jump_unless);
@@ -386,7 +386,7 @@ void compile_switch(STATE, jz_parse_node* node) {
   jz_ptrdiff_vector* placeholders;
   int expr_cap, cond_cap;
 
-  compile_exprs(jz, state, CAR(node).node, true);
+  compile_exprs(jz, state, CAR(node).node, jz_true);
   expr_cap = state->stack_length;
 
   placeholders = compile_switch_conditionals(jz, state, CDR(node).node);
@@ -414,7 +414,7 @@ jz_ptrdiff_vector* compile_switch_conditionals(STATE, jz_parse_node* node) {
     if (CAR(case_node).node == NULL) continue;
 
     PUSH_OPCODE(jz_oc_dup);
-    compile_exprs(jz, state, CAR(case_node).node, true);
+    compile_exprs(jz, state, CAR(case_node).node, jz_true);
     PUSH_OPCODE(jz_oc_strict_eq);
     PUSH_OPCODE(jz_oc_jump_if);
     jz_ptrdiff_vector_append(jz, placeholders,
@@ -462,12 +462,12 @@ void compile_switch_statements(STATE, jz_parse_node* node, jz_ptrdiff_vector* pl
     jump_to_top_from(jz, state, *next_placeholder);
 }
 
-void compile_exprs(STATE, jz_parse_node* node, bool value) {
-  bool first = true;
+void compile_exprs(STATE, jz_parse_node* node, jz_bool value) {
+  jz_bool first = jz_true;
 
   while (node != NULL) {
     int old_cap = first ? 0 : state->stack_length;
-    bool this_value = false;
+    jz_bool this_value = jz_false;
 
     /* Discard the return value of all expressions in a list
        except maybe the last. */
@@ -480,12 +480,12 @@ void compile_exprs(STATE, jz_parse_node* node, bool value) {
 
     state->stack_length = MAX(old_cap, state->stack_length);
 
-    first = false;
+    first = jz_false;
     node = CDR(node).node;
   }
 }
 
-void compile_expr(STATE, jz_parse_node* node, bool value) {
+void compile_expr(STATE, jz_parse_node* node, jz_bool value) {
   switch (node->type) {
   case jz_parse_identifier:
     compile_identifier(jz, state, node, value);
@@ -529,7 +529,7 @@ void compile_expr(STATE, jz_parse_node* node, bool value) {
   }
 }
 
-variable compile_identifier(STATE, jz_parse_node* node, bool value) {
+variable compile_identifier(STATE, jz_parse_node* node, jz_bool value) {
   variable var;
 
   if (node->type != jz_parse_identifier) {
@@ -589,7 +589,7 @@ void compile_identifier_store(STATE, variable var) {
   }
 }
 
-void compile_literal(STATE, jz_parse_node* node, bool value) {
+void compile_literal(STATE, jz_parse_node* node, jz_bool value) {
   jz_index index = add_const(jz, state, *CAR(node).val);
 
   if (!value) {
@@ -602,7 +602,7 @@ void compile_literal(STATE, jz_parse_node* node, bool value) {
   PUSH_ARG(index);
 }
 
-void compile_this(STATE, jz_parse_node* node, bool value) {
+void compile_this(STATE, jz_parse_node* node, jz_bool value) {
   if (!value)
     return;
 
@@ -612,7 +612,7 @@ void compile_this(STATE, jz_parse_node* node, bool value) {
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
   case operator: {                                      \
-    compile_expr(jz, state, CDR(node).node, true);      \
+    compile_expr(jz, state, CDR(node).node, jz_true);      \
     PUSH_OPCODE(opcode);                                \
                                                         \
     if (!value)                                         \
@@ -621,7 +621,7 @@ void compile_this(STATE, jz_parse_node* node, bool value) {
     break;                                              \
   }
 
-void compile_unop(STATE, jz_parse_node* node, bool value) {
+void compile_unop(STATE, jz_parse_node* node, jz_bool value) {
   switch (*CAR(node).op_type) {
   SIMPLE_UNOP_CASE(jz_op_add,    jz_oc_to_num)
   SIMPLE_UNOP_CASE(jz_op_sub,    jz_oc_neg)
@@ -629,19 +629,19 @@ void compile_unop(STATE, jz_parse_node* node, bool value) {
   SIMPLE_UNOP_CASE(jz_op_not,    jz_oc_not)
 
   case jz_op_pre_inc:
-    compile_unit_shortcut(jz, state, node, jz_oc_add, true, value);
+    compile_unit_shortcut(jz, state, node, jz_oc_add, jz_true, value);
     break;
 
   case jz_op_pre_dec:
-    compile_unit_shortcut(jz, state, node, jz_oc_sub, true, value);
+    compile_unit_shortcut(jz, state, node, jz_oc_sub, jz_true, value);
     break;
 
   case jz_op_post_inc:
-    compile_unit_shortcut(jz, state, node, jz_oc_add, false, value);
+    compile_unit_shortcut(jz, state, node, jz_oc_add, jz_false, value);
     break;
 
   case jz_op_post_dec:
-    compile_unit_shortcut(jz, state, node, jz_oc_sub, false, value);
+    compile_unit_shortcut(jz, state, node, jz_oc_sub, jz_false, value);
     break;
 
   default:
@@ -651,9 +651,9 @@ void compile_unop(STATE, jz_parse_node* node, bool value) {
 }
 
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
-                                  jz_opcode op, bool pre, bool value) {
+                                  jz_opcode op, jz_bool pre, jz_bool value) {
   jz_index unit_index = add_const(jz, state, jz_wrap_num(jz, 1));
-  variable var = compile_identifier(jz, state, CDR(node).node, true);
+  variable var = compile_identifier(jz, state, CDR(node).node, jz_true);
 
   if (!pre && value)
     PUSH_OPCODE(jz_oc_dup);
@@ -686,7 +686,7 @@ static void compile_unit_shortcut(STATE, jz_parse_node* node,
     break;                                              \
   }
 
-void compile_binop(STATE, jz_parse_node* node, bool value) {
+void compile_binop(STATE, jz_parse_node* node, jz_bool value) {
   switch (*CAR(node).op_type) {
   case jz_op_and:
   case jz_op_or:
@@ -735,11 +735,11 @@ void compile_binop(STATE, jz_parse_node* node, bool value) {
   }
 }
 
-void compile_logical_binop(STATE, jz_parse_node* node, bool value) {
+void compile_logical_binop(STATE, jz_parse_node* node, jz_bool value) {
   int left_cap, right_cap;
   ptrdiff_t jump;
 
-  compile_expr(jz, state, CADR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, jz_true);
   left_cap = state->stack_length;
 
   if (value)
@@ -758,13 +758,13 @@ void compile_logical_binop(STATE, jz_parse_node* node, bool value) {
   state->stack_length = MAX(left_cap, right_cap) + 1;
 }
 
-void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
   int left_cap, right_cap;
 
-  compile_expr(jz, state, CADR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, jz_true);
   left_cap = state->stack_length;
 
-  compile_expr(jz, state, CDDR(node).node, true);
+  compile_expr(jz, state, CDDR(node).node, jz_true);
   right_cap = state->stack_length;
 
   if (op != jz_oc_noop)
@@ -775,13 +775,13 @@ void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) 
   state->stack_length = MAX(left_cap, right_cap + 1);
 }
 
-void compile_triop(STATE, jz_parse_node* node, bool value) {
+void compile_triop(STATE, jz_parse_node* node, jz_bool value) {
   int cap1, cap2, cap3;
   ptrdiff_t cond_jump, branch1_jump;
 
   assert(*CAR(node).op_type == jz_op_cond);
 
-  compile_expr(jz, state, CADR(node).node, true);
+  compile_expr(jz, state, CADR(node).node, jz_true);
   cap1 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
@@ -801,16 +801,16 @@ void compile_triop(STATE, jz_parse_node* node, bool value) {
   state->stack_length = MAX(MAX(cap1, cap2), cap3);
 }
 
-void compile_call(STATE, jz_parse_node* node, bool value) {
+void compile_call(STATE, jz_parse_node* node, jz_bool value) {
   int cap;
   jz_index arg_count = 0;
   jz_parse_node* arg = CDR(node).node;
 
-  compile_expr(jz, state, CAR(node).node, true);
+  compile_expr(jz, state, CAR(node).node, jz_true);
   cap = state->stack_length;
 
   while (arg != NULL) {
-    compile_expr(jz, state, CAR(arg).node, true);
+    compile_expr(jz, state, CAR(arg).node, jz_true);
 
     cap = MAX(cap, state->stack_length + arg_count + 1);
     arg_count++;
@@ -827,7 +827,7 @@ void compile_call(STATE, jz_parse_node* node, bool value) {
     PUSH_OPCODE(jz_oc_pop);
 }
 
-void compile_func(STATE, jz_parse_node* node, bool value) {
+void compile_func(STATE, jz_parse_node* node, jz_bool value) {
   jz_bytecode* code;
   jz_index index;
 
@@ -847,7 +847,7 @@ void compile_func(STATE, jz_parse_node* node, bool value) {
   state->stack_length = 1;
 }
 
-void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
   jz_parse_node* left = CADR(node).node;
 
   if (left->type == jz_parse_identifier)
@@ -860,7 +860,7 @@ void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, bool value) 
   }
 }
 
-void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
   jz_parse_node* left = CADR(node).node;
   jz_parse_node* right = CDDR(node).node;
   variable var;
@@ -869,11 +869,11 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool va
      Otherwise we want to run an operation before assigning. */
   if (op == jz_oc_noop) {
     var = get_var(jz, state, CAR(left).str);
-    compile_expr(jz, state, right, true);
+    compile_expr(jz, state, right, jz_true);
   } else {
-    var = compile_identifier(jz, state, left, true);
+    var = compile_identifier(jz, state, left, jz_true);
 
-    compile_expr(jz, state, right, true);
+    compile_expr(jz, state, right, jz_true);
     PUSH_OPCODE(op);
   }
 
@@ -885,13 +885,13 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, bool va
   compile_identifier_store(jz, state, var);
 }
 
-void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) {
+void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
   jz_parse_node* left = CADR(node).node;
   jz_parse_node* right = CDDR(node).node;
   int left_cap, right_cap;
   char base_stack_size = 2;
 
-  compile_simple_binop(jz, state, left, jz_oc_noop, true);
+  compile_simple_binop(jz, state, left, jz_oc_noop, jz_true);
   left_cap = state->stack_length;
 
   /* Noop signals that this is just a plain assignment.
@@ -902,7 +902,7 @@ void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, bool value) 
     base_stack_size++;
   }
 
-  compile_expr(jz, state, right, true);
+  compile_expr(jz, state, right, jz_true);
   right_cap = state->stack_length;
 
   if (op != jz_oc_noop)
@@ -949,13 +949,13 @@ variable get_var(STATE, jz_str* name) {
   return var;
 }
 
-lvar_node* add_lvar(STATE, jz_str* name, bool* new) {
+lvar_node* add_lvar(STATE, jz_str* name, jz_bool* new) {
   lvar_node* node;
 
   if ((node = get_lvar(jz, state, name))) {
-    *new = false;
+    *new = jz_false;
     return node;
-  } else *new = true;
+  } else *new = jz_true;
 
   node = malloc(sizeof(lvar_node));
   node->next = state->locals;
