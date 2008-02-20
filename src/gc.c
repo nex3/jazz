@@ -9,9 +9,9 @@
 #include "prototype.h"
 
 #define MARK_BLACK(obj) \
-  (JZ_GC_TAG(obj) = jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
+  (JZ_SET_BIT(JZ_GC_TAG(obj), JZ_GC_FLAG_BIT, jz->gc.black_bit))
 #define MARK_WHITE(obj) \
-  (JZ_GC_TAG(obj) = !jz->gc.black_bit | (JZ_GC_TAG(obj) & 0xfc))
+  (JZ_SET_BIT(JZ_GC_TAG(obj), JZ_GC_FLAG_BIT, !jz->gc.black_bit))
 
 static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_obj(JZ_STATE, jz_obj* obj);
@@ -32,8 +32,8 @@ jz_gc_header* jz_gc_malloc(JZ_STATE, jz_type type, size_t size) {
 
   assert(size >= sizeof(jz_gc_header));
   to_ret = calloc(size, 1); /* calloc zeroes memory. */
+  JZ_GC_TAG(to_ret) = 0;
   JZ_GC_SET_TYPE(to_ret, type);
-  JZ_GC_SET_UTAG(to_ret, 0);
   MARK_WHITE(to_ret);
 
   to_ret->next = jz->gc.all_objs;

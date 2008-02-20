@@ -24,10 +24,13 @@ struct jz_str {
   } value;
 };
 
-#define JZ_STR_IS_EXT(str) (JZ_GC_UTAG(str) & 1)
+#define JZ_STR_EXT_BIT 2
+#define JZ_STR_HASHED_BIT 3
+
+#define JZ_STR_IS_EXT(str) JZ_BIT(str->gc.tag, JZ_STR_EXT_BIT)
 #define JZ_STR_IS_INT(str) (!JZ_STR_IS_EXT(str))
 
-#define JZ_STR_IS_HASHED(str) (JZ_GC_UTAG(str) & 2)
+#define JZ_STR_IS_HASHED(str) JZ_BIT(str->gc.tag, JZ_STR_HASHED_BIT)
 
 #define JZ_STR_PTR(string)                              \
   ((JZ_STR_IS_EXT(string) ? (string)->value.ext :       \

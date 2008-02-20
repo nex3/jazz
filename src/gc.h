@@ -6,18 +6,13 @@
 #include "jazz.h"
 #include "value.h"
 
-/* The garbage collector adds an eight-bit tag
-   to each of the garbage-collected structs.
-   The lower two bits of this are reserved for the GC's internal use.
-   The middle four bits contain a value
-   of the enum jz_type (defined in value.h)
-   and may be accessed with the JZ_GC_TYPE macros.
-   The upper two bits may be used by individual structs
-   for any tagging they need,
-   and may be accessed with the JZ_GC_UTAG macros. */
-
 struct jz_gc_header {
   jz_gc_header* next;
+
+/* The first two bits (0 and 1) of this tag
+   are reserved for the GC's internal use.
+   The second two (2 and 3) may be used by individual structs
+   for any tagging they need. */
   jz_tag tag;
 };
 
@@ -39,19 +34,12 @@ typedef enum {
 #define JZ_GC_TAG(obj) (((jz_gc_header*)obj)->tag)
 #define JZ_GC_NEXT(obj) (((jz_gc_header*)obj)->next)
 
-#define JZ_GC_TYPE(obj) ((JZ_GC_TAG(obj) >> 2) & 0x0f)
+#define JZ_GC_TYPE(obj) (JZ_TAG_TYPE(JZ_GC_TAG(obj)))
 #define JZ_GC_SET_TYPE(obj, type) \
-  (JZ_GC_TAG(obj) = (((type) << 2) & 0x3f) | (JZ_GC_TAG(obj) & 0xc3))
+  (JZ_GC_TAG(obj) = JZ_TAG_WITH_TYPE(JZ_GC_TAG(obj), type))
 
-#define JZ_GC_UTAG(obj) (JZ_GC_TAG(obj) >> 6)
-#define JZ_GC_SET_UTAG(obj, val) \
-  (JZ_GC_TAG(obj) = (((val) << 6) & 0xff) | (JZ_GC_TAG(obj) & 0x3f))
-#define JZ_GC_UTAG_AND(obj, val) \
-  (JZ_GC_TAG(obj) &= (((val) << 6) & 0xff) | 0x3f)
-#define JZ_GC_UTAG_OR(obj, val) \
-  (JZ_GC_TAG(obj) |= ((val) << 6) & 0xff)
-
-#define JZ_GC_FLAG(obj) (JZ_GC_TAG(obj) & 0x03)
+#define JZ_GC_FLAG_BIT 0
+#define JZ_GC_FLAG(obj) (JZ_BIT(JZ_GC_TAG(obj), JZ_GC_FLAG_BIT))
 
 #define jz_gc_is_white(jz, obj)                 \
   (JZ_GC_FLAG(obj) == !jz->gc.black_bit)

@@ -10,10 +10,10 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define SET_EXT(str) (JZ_GC_UTAG_OR((str), 1))
-#define SET_INT(str) (JZ_GC_UTAG_AND((str), ~1))
+#define SET_EXT(str) JZ_SET_BIT(JZ_GC_TAG(str), JZ_STR_EXT_BIT, 1)
+#define SET_INT(str) JZ_SET_BIT(JZ_GC_TAG(str), JZ_STR_EXT_BIT, 0)
 
-#define SET_HASHED(str) (JZ_GC_UTAG_OR((str), 2))
+#define SET_HASHED(str) JZ_SET_BIT(JZ_GC_TAG(str), JZ_STR_HASHED_BIT, 1)
 
 static bool is_whitespace_char(UChar c);
 static jz_str* str_new(JZ_STATE, int start, int length);
@@ -85,7 +85,8 @@ jz_str* jz_str_null(JZ_STATE) {
 
 jz_str* jz_str_dup(JZ_STATE, const jz_str* this) {
   jz_str* to_ret = (jz_str*)jz_gc_malloc(jz, jz_t_str, sizeof(jz_str));
-  JZ_GC_SET_UTAG(to_ret, JZ_GC_UTAG(this));
+  JZ_SET_BIT(JZ_GC_TAG(to_ret), JZ_STR_EXT_BIT, JZ_STR_IS_EXT(this));
+  JZ_SET_BIT(JZ_GC_TAG(to_ret), JZ_STR_HASHED_BIT, JZ_STR_IS_HASHED(this));
   to_ret->start = this->start;
   to_ret->length = this->length;
   to_ret->value = this->value;

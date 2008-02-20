@@ -7,6 +7,16 @@
 
 #include "jazz.h"
 
+/* This tag stores type information
+   and various other sorts of metadata
+   about a value.
+
+   The uppder four bits (bits 4, 5, 6, and 7)
+   are always type information (jz_type),
+   and are accessed via JZ_TAG_TYPE.
+
+   The use of the lower four bits (bits 0, 1, 2, and 3)
+   varies depending on the context. */
 typedef unsigned char jz_tag;
 
 typedef enum {
@@ -33,8 +43,7 @@ typedef union {
 } jz_value;
 
 typedef struct {
-  /* The lower four bits of the tag field define the type of the value.
-     The upper four bits are used as property flags
+  /* The lower four bits are used as property flags
      when storing the value in an object.
      The value of these flags is undefined
      unless otherwise specified by the function returning the tvalue.*/
@@ -48,9 +57,12 @@ typedef enum {
   jz_hint_string
 } jz_to_primitive_hint;
 
-#define JZ_TVAL_TYPE(value) ((value).tag & 0x0f)
+#define JZ_TAG_TYPE(tag) ((tag) >> 4)
+#define JZ_TAG_WITH_TYPE(tag, type) (((tag) & ~0xf0) | ((type) << 4))
+
+#define JZ_TVAL_TYPE(value) JZ_TAG_TYPE((value).tag)
 #define JZ_TVAL_SET_TYPE(value, type) \
-  ((value).tag = ((value).tag & !0x0f) | type)
+  ((value).tag = JZ_TAG_WITH_TYPE((value).tag, type))
 
 #define JZ_TVAL_CAN_BE_GCED(val) \
   (JZ_TVAL_TYPE(val) >= jz_t_str && (val).value.gc != NULL)
@@ -59,7 +71,15 @@ typedef enum {
   (JZ_TVAL_TYPE(val) == jz_t_obj && (val).value.obj == NULL)
 
 #define JZ_TVAL_IS_PRIMITIVE(val) \
-  (JZ_TVAL_TYPE(val) != jz_t_obj || JZ_TVAL_IS_NULL(val))
+  (JZ_TVAL_TYPE(val) != jz_t_obj || (val).value.obj == NULL)
+
+#define JZ_BITMASK(bit) (1 << (bit))
+
+#define JZ_BIT(field, bit) ((field) & JZ_BITMASK(bit))
+#define JZ_SET_BIT(field, bit, val)             \
+  (void)((val) ?                                \
+         ((field) |= JZ_BITMASK(bit)) :         \
+         ((field) &= ~JZ_BITMASK(bit)))
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
