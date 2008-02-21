@@ -1,8 +1,6 @@
 #ifndef JZ_STRING_H
 #define JZ_STRING_H
 
-#include <stdbool.h>
-
 #include <unicode/ustring.h>
 #include "jazz.h"
 #include "value.h"
@@ -86,7 +84,7 @@ jz_str* jz_str_strip(JZ_STATE, const jz_str* this);
 jz_str* jz_str_concat(JZ_STATE, const jz_str* s1, const jz_str* s2);
 
 /* Returns whether or not s1 and s2 are equivalent strings. */
-bool jz_str_equal(JZ_STATE, const jz_str* s1, const jz_str* s2);
+jz_bool jz_str_equal(JZ_STATE, const jz_str* s1, const jz_str* s2);
 
 /* Returns an integer indicating
    how s1 and s2 are ordered relative to each other.

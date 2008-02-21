@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
 #include <assert.h>
 
@@ -25,10 +24,10 @@ typedef struct hash_result hash_result;
 
 #define STATE JZ_STATE, jz_lex_state* state
 
-static bool try_filler(STATE);
-static bool try_hex_literal(STATE, YYSTYPE* lex_val);
-static bool try_decimal_literal(STATE, YYSTYPE* lex_val);
-static bool try_string_literal(STATE, YYSTYPE* lex_val);
+static jz_bool try_filler(STATE);
+static jz_bool try_hex_literal(STATE, YYSTYPE* lex_val);
+static jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val);
+static jz_bool try_string_literal(STATE, YYSTYPE* lex_val);
 typedef const UChar* const_uchars;
 static UChar hex_escape(STATE, int chars, const jz_str* match,
                         const_uchars* match_ptr_ptr);
@@ -38,8 +37,8 @@ static int try_identifier(STATE, YYSTYPE* lex_val);
 static URegularExpression* create_re(const char* pattern);
 
 /* Attempts to apply 're' to the current position of the code string.
-   Returns true if successful, false otherwise. */
-static bool try_re(STATE, URegularExpression* re);
+   Returns jz_true if successful, jz_false otherwise. */
+static jz_bool try_re(STATE, URegularExpression* re);
 
 /* Returns a jz_str* of the text for the given match of the given regexp.
    Match 0 is the entire matched string.
@@ -97,15 +96,15 @@ int yylex(YYSTYPE* lex_val, STATE) {
   return to_ret;
 }
 
-bool try_filler(STATE) {
-  if (try_re(jz, state, jz->lex.whitespace_re)) return true;
-  if (try_re(jz, state, jz->lex.line_terminator_re)) return true;
-  if (try_re(jz, state, jz->lex.one_line_comment_re)) return true;
-  if (try_re(jz, state, jz->lex.multiline_comment_re)) return true;
-  return false;
+jz_bool try_filler(STATE) {
+  if (try_re(jz, state, jz->lex.whitespace_re)) return jz_true;
+  if (try_re(jz, state, jz->lex.line_terminator_re)) return jz_true;
+  if (try_re(jz, state, jz->lex.one_line_comment_re)) return jz_true;
+  if (try_re(jz, state, jz->lex.multiline_comment_re)) return jz_true;
+  return jz_false;
 }
 
-bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
+jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
   URegularExpression* matched;
 
   if (try_re(jz, state, jz->lex.decimal_literal_re1))
@@ -114,7 +113,7 @@ bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
     matched = jz->lex.decimal_literal_re2;
   else if (try_re(jz, state, jz->lex.decimal_literal_re3))
     matched = jz->lex.decimal_literal_re3;
-  else return false;
+  else return jz_false;
 
   {
     jz_str* match;
@@ -138,12 +137,12 @@ bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
     free(num);
     free(dec);
     free(exp);
-    return true;
+    return jz_true;
   }
 }
 
-bool try_hex_literal(STATE, YYSTYPE* lex_val) {
-  if (!try_re(jz, state, jz->lex.hex_literal_re)) return false;
+jz_bool try_hex_literal(STATE, YYSTYPE* lex_val) {
+  if (!try_re(jz, state, jz->lex.hex_literal_re)) return jz_false;
 
   {
     jz_str* match = get_match(jz, state, jz->lex.hex_literal_re, 0);
@@ -153,12 +152,12 @@ bool try_hex_literal(STATE, YYSTYPE* lex_val) {
     sscanf(num + 2, "%x", &hex);
     lex_val->num = (double)hex;
     free(num);
-    return true;
+    return jz_true;
   }
 }
 
-bool try_string_literal(STATE, YYSTYPE* lex_val) {
-  if (!try_re(jz, state, jz->lex.string_literal_re)) return false;
+jz_bool try_string_literal(STATE, YYSTYPE* lex_val) {
+  if (!try_re(jz, state, jz->lex.string_literal_re)) return jz_false;
 
   {
     jz_str* match = get_match(jz, state, jz->lex.string_literal_re, 2);
@@ -213,7 +212,7 @@ bool try_string_literal(STATE, YYSTYPE* lex_val) {
     }
 
     lex_val->str->length = res - JZ_STR_PTR(lex_val->str);
-    return true;
+    return jz_true;
   }
 }
 
@@ -260,7 +259,7 @@ int try_punctuation(STATE, YYSTYPE* lex_val) {
   char* match;
   const hash_result* result;
 
-  if (!try_re(jz, state, jz->lex.punctuation_re)) return false;
+  if (!try_re(jz, state, jz->lex.punctuation_re)) return jz_false;
 
   jz_match = get_match(jz, state, jz->lex.punctuation_re, 0);
   match = jz_str_to_chars(jz, jz_match);
@@ -271,7 +270,7 @@ int try_punctuation(STATE, YYSTYPE* lex_val) {
   if (result) return result->token;
 
   printf("Lexer bug: Unrecognized punctuation: \"%s\" at length %d\n", match, state->code->length);
-  return false;
+  return jz_false;
 }
 
 int try_identifier(STATE, YYSTYPE* lex_val) {
@@ -279,7 +278,7 @@ int try_identifier(STATE, YYSTYPE* lex_val) {
   char* match;
   const hash_result* result;
 
-  if (!try_re(jz, state, jz->lex.identifier_re)) return false;
+  if (!try_re(jz, state, jz->lex.identifier_re)) return jz_false;
 
   jz_match = get_match(jz, state, jz->lex.identifier_re, 0);
   match = jz_str_to_chars(jz, jz_match);
@@ -292,10 +291,10 @@ int try_identifier(STATE, YYSTYPE* lex_val) {
   return IDENTIFIER;
 }
 
-bool try_re(STATE, URegularExpression* re) {
+jz_bool try_re(STATE, URegularExpression* re) {
   UErrorCode error = U_ZERO_ERROR;
 
-  if (state->code->length == 0) return false;
+  if (state->code->length == 0) return jz_false;
 
   uregex_setText(re, JZ_STR_PTR(state->code), state->code->length, &error);
   CHECK_ICU_ERROR(error);
@@ -303,7 +302,7 @@ bool try_re(STATE, URegularExpression* re) {
   {
     UBool found = uregex_find(re, 0, &error);
     CHECK_ICU_ERROR(error);
-    if (!found) return false;
+    if (!found) return jz_false;
   }
 
   {
@@ -313,7 +312,7 @@ bool try_re(STATE, URegularExpression* re) {
     state->code_prev = state->code;
     state->code = jz_str_substr(jz, state->code, change);
   }
-  return true;
+  return jz_true;
 }
 
 jz_str* get_match(STATE, URegularExpression* re, int number) {

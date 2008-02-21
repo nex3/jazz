@@ -15,11 +15,11 @@
 
 #define SET_HASHED(str) JZ_SET_BIT(JZ_GC_TAG(str), JZ_STR_HASHED_BIT, 1)
 
-static bool is_whitespace_char(UChar c);
+static jz_bool is_whitespace_char(UChar c);
 static jz_str* str_new(JZ_STATE, int start, int length);
 static jz_str_value* val_alloc(JZ_STATE, int length);
 
-bool is_whitespace_char(UChar c) {
+jz_bool is_whitespace_char(UChar c) {
   return u_isblank(c) || (c) == 0xA0 || (c) == '\f' || (c) == '\v' ||
     (c) == '\r' || (c) == '\n' || (c) == 0x2028 || (c) == 0x2029;
 }
@@ -144,11 +144,11 @@ jz_str* jz_str_concat(JZ_STATE, const jz_str* s1, const jz_str* s2) {
   return str_val_new(jz, 0, s1->length + s2->length, val);
 }
 
-bool jz_str_equal(JZ_STATE, const jz_str* s1, const jz_str* s2) {
+jz_bool jz_str_equal(JZ_STATE, const jz_str* s1, const jz_str* s2) {
   if (s1->length != s2->length)
-    return false;
+    return jz_false;
   if (JZ_STR_IS_HASHED(s1) && JZ_STR_IS_HASHED(s2) && s1->hash != s2->hash)
-    return false;
+    return jz_false;
 
   return u_strncmp(JZ_STR_PTR(s1), JZ_STR_PTR(s2), s1->length) == 0;
 }

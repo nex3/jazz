@@ -3,6 +3,10 @@
 
 #include <assert.h>
 
+typedef unsigned char jz_bool;
+#define jz_true  ((jz_bool)1)
+#define jz_false ((jz_bool)0)
+
 /* Prototype structs that would cause ciruclar-reference problems otherwise. */ 
 typedef struct jz_state jz_state;
 typedef struct jz_obj jz_obj;

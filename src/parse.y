@@ -5,7 +5,6 @@
 #include "string.h"
 #include "object.h"
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -16,7 +15,7 @@
    but no nodes are allocated or freed. */
 static jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head);
 
-static void print_parse_list(JZ_STATE, jz_parse_node* node, bool start);
+static void print_parse_list(JZ_STATE, jz_parse_node* node, jz_bool start);
 static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr);
 
 static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg);
@@ -397,8 +396,8 @@ literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
   | bool_val { $$ = jz_wrap_bool(jz, $1); }
   | NULL_VAL { $$ = JZ_NULL; }
 
-bool_val: TRUE_VAL { $$ = true; }
-  | FALSE_VAL { $$ = false; }
+bool_val: TRUE_VAL { $$ = jz_true; }
+  | FALSE_VAL { $$ = jz_false; }
 
 object_literal: LCURLY RCURLY {
   $$ = jz_pnode_wrap(jz, jz_parse_literal, jz_obj_new(jz));
@@ -541,11 +540,11 @@ jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head) {
 }
 
 void jz_print_parse_tree(JZ_STATE, jz_parse_node* root) {
-  print_parse_list(jz, root, true);
+  print_parse_list(jz, root, jz_true);
   putchar('\n');
 }
 
-static void print_parse_list(JZ_STATE, jz_parse_node* node, bool start) {
+static void print_parse_list(JZ_STATE, jz_parse_node* node, jz_bool start) {
   if (start)
     putchar('(');
 
@@ -555,7 +554,7 @@ static void print_parse_list(JZ_STATE, jz_parse_node* node, bool start) {
     putchar(')');
   else if (JZ_TAG_TYPE(*node->cdr.tag) == jz_t_parse_node) {
     putchar(' ');
-    print_parse_list(jz, node->cdr.node, false);
+    print_parse_list(jz, node->cdr.node, jz_false);
   } else {
     printf(" . ");
     print_parse_ptr(jz, node->cdr);
@@ -575,7 +574,7 @@ static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
     break;
 
   case jz_t_parse_node:
-    print_parse_list(jz, ptr.node, true);
+    print_parse_list(jz, ptr.node, jz_true);
     break;
 
   default: {

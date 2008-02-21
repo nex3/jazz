@@ -60,7 +60,7 @@ typedef enum {
   ((jz_gc_write_barrier_active(jz) &&                           \
     jz_gc_is_black(jz, (jz_gc_header*)(referrer)) &&            \
     jz_gc_is_white(jz, (jz_gc_header*)(reference))) ?           \
-   jz_gc_mark_gray(jz, (jz_gc_header*)(reference)) : false)
+   jz_gc_mark_gray(jz, (jz_gc_header*)(reference)) : jz_false)
 
 #define JZ_GC_WRITE_BARRIER_VAL(jz, referrer, val) {    \
     if (JZ_TVAL_CAN_BE_GCED(val)) {                     \
@@ -74,17 +74,17 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
                             size_t extra_size, size_t number);
 
 #define jz_gc_tick(jz)                                          \
-  ((jz_gc_within_threshold(jz) && jz_gc_paused(jz)) ? false :   \
+  ((jz_gc_within_threshold(jz) && jz_gc_paused(jz)) ? jz_false :   \
    jz_gc_steps(jz))
 
 void jz_gc_cycle(JZ_STATE);
-bool jz_gc_steps(JZ_STATE);
-bool jz_gc_step(JZ_STATE);
+jz_bool jz_gc_steps(JZ_STATE);
+jz_bool jz_gc_step(JZ_STATE);
 
 #define jz_gc_set_speed(jz, new_speed) ((jz)->gc.speed = (new_speed))
 #define jz_gc_set_pause(jz, new_pause) ((jz)->gc.pause = (new_pause))
 
-bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
+jz_bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
 
 void jz_gc_init(JZ_STATE);
 
