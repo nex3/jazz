@@ -7,13 +7,12 @@
 #include "value.h"
 
 struct jz_gc_header {
-  jz_gc_header* next;
-
-/* The first two bits (0 and 1) of this tag
-   are reserved for the GC's internal use.
-   The second two (2 and 3) may be used by individual structs
-   for any tagging they need. */
+  /* The first two bits (0 and 1) of this tag
+     are reserved for the GC's internal use.
+     The second two (2 and 3) may be used by individual structs
+     for any tagging they need. */
   jz_tag tag;
+  jz_gc_header* next;
 };
 
 typedef struct jz_gc_node jz_gc_node;

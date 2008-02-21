@@ -16,16 +16,15 @@
    but no nodes are allocated or freed. */
 static jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head);
 
-
-/* The ptr_to functions allocate pointers to value objects,
-   so they can be used as members of jz_parse_val. */
-static jz_tvalue* ptr_to_val(JZ_STATE, jz_tvalue val);
-static jz_op_type* ptr_to_ot(JZ_STATE, jz_op_type ot);
+static void print_parse_list(JZ_STATE, jz_parse_node* node, bool start);
+static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr);
 
 static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg);
 
-#define binop_node(jz, type, left, right) jz_pnode_list(jz, jz_parse_binop, 3, ptr_to_ot(jz, type), (left), (right))
-#define unop_node(jz, type, next) jz_pnode_cons(jz, jz_parse_unop, ptr_to_ot(jz, type), (next))
+#define CONS(car, cdr) jz_pnode_cons(jz, (jz_tag*)(car), (jz_tag*)(cdr))
+
+#define binop_node(jz, type, left, right) jz_pnode_list(jz, 4, jz_pleaf_new(jz, jz_parse_binop), jz_pleaf_new(jz, type), (left), (right))
+#define unop_node(jz, type, next) jz_pnode_pair(jz, jz_parse_unop, jz_pleaf_new(jz, type), (next))
 %}
 
 %error-verbose
@@ -115,34 +114,34 @@ program: source_elements { *root = $1; }
 
 source_elements: source_element_list { $$ = reverse_list(jz, $1); }
 
-source_element_list: source_element { $$ = jz_pnode_wrap(jz, jz_parse_statements, $1); }
-  | source_element_list source_element { $$ = jz_pnode_cons(jz, jz_parse_statements, $2, $1); }
+source_element_list: source_element { $$ = CONS($1, NULL); }
+  | source_element_list source_element { $$ = CONS($2, $1); }
 
 source_element: statement
 
 statement: block | expr_statement | var_statement | empty_statement
   | return_statement | if_statement | iter_statement  | switch_statement
 
-block: LCURLY statements RCURLY { $$ = $2; }
-  | LCURLY RCURLY { $$ = jz_pnode_new(jz, jz_parse_empty); }
+block: LCURLY statements RCURLY { $$ = CONS(jz_pleaf_new(jz, jz_parse_block), $2); }
+  | LCURLY RCURLY { $$ = NULL; }
 
 statements: statement_list { $$ = reverse_list(jz, $1); }
 
-statement_list: statement { $$ = jz_pnode_wrap(jz, jz_parse_statements, $1); }
-  | statement_list statement { $$ = jz_pnode_cons(jz, jz_parse_statements, $2, $1); }
+statement_list: statement { $$ = CONS($1, NULL); }
+  | statement_list statement { $$ = CONS($2, $1); }
 
 var_statement: VAR var_decls SEMICOLON { $$ = $2; }
 
-var_decls: var_decl_list { $$ = reverse_list(jz, $1); }
+var_decls: var_decl_list { $$ = CONS(jz_pleaf_new(jz, jz_parse_var), reverse_list(jz, $1)); }
 
-var_decl_list: var_decl { $$ = jz_pnode_wrap(jz, jz_parse_vars, $1); }
-  | var_decl_list COMMA var_decl { $$ = jz_pnode_cons(jz, jz_parse_vars, $3, $1); }
+var_decl_list: var_decl { $$ = CONS($1, NULL); }
+  | var_decl_list COMMA var_decl { $$ = CONS($3, $1); }
 
 var_decl: IDENTIFIER {
-  $$ = jz_pnode_wrap(jz, jz_parse_var, jz_str_deep_dup(jz, $1));
+  $$ = jz_pnode_list(jz, 2, jz_str_deep_dup(jz, $1), NULL);
  }
   | IDENTIFIER EQUALS assign_expr {
-    $$ = jz_pnode_cons(jz, jz_parse_var, jz_str_deep_dup(jz, $1), $3);
+    $$ = jz_pnode_list(jz, 2, jz_str_deep_dup(jz, $1), $3);
  }
 
 expr_statement: stmt_expr SEMICOLON
@@ -150,10 +149,10 @@ expr_statement: stmt_expr SEMICOLON
 return_statement: RETURN expr SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, $2); }
   | RETURN SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, NULL); }
 
-empty_statement: SEMICOLON { $$ = jz_pnode_new(jz, jz_parse_empty); }
+empty_statement: SEMICOLON { $$ = NULL; }
 
 if_statement: IF LPAREN expr RPAREN statement else {
-  $$ = jz_pnode_list(jz, jz_parse_if, 3, $3, $5, $6);
+   $$ = jz_pnode_list(jz, 4, jz_pleaf_new(jz, jz_parse_if), $3, $5, $6);
  }
 
 else: ELSE statement { $$ = $2; }
@@ -162,16 +161,16 @@ else: ELSE statement { $$ = $2; }
 iter_statement: do_while_statement | while_statement | for_statement
 
 do_while_statement: DO statement WHILE LPAREN expr RPAREN SEMICOLON {
-  $$ = jz_pnode_cons(jz, jz_parse_do_while, $5, $2);
+  $$ = jz_pnode_pair(jz, jz_parse_do_while, $5, $2);
  }
 
 while_statement: WHILE LPAREN expr RPAREN statement {
-  $$ = jz_pnode_cons(jz, jz_parse_while, $3, $5);
+  $$ = jz_pnode_pair(jz, jz_parse_while, $3, $5);
  }
 
 for_statement: FOR LPAREN first_for_expr SEMICOLON
     opt_expr SEMICOLON opt_expr RPAREN statement {
-    $$ = jz_pnode_list(jz, jz_parse_for, 4, $3, $5, $7, $9);
+      $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_for), $3, $5, $7, $9);
  }
 
 first_for_expr: opt_expr
@@ -182,7 +181,7 @@ opt_expr: expr
 
 
 switch_statement: SWITCH LPAREN expr RPAREN LCURLY case_block RCURLY {
-  $$ = jz_pnode_cons(jz, jz_parse_switch, $3, $6);
+  $$ = CONS(jz_pleaf_new(jz, jz_parse_switch), CONS($3, $6));
  }
 
 case_block: case_block_list { $$ = reverse_list(jz, $1); }
@@ -193,26 +192,22 @@ case_block_list: case_clauses | default_clause
   | case_clauses default_clause case_clauses { $$ = jz_plist_concat(jz, jz_plist_concat(jz, $3, $2), $1); }
   | /* empty */ { $$ = NULL; }
 
-case_clauses: case_clause { $$ = jz_pnode_wrap(jz, jz_parse_cases, $1); }
-  | case_clauses case_clause { $$ = jz_pnode_cons(jz, jz_parse_cases, $2, $1); }
+case_clauses: case_clause { $$ = CONS($1, NULL); }
+  | case_clauses case_clause { $$ = CONS($2, $1); }
 
-case_clause: CASE expr COLON statement_list { $$ = jz_pnode_cons(jz, jz_parse_case, $2, $4); }
-  | CASE expr COLON { $$ = jz_pnode_wrap(jz, jz_parse_case, $2); }
+case_clause: CASE expr COLON statement_list { $$ = CONS($2, $4); }
+  | CASE expr COLON { $$ = CONS($2, NULL); }
 
-default_clause: DEFAULT COLON statement_list { $$ = jz_pnode_wrap(jz, jz_parse_cases, jz_pnode_cons(jz, jz_parse_case, NULL, $3)); }
-| DEFAULT COLON { $$ = jz_pnode_wrap(jz, jz_parse_cases, jz_pnode_new(jz, jz_parse_case)); }
+default_clause: DEFAULT COLON statement_list { $$ = CONS(CONS(NULL, $3), NULL); }
+  | DEFAULT COLON { $$ = CONS(CONS(NULL, NULL), NULL); }
 
-expr: expr_list { $$ = reverse_list(jz, $1); }
-stmt_expr: stmt_expr_list { $$ = reverse_list(jz, $1); }
+expr: expr_list { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), reverse_list(jz, $1)); }
+stmt_expr: stmt_expr_list { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), reverse_list(jz, $1)); }
 
-expr_list: assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
-  | expr_list COMMA assign_expr {
-     $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
- }
-stmt_expr_list: stmt_assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_exprs, $1); }
-  | stmt_expr_list COMMA assign_expr {
-     $$ = jz_pnode_cons(jz, jz_parse_exprs, $3, $1);
- }
+expr_list: assign_expr { $$ = CONS($1, NULL); }
+  | expr_list COMMA assign_expr { $$ = CONS($3, $1); }
+stmt_expr_list: stmt_assign_expr { $$ = CONS($1, NULL); }
+  | stmt_expr_list COMMA assign_expr { $$ = CONS($3, $1); }
 
 assign_expr: cond_expr
   | left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
@@ -235,11 +230,13 @@ assign_expr_op: EQUALS { $$ = jz_op_assign; }
 
 cond_expr: or_expr
   | or_expr QUESTION assign_expr COLON assign_expr {
-    $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
+    $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_triop),
+                       jz_pleaf_new(jz, jz_op_cond), $1, $3, $5);
  }
 stmt_cond_expr: stmt_or_expr
   | stmt_or_expr QUESTION assign_expr COLON assign_expr {
-    $$ = jz_pnode_list(jz, jz_parse_triop, 4, ptr_to_ot(jz, jz_op_cond), $1, $3, $5);
+    $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_triop),
+                       jz_pleaf_new(jz, jz_op_cond), $1, $3, $5);
  }
 
 or_expr: and_expr
@@ -270,6 +267,7 @@ stmt_bw_and_expr: stmt_eq_expr
 eq_expr: rel_expr
   | eq_expr eq_expr_op rel_expr { $$ = binop_node(jz, $2, $1, $3); }
   | eq_expr neq_expr_op rel_expr {
+    /* TODO: Make this transformation elsewhere */
     $$ = unop_node(jz, jz_op_not, binop_node(jz, $2, $1, $3));
  }
 stmt_eq_expr: stmt_rel_expr
@@ -350,16 +348,16 @@ postfix_expr_op: PLUS_PLUS { $$ = jz_op_post_inc; }
 left_hand_expr: new_expr | call_expr
 stmt_left_hand_expr: stmt_new_expr | stmt_call_expr
 
-call_expr: call_or_member_expr arguments { $$ = jz_pnode_cons(jz, jz_parse_call, $1, $2); }
+call_expr: call_or_member_expr arguments { $$ = CONS(jz_pleaf_new(jz, jz_parse_call), CONS($1, $2)); }
   | call_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
-stmt_call_expr: stmt_call_or_member_expr arguments { $$ = jz_pnode_cons(jz, jz_parse_call, $1, $2); }
+stmt_call_expr: stmt_call_or_member_expr arguments { $$ = CONS(jz_pleaf_new(jz, jz_parse_call), CONS($1, $2)); }
   | stmt_call_expr member_accessor { $$ = binop_node(jz, jz_op_index, $1, $2); }
 
 arguments: LPAREN RPAREN { $$ = NULL; }
   | LPAREN argument_list RPAREN { $$ = reverse_list(jz, $2); }
 
-argument_list: assign_expr { $$ = jz_pnode_wrap(jz, jz_parse_args, $1); }
-  | argument_list COMMA assign_expr { $$ = jz_pnode_cons(jz, jz_parse_args, $3, $1); }
+argument_list: assign_expr { $$ = CONS($1, NULL); }
+  | argument_list COMMA assign_expr { $$ = CONS($3, $1); }
 
 call_or_member_expr: member_expr | call_expr
 stmt_call_or_member_expr: stmt_member_expr | stmt_call_expr
@@ -374,7 +372,7 @@ stmt_member_expr: stmt_primary_expr
 
 member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
   /* TODO: This is hideous and belongs in a compilation transformation. */
-  | DOT identifier { $$ = reverse_list(jz, jz_pnode_wrap(jz, jz_parse_exprs, jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_str(jz, $2->car.str))))); }
+  | DOT identifier { $$ = jz_pnode_wrap(jz, jz_parse_literal, $2->cdr.node->car.str); }
 
 function_expr: FUNCTION LPAREN RPAREN LCURLY opt_source_elements RCURLY {
   $$ = jz_pnode_wrap(jz, jz_parse_func, $5);
@@ -385,14 +383,14 @@ opt_source_elements: source_elements
 
 primary_expr: stmt_primary_expr | object_literal
 stmt_primary_expr: identifier | literal
-  | THIS { $$ = jz_pnode_list(jz, jz_parse_this, 0); }
+  | THIS { $$ = CONS(jz_pleaf_new(jz, jz_parse_this), NULL); }
   | LPAREN expr RPAREN { $$ = $2; }
 
 identifier: IDENTIFIER {
   $$ = jz_pnode_wrap(jz, jz_parse_identifier, jz_str_deep_dup(jz, $1));
  }
 
-literal: literal_tval { $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, $1)); }
+literal: literal_tval { $$ = jz_pnode_wrap(jz, jz_parse_literal, jz_tval_to_pleaf(jz, $1)); }
 
 literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
   | STRING { $$ = jz_wrap_str(jz, $1); }
@@ -403,41 +401,92 @@ bool_val: TRUE_VAL { $$ = true; }
   | FALSE_VAL { $$ = false; }
 
 object_literal: LCURLY RCURLY {
-  $$ = jz_pnode_wrap(jz, jz_parse_literal, ptr_to_val(jz, jz_wrap_obj(jz, jz_obj_new(jz))));
+  $$ = jz_pnode_wrap(jz, jz_parse_literal, jz_obj_new(jz));
  }
 
 %%
 
-jz_parse_node* jz_pnode_list(JZ_STATE, jz_parse_type type, int argc, ...) {
-  jz_parse_node* to_ret = jz_pnode_new(jz, type);
-  jz_parse_node* end = to_ret;
+jz_parse_node* jz_pnode_list(JZ_STATE, int argc, ...) {
+  jz_parse_node* to_ret;
+  jz_parse_node* end;
   va_list args;
   int i;
 
+  if (argc == 0)
+    return NULL;
+
   va_start(args, argc);
 
-  to_ret->type = type;
-  to_ret->car  = va_arg(args, jz_parse_value);
+  to_ret = jz_pnode_new(jz);
+  end = to_ret;
+  to_ret->car.tag = va_arg(args, jz_tag*);
 
-  for (i = 2; i < argc; i++) {
-    jz_parse_node* next = jz_pnode_new(jz, jz_parse_cont);
+  for (i = 1; i < argc; i++) {
+    jz_parse_node* next = jz_pnode_new(jz);
 
     end->cdr.node = next;
     end = next;
-    end->car = va_arg(args, jz_parse_value);
+    end->car.tag = va_arg(args, jz_tag*);
   }
 
-  if (argc > 1) end->cdr = va_arg(args, jz_parse_value);
-  else end->cdr.node = NULL;
-
   va_end(args);
+
+  end->cdr.tag = NULL;
+
   return to_ret;
 }
 
-jz_parse_node* jz_pnode_new(JZ_STATE, jz_parse_type type) {
-  jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));;
-  to_ret->type = type;
+jz_parse_node* jz_pnode_new(JZ_STATE) {
+  jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));
+  to_ret->tag = JZ_TAG_WITH_TYPE(0, jz_t_parse_node);
   to_ret->car.node = to_ret->cdr.node = NULL;
+  return to_ret;
+}
+
+jz_parse_leaf* jz_pleaf_new(JZ_STATE, unsigned char val) {
+  jz_parse_leaf* to_ret = malloc(sizeof(jz_parse_leaf));
+  to_ret->tag = JZ_TAG_WITH_TYPE(0, jz_t_enum);
+  to_ret->val = val;
+  return to_ret;
+}
+
+jz_parse_node* jz_pnode_cons(JZ_STATE, jz_tag* car, jz_tag* cdr) {
+  jz_parse_node* to_ret = jz_pnode_new(jz);
+  to_ret->car.tag = car;
+  to_ret->cdr.tag = cdr;
+  return to_ret;
+}
+
+jz_parse_ptr jz_tval_to_pleaf(JZ_STATE, jz_tvalue val) {
+  jz_parse_ptr to_ret;
+
+  if (JZ_TVAL_CAN_BE_GCED(val))
+    to_ret.tag = (jz_tag*)(val.value.gc);
+  else if (JZ_TVAL_IS_NULL(val))
+    to_ret.tag = NULL;
+  else {
+    to_ret.val = malloc(sizeof(jz_tvalue));
+    *to_ret.val = val;
+  }
+
+  return to_ret;
+}
+
+jz_tvalue jz_pleaf_to_tval(JZ_STATE, jz_parse_ptr val) {
+  jz_tvalue to_ret;
+
+  if (val.tag == NULL)
+    return JZ_NULL;
+
+  assert(JZ_TAG_TYPE(*val.tag) != jz_t_enum);
+  assert(JZ_TAG_TYPE(*val.tag) != jz_t_parse_node);
+
+  if (!JZ_TAG_CAN_BE_GCED(*val.tag))
+    return *val.val;
+
+  JZ_TVAL_SET_TYPE(to_ret, JZ_TAG_TYPE(*val.tag));
+  to_ret.value.gc = val.gc;
+
   return to_ret;
 }
 
@@ -460,7 +509,14 @@ jz_parse_node* jz_parse_string(JZ_STATE, const jz_str* code) {
   free(state);
 
   /* yyparse returns 0 to indicate success. */
-  return result == 0 ? root : NULL;
+  if (result != 0)
+    return NULL;
+
+#if JZ_DEBUG_PARSE
+  jz_print_parse_tree(jz, root);
+#endif
+
+  return root;
 }
 
 jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head) {
@@ -484,16 +540,50 @@ jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head) {
   return curr;
 }
 
-jz_tvalue* ptr_to_val(JZ_STATE, jz_tvalue val) {
-  jz_tvalue* to_ret = malloc(sizeof(jz_tvalue));
-  *to_ret = val;
-  return to_ret;
+void jz_print_parse_tree(JZ_STATE, jz_parse_node* root) {
+  print_parse_list(jz, root, true);
+  putchar('\n');
 }
 
-jz_op_type* ptr_to_ot(JZ_STATE, jz_op_type ot) {
-  jz_op_type* to_ret = malloc(sizeof(jz_op_type));
-  *to_ret = ot;
-  return to_ret;
+static void print_parse_list(JZ_STATE, jz_parse_node* node, bool start) {
+  if (start)
+    putchar('(');
+
+  print_parse_ptr(jz, node->car);
+
+  if (node->cdr.tag == NULL)
+    putchar(')');
+  else if (JZ_TAG_TYPE(*node->cdr.tag) == jz_t_parse_node) {
+    putchar(' ');
+    print_parse_list(jz, node->cdr.node, false);
+  } else {
+    printf(" . ");
+    print_parse_ptr(jz, node->cdr);
+    putchar(')');
+  }
+}
+
+static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
+  if (ptr.tag == NULL) {
+    printf("null");
+    return;
+  }
+
+  switch (JZ_TAG_TYPE(*ptr.tag)) {
+  case jz_t_enum:
+    printf("[enum %d]", ptr.leaf->val);
+    break;
+
+  case jz_t_parse_node:
+    print_parse_list(jz, ptr.node, true);
+    break;
+
+  default: {
+    char* str = jz_str_to_chars(jz, jz_to_str(jz, jz_pleaf_to_tval(jz, ptr)));
+    printf("%s", str);
+    free(str);
+  }
+  }
 }
 
 void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg)
