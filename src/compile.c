@@ -48,22 +48,22 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 
 #define TYPE(val) JZ_TAG_TYPE(*(val).tag)
 #define ASSERT_NODE(val) \
-  jz_long_assert((val).node == NULL || TYPE(val) == jz_t_parse_node)
+  assert((val).node == NULL || TYPE(val) == jz_t_parse_node)
 #define NODE(val) (ASSERT_NODE(val), (val).node)
-#define ENUM(value) (jz_long_assert(TYPE(value) == jz_t_enum), (value).leaf->val)
+#define ENUM(value) (assert(TYPE(value) == jz_t_enum), (value).leaf->val)
 
-#define CAR(n) (jz_long_assert((n) != NULL), (n)->car)
-#define CDR(n) (jz_long_assert((n) != NULL), (n)->cdr)
-#define CAAR(n) (CAR(NODE(CAR(n))))
-#define CDAR(n) (CDR(NODE(CAR(n))))
-#define CADR(n) (CAR(NODE(CDR(n))))
-#define CDDR(n) (CDR(NODE(CDR(n))))
-#define CAAAR(n) (CAR(NODE(CAAR(n))))
-#define CAADR(n) (CAR(NODE(CADR(n))))
-#define CADDR(n) (CAR(NODE(CDDR(n))))
-#define CDDAR(n) (CDR(NODE(CDAR(n))))
-#define CDDDR(n) (CDR(NODE(CDDR(n))))
-#define CADDDR(n) (CAR(NODE(CDDDR(n))))
+#define CAR(n) ((n)->car)
+#define CDR(n) ((n)->cdr)
+#define CAAR(n) (CAR(CAR(n).node))
+#define CDAR(n) (CDR(CAR(n).node))
+#define CADR(n) (CAR(CDR(n).node))
+#define CDDR(n) (CDR(CDR(n).node))
+#define CAAAR(n) (CAR(CAAR(n).node))
+#define CAADR(n) (CAR(CADR(n).node))
+#define CADDR(n) (CAR(CDDR(n).node))
+#define CDDAR(n) (CDR(CDAR(n).node))
+#define CDDDR(n) (CDR(CDDR(n).node))
+#define CADDDR(n) (CAR(CDDDR(n).node))
 
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(jz, state->code, opcode)
 #define PUSH_ARG(arg) \
@@ -837,7 +837,7 @@ void compile_triop(STATE, jz_parse_node* node, jz_bool value) {
   int cap1, cap2, cap3;
   ptrdiff_t cond_jump, branch1_jump;
 
-  jz_long_assert(ENUM(CAR(node)) == jz_op_cond);
+  assert(ENUM(CAR(node)) == jz_op_cond);
 
   compile_expr(jz, state, NODE(CADR(node)), jz_true);
   cap1 = state->stack_length;
@@ -926,7 +926,7 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool
   /* Noop signals that this is just a plain assignment.
      Otherwise we want to run an operation before assigning. */
   if (op == jz_oc_noop) {
-    jz_long_assert(TYPE(CADR(left)) == jz_t_str);
+    assert(TYPE(CADR(left)) == jz_t_str);
     var = get_var(jz, state, CADR(left).str);
     compile_expr(jz, state, right, jz_true);
   } else {
