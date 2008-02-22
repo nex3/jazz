@@ -125,8 +125,6 @@ static ptrdiff_t push_placeholder(STATE, size_t size);
 
 static void free_comp_state(STATE);
 
-static void free_parse_ptr(JZ_STATE, jz_parse_ptr ptr);
-
 JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
 
@@ -314,7 +312,7 @@ void compile_if(STATE, jz_parse_node* node) {
 void compile_do_while(STATE, jz_parse_node* node) {
   int cap;
   ptrdiff_t jump;
-  jz_bool conditional_is_literal;
+  jz_bool conditional_is_literal = jz_false;
   jz_tvalue conditional_literal = get_literal_value(jz, NODE(CAR(node)),
                                                     &conditional_is_literal);
 
@@ -342,7 +340,7 @@ void compile_do_while(STATE, jz_parse_node* node) {
 void compile_while(STATE, jz_parse_node* node) {
   int cap;
   ptrdiff_t index, placeholder;
-  jz_bool conditional_is_literal;
+  jz_bool conditional_is_literal = jz_false;
   jz_tvalue conditional_literal = get_literal_value(jz, NODE(CAR(node)),
                                                     &conditional_is_literal);
 
@@ -393,23 +391,6 @@ void compile_for(STATE, jz_parse_node* node) {
   compile_statement(jz, state, while_statement);
 
   state->stack_length = MAX(cap, state->stack_length);
-
-  /* Now free the new nodes we've made. */
-  free(NODE(CDDR(while_statement)));
-  free(NODE(CDR(while_statement)));
-  free(CAR(while_statement).leaf);
-  free(while_statement);
-
-  if (inc_expr != NULL) {
-    free(NODE(CDDR(body)));
-    free(NODE(CDR(body)));
-    free(CAR(body).leaf);
-    free(body);
-
-    free(NODE(CDR(inc_expr)));
-    free(CAR(inc_expr).leaf);
-    free(inc_expr);
-  }
 }
 
 void compile_switch(STATE, jz_parse_node* node) {
@@ -1118,45 +1099,4 @@ void jz_free_bytecode(JZ_STATE, jz_bytecode* this) {
   free(this->code);
   free(this->consts);
   free(this);
-}
-
-/* TODO: Test this with non-GCC and large parse trees.
-   Mutual recursion might be a problem for non-tail-call-optimizing compilers. */
-void jz_free_parse_tree(JZ_STATE, jz_parse_node* root) {
-  if (root == NULL) return;
-
-  free_parse_ptr(jz, CAR(root));
-  free_parse_ptr(jz, CDR(root));
-  free(root);
-}
-
-void free_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
-  jz_type type;
-
-  if (ptr.tag == NULL)
-    return;
-
-  type = JZ_TAG_TYPE(*ptr.tag);
-
-  switch (type) {
-  case jz_t_undef:
-  case jz_t_num:
-  case jz_t_bool:
-    free(ptr.val);
-    break;
-  case jz_t_enum:
-    free(ptr.leaf);
-    break;
-  case jz_t_parse_node:
-    jz_free_parse_tree(jz, ptr.node);
-    break;
-  case jz_t_str:
-  case jz_t_str_value:
-  case jz_t_obj:
-  case jz_t_proto:
-    break;
-  default:
-    fprintf(stderr, "Unknown parse_ptr type %d\n", type);
-    break;
-  }
 }

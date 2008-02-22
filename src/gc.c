@@ -18,6 +18,7 @@ static void blacken_obj(JZ_STATE, jz_obj* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
 static void blacken_proto(JZ_STATE, jz_proto* proto);
+static void blacken_pnode(JZ_STATE, jz_parse_node* node);
 
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
@@ -122,6 +123,9 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   case jz_t_proto:
     blacken_proto(jz, (jz_proto*)obj);
     break;
+  case jz_t_parse_node:
+    blacken_pnode(jz, (jz_parse_node*)obj);
+    break;
   default:
     fprintf(stderr, "Unknown GC type %d\n", JZ_GC_TYPE(obj));
     exit(1);
@@ -155,6 +159,13 @@ void blacken_str(JZ_STATE, jz_str* str) {
 void blacken_proto(JZ_STATE, jz_proto* proto) {
   jz_gc_mark_gray(jz, &proto->obj->gc);
   jz_gc_mark_gray(jz, &proto->class->gc);
+}
+
+void blacken_pnode(JZ_STATE, jz_parse_node* node) {
+  if (JZ_TAG_CAN_BE_GCED(*node->car.tag))
+    jz_gc_mark_gray(jz, node->car.gc);
+  if (JZ_TAG_CAN_BE_GCED(*node->cdr.tag))
+    jz_gc_mark_gray(jz, node->cdr.gc);
 }
 
 jz_gc_header* pop_gray_stack(JZ_STATE) {
@@ -254,6 +265,9 @@ void gc_free(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
   case jz_t_obj:
     jz_obj_free(jz, (jz_obj*)obj);
+    return;
+  case jz_t_parse_node:
+    jz_pnode_free(jz, (jz_parse_node*)obj);
     return;
   default:
     free(obj);

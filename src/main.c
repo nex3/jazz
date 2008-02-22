@@ -33,8 +33,6 @@ int main(int argc, char** argv) {
     bytecode = jz_compile(jz, root);
     if (!bytecode) exit(1);
 
-    jz_free_parse_tree(jz, root);
-
     result = jz_str_to_chars(jz, jz_to_str(jz, jz_vm_run(jz, bytecode)));
     printf("%s\n", result);
 

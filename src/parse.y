@@ -18,6 +18,8 @@ static jz_parse_node* reverse_list(JZ_STATE, jz_parse_node* head);
 static void print_parse_list(JZ_STATE, jz_parse_node* node, jz_bool start);
 static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr);
 
+static void free_parse_ptr(JZ_STATE, jz_parse_ptr ptr);
+
 static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg);
 
 #define CONS(car, cdr) jz_pnode_cons(jz, (jz_tag*)(car), (jz_tag*)(cdr))
@@ -436,8 +438,8 @@ jz_parse_node* jz_pnode_list(JZ_STATE, int argc, ...) {
 }
 
 jz_parse_node* jz_pnode_new(JZ_STATE) {
-  jz_parse_node* to_ret = malloc(sizeof(jz_parse_node));
-  to_ret->tag = JZ_TAG_WITH_TYPE(0, jz_t_parse_node);
+  jz_parse_node* to_ret = (jz_parse_node*)jz_gc_malloc(jz, jz_t_parse_node, sizeof(jz_parse_node));
+
   to_ret->car.node = to_ret->cdr.node = NULL;
   return to_ret;
 }
@@ -583,6 +585,20 @@ static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
     free(str);
   }
   }
+}
+
+void jz_pnode_free(JZ_STATE, jz_parse_node* this) {
+  free_parse_ptr(jz, this->car);
+  free_parse_ptr(jz, this->cdr);
+}
+
+void free_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
+  if (ptr.tag == NULL)
+    return;
+  else if (JZ_TAG_CAN_BE_GCED(*ptr.tag))
+    return;
+  else
+    free(ptr.tag);
 }
 
 void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const char* msg)

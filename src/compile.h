@@ -30,6 +30,4 @@ jz_bytecode* jz_compile(JZ_STATE, jz_parse_node* parse_tree);
    Does nothing if 'this' is NULL. */
 void jz_free_bytecode(JZ_STATE, jz_bytecode* this);
 
-void jz_free_parse_tree(JZ_STATE, jz_parse_node* root);
-
 #endif

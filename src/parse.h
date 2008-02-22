@@ -3,6 +3,7 @@
 
 #include "jazz.h"
 #include "value.h"
+#include "gc.h"
 
 typedef enum {
   jz_parse_block,      /* A block statement consisting of multiple sub-statements.
@@ -152,7 +153,7 @@ typedef union {
    The types of 'car' and 'cdr' are defined by 'type'.
    See the documentation for jz_parse_type. */
 struct jz_parse_node {
-  jz_tag tag;
+  jz_gc_header gc;
   jz_parse_ptr car;
   jz_parse_ptr cdr;
 };
@@ -191,6 +192,8 @@ jz_tvalue jz_pleaf_to_tval(JZ_STATE, jz_parse_ptr ptr);
 jz_parse_node* jz_plist_concat(JZ_STATE, jz_parse_node* list1, jz_parse_node* list2);
 
 void jz_print_parse_tree(JZ_STATE, jz_parse_node* root);
+
+void jz_pnode_free(JZ_STATE, jz_parse_node* this);
 
 #define jz_pnode_pair(jz, type, car, cdr) jz_pnode_list(jz, 3, jz_pleaf_new(jz, type), car, cdr)
 #define jz_pnode_wrap(jz, type, car)      jz_pnode_list(jz, 2, jz_pleaf_new(jz, type), car)

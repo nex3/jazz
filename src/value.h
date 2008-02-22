@@ -27,10 +27,10 @@ typedef enum {
 
   /* Not actually used in tvalues; just used for the parser. */
   jz_t_enum,
-  jz_t_parse_node,
 
   /* All type flags past this point
      must refer to types with jz_gc_header headers. */
+  jz_t_parse_node,
   jz_t_str,
   jz_t_str_value,
   jz_t_obj,
@@ -68,7 +68,7 @@ typedef enum {
 #define JZ_TVAL_SET_TYPE(value, type) \
   ((value).tag = JZ_TAG_WITH_TYPE((value).tag, type))
 
-#define JZ_TAG_CAN_BE_GCED(tag) (JZ_TAG_TYPE(tag) >= jz_t_str)
+#define JZ_TAG_CAN_BE_GCED(tag) (JZ_TAG_TYPE(tag) >= jz_t_parse_node)
 #define JZ_TVAL_CAN_BE_GCED(val) \
   (JZ_TAG_CAN_BE_GCED((val).tag) && (val).value.gc != NULL)
 
