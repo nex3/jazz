@@ -69,10 +69,6 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 #define PUSH_ARG(arg) \
   push_multibyte_arg(jz, state, &(arg), sizeof(arg)/sizeof(jz_opcode))
 
-#define IS_INDEX_OP(node)                       \
-  (ENUM(CAR(node)) == jz_parse_binop &&         \
-   ENUM(CADR(node)) == jz_op_index)
-
 
 static jz_tvalue* consts_to_array(STATE);
 
@@ -95,13 +91,13 @@ static variable compile_identifier(STATE, jz_parse_node* node, jz_bool value);
 static void compile_identifier_store(STATE, variable var);
 static void compile_literal(STATE, jz_parse_node* node, jz_bool value);
 static void compile_this(STATE, jz_parse_node* node, jz_bool value);
-static void compile_unop(STATE, jz_parse_node* node, jz_bool value);
+static void compile_unop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value);
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
                                   jz_opcode op, jz_bool pre, jz_bool value);
-static void compile_binop(STATE, jz_parse_node* node, jz_bool value);
-static void compile_logical_binop(STATE, jz_parse_node* node, jz_op_type op, jz_bool value);
+static void compile_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value);
+static void compile_logical_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value);
 static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
-static void compile_triop(STATE, jz_parse_node* node, jz_bool value);
+static void compile_cond(STATE, jz_parse_node* node, jz_bool value);
 static void compile_call(STATE, jz_parse_node* node, jz_bool value);
 static void compile_func(STATE, jz_parse_node* node, jz_bool value);
 static void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
@@ -524,18 +520,6 @@ void compile_expr(STATE, jz_parse_node* node, jz_bool value) {
     compile_exprs(jz, state, node, value);
     break;
 
-  case jz_parse_unop:
-    compile_unop(jz, state, node, value);
-    break;
-
-  case jz_parse_binop:
-    compile_binop(jz, state, node, value);
-    break;
-
-  case jz_parse_triop:
-    compile_triop(jz, state, node, value);
-    break;
-
   case jz_parse_call:
     compile_call(jz, state, node, value);
     break;
@@ -544,9 +528,19 @@ void compile_expr(STATE, jz_parse_node* node, jz_bool value) {
     compile_func(jz, state, node, value);
     break;
 
+  case jz_parse_cond:
+    compile_cond(jz, state, node, value);
+    break;
+
   default:
-    printf("Unrecognized expression node type %d\n", type);
-    exit(1);
+    if (JZ_PTYPE_IS_UNOP(type))
+      compile_unop(jz, state, node, type, value);
+    else if (JZ_PTYPE_IS_BINOP(type))
+      compile_binop(jz, state, node, type, value);
+    else {
+      printf("Unrecognized expression node type %d\n", type);
+      exit(1);
+    }
   }
 }
 
@@ -649,14 +643,12 @@ void compile_this(STATE, jz_parse_node* node, jz_bool value) {
     break;                                              \
   }
 
-void compile_unop(STATE, jz_parse_node* node, jz_bool value) {
-  jz_op_type op = ENUM(CAR(node));
-
-  node = NODE(CADR(node));
+void compile_unop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
+  node = NODE(CAR(node));
 
   switch (op) {
-  SIMPLE_UNOP_CASE(jz_op_add,    jz_oc_to_num)
-  SIMPLE_UNOP_CASE(jz_op_sub,    jz_oc_neg)
+  SIMPLE_UNOP_CASE(jz_op_un_add, jz_oc_to_num)
+  SIMPLE_UNOP_CASE(jz_op_un_sub, jz_oc_neg)
   SIMPLE_UNOP_CASE(jz_op_bw_not, jz_oc_bw_not)
   SIMPLE_UNOP_CASE(jz_op_not,    jz_oc_not)
 
@@ -718,11 +710,7 @@ static void compile_unit_shortcut(STATE, jz_parse_node* node,
     break;                                              \
   }
 
-void compile_binop(STATE, jz_parse_node* node, jz_bool value) {
-  jz_op_type op = ENUM(CAR(node));
-
-  node = NODE(CDR(node));
-
+void compile_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
   switch (op) {
   case jz_op_and:
   case jz_op_or:
@@ -771,7 +759,7 @@ void compile_binop(STATE, jz_parse_node* node, jz_bool value) {
   }
 }
 
-void compile_logical_binop(STATE, jz_parse_node* node, jz_op_type op, jz_bool value) {
+void compile_logical_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
   int left_cap, right_cap;
   ptrdiff_t jump;
 
@@ -811,29 +799,25 @@ void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool valu
   state->stack_length = MAX(left_cap, right_cap + 1);
 }
 
-/* TODO: Not worth having a whole general triop thing set up
-   when there's only one triop.
-   Also it can be compiled to ands and ors. */
-void compile_triop(STATE, jz_parse_node* node, jz_bool value) {
+/* TODO: This can be compiled to ands and ors. */
+void compile_cond(STATE, jz_parse_node* node, jz_bool value) {
   int cap1, cap2, cap3;
   ptrdiff_t cond_jump, branch1_jump;
 
-  assert(ENUM(CAR(node)) == jz_op_cond);
-
-  compile_expr(jz, state, NODE(CADR(node)), jz_true);
+  compile_expr(jz, state, NODE(CAR(node)), jz_true);
   cap1 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
   cond_jump = push_placeholder(jz, state, JZ_OCS_PTRDIFF);
 
-  compile_expr(jz, state, NODE(CADDR(node)), value);
+  compile_expr(jz, state, NODE(CADR(node)), value);
   cap2 = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump);
   branch1_jump = push_placeholder(jz, state, JZ_OCS_PTRDIFF);
   jump_to_top_from(jz, state, cond_jump);
 
-  compile_expr(jz, state, NODE(CADDDR(node)), value);
+  compile_expr(jz, state, NODE(CADDR(node)), value);
   cap3 = state->stack_length;
   jump_to_top_from(jz, state, branch1_jump);
 
@@ -887,11 +871,11 @@ void compile_func(STATE, jz_parse_node* node, jz_bool value) {
 }
 
 void compile_assign_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
-  jz_parse_node* left = NODE(CAR(node));
+  jz_parse_type left = ENUM(CAAR(node));
 
-  if (ENUM(CAR(left)) == jz_parse_identifier)
+  if (left == jz_parse_identifier)
     compile_identifier_assign(jz, state, node, op, value);
-  else if (IS_INDEX_OP(left))
+  else if (left == jz_op_index)
     compile_index_assign(jz, state, node, op, value);
   else {
     fprintf(stderr, "Invalid left-hand side of assignment.\n");
@@ -926,7 +910,7 @@ void compile_identifier_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool
 }
 
 void compile_index_assign(STATE, jz_parse_node* node, jz_opcode op, jz_bool value) {
-  jz_parse_node* left = NODE(CDDAR(node));
+  jz_parse_node* left = NODE(CDAR(node));
   jz_parse_node* right = NODE(CADR(node));
   int left_cap, right_cap;
   char base_stack_size = 2;

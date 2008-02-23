@@ -47,18 +47,6 @@ typedef enum {
                           cdr.node is a list of sub-expressions.
 
                           TODO: See if we can't get rid of this. */
-  jz_parse_unop,       /* A unary operator.
-                          cadr.leaf indicates which operator it is,
-                          caddr.node is the argument. */
-  jz_parse_binop,      /* A binary operator.
-                          cadr.leaf indicates which operator it is,
-                          caddr.node is the left-hand argument,
-                          cadddr.node is the right-hand argument. */
-  jz_parse_triop,      /* A trinary operator.
-                          cadr.leaf indicates which operator it is,
-                          caddr.node is the first argument,
-                          cadddr.node is the second argument, 
-                          caddddr.node is the third argument. */
   jz_parse_literal,    /* A literal value.
                           cadr.val is the value. */
   jz_parse_identifier, /* An identifier.
@@ -70,15 +58,18 @@ typedef enum {
   jz_parse_call,       /* A function call.
                           cadr.node is the function,
                           cddr.node is a list of arguments. */
-  jz_parse_func        /* A function declaration.
+  jz_parse_func,       /* A function declaration.
                           cadr.node is a jz_parse_statements
                           containing the source code of the function. */
-} jz_parse_type;
+  jz_parse_cond,       /* The ?: conditional operator.
+                          cadr.node is the conditional expression,
+                          caddr.node is the true option,
+                          and cadddr.node is the false option. */
 
-/* Operator types for unary, binary, and trinary operators.
-   TODO: Separate based on arg number, get rid of jz_parse_{un,bin,tri}op. */
-typedef enum {
-  jz_op_cond,
+  /*** Operator parse nodes. These are all expressions. ***/
+
+  /* Binary operators.
+     cadr.node and caddr.node are the operands. */
   jz_op_or,
   jz_op_and,
   jz_op_bw_or,
@@ -112,14 +103,23 @@ typedef enum {
   jz_op_bw_and_eq,
   jz_op_xor_eq,
   jz_op_bw_or_eq,
+  jz_op_index,
+
+  /* Unary operators.
+     cadr.node is the only operand. */
+  jz_op_un_add,
+  jz_op_un_sub,
   jz_op_bw_not,
   jz_op_not,
   jz_op_pre_inc,
   jz_op_pre_dec,
   jz_op_post_inc,
-  jz_op_post_dec,
-  jz_op_index
-} jz_op_type;
+  jz_op_post_dec
+} jz_parse_type;
+
+#define JZ_PTYPE_IS_UNOP(type) ((type) >= jz_op_un_add)
+#define JZ_PTYPE_IS_BINOP(type) \
+  ((type) >= jz_op_or && (type) <= jz_op_un_add)
 
 typedef struct jz_parse_node jz_parse_node;
 

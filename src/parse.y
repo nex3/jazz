@@ -24,8 +24,8 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
 
 #define CONS(car, cdr) jz_pnode_cons(jz, (jz_tag*)(car), (jz_tag*)(cdr))
 
-#define binop_node(jz, type, left, right) jz_pnode_list(jz, 4, jz_pleaf_new(jz, jz_parse_binop), jz_pleaf_new(jz, type), (left), (right))
-#define unop_node(jz, type, next) jz_pnode_pair(jz, jz_parse_unop, jz_pleaf_new(jz, type), (next))
+#define binop_node(jz, type, left, right) jz_pnode_list(jz, 3, jz_pleaf_new(jz, type), (left), (right))
+#define unop_node(jz, type, next) jz_pnode_wrap(jz, type, (next))
 %}
 
 %error-verbose
@@ -231,13 +231,11 @@ assign_expr_op: EQUALS { $$ = jz_op_assign; }
 
 cond_expr: or_expr
   | or_expr QUESTION assign_expr COLON assign_expr {
-    $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_triop),
-                       jz_pleaf_new(jz, jz_op_cond), $1, $3, $5);
+    $$ = jz_pnode_list(jz, 4, jz_pleaf_new(jz, jz_parse_cond), $1, $3, $5);
  }
 stmt_cond_expr: stmt_or_expr
   | stmt_or_expr QUESTION assign_expr COLON assign_expr {
-    $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_triop),
-                       jz_pleaf_new(jz, jz_op_cond), $1, $3, $5);
+    $$ = jz_pnode_list(jz, 4, jz_pleaf_new(jz, jz_parse_cond), $1, $3, $5);
  }
 
 or_expr: and_expr
@@ -329,8 +327,8 @@ unary_expr: postfix_expr
 stmt_unary_expr: stmt_postfix_expr
   | unary_expr_op unary_expr { $$ = unop_node(jz, $1, $2); }
 
-unary_expr_op: PLUS { $$ = jz_op_add; }
-  | MINUS       { $$ = jz_op_sub; }
+unary_expr_op: PLUS { $$ = jz_op_un_add; }
+  | MINUS       { $$ = jz_op_un_sub; }
   | BW_NOT      { $$ = jz_op_bw_not; }
   | NOT         { $$ = jz_op_not; }
   | PLUS_PLUS   { $$ = jz_op_pre_inc; }
