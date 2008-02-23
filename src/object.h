@@ -21,7 +21,7 @@ struct jz_obj {
   void* data;
   /* TODO: uint32 */
   unsigned int capacity; /* The number of cells in the table. */
-  unsigned char order; /* 1 << capacity */
+  jz_byte order; /* 1 << capacity */
   unsigned int size; /* The number of active elements currently in the table. */
   jz_obj_cell* table;
 };

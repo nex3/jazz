@@ -1,7 +1,9 @@
 #ifndef JZ_JAZZ_H
 #define JZ_JAZZ_H
 
-typedef unsigned char jz_bool;
+typedef unsigned char jz_byte;
+
+typedef jz_byte jz_bool;
 #define jz_true  ((jz_bool)1)
 #define jz_false ((jz_bool)0)
 

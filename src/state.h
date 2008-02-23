@@ -16,9 +16,9 @@ struct jz_state {
   jz_tvalue true_val;
   jz_tvalue false_val;
   struct {
-    unsigned char state;
-    unsigned char speed;
-    unsigned char pause;
+    jz_byte state;
+    jz_byte speed;
+    jz_byte pause;
     size_t allocated;
     size_t threshold;
     jz_bool black_bit;

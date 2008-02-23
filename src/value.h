@@ -16,7 +16,7 @@
 
    The use of the lower four bits (bits 0, 1, 2, and 3)
    varies depending on the context. */
-typedef unsigned char jz_tag;
+typedef jz_byte jz_tag;
 
 typedef enum {
   /* Giving undefined a 0 flag means that zero-ed memory

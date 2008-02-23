@@ -128,7 +128,7 @@ typedef struct jz_parse_node jz_parse_node;
    as they're already tagged. */
 typedef struct jz_parse_leaf {
   jz_tag tag;
-  unsigned char val;
+  jz_byte val;
 } jz_parse_leaf;
 
 /* Potential values for the car and cdr of a jz_parse_node.
@@ -166,7 +166,7 @@ jz_parse_node* jz_pnode_list(JZ_STATE, int argc, ...);
 /* Returns a new parse node with NULL car and cdr. */
 jz_parse_node* jz_pnode_new(JZ_STATE);
 
-jz_parse_leaf* jz_pleaf_new(JZ_STATE, unsigned char val);
+jz_parse_leaf* jz_pleaf_new(JZ_STATE, jz_byte val);
 
 jz_parse_node* jz_pnode_cons(JZ_STATE, jz_tag* car, jz_tag* cdr);
 

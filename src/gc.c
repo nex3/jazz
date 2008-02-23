@@ -78,8 +78,8 @@ void jz_gc_cycle(JZ_STATE) {
 }
 
 jz_bool jz_gc_steps(JZ_STATE) {
-  unsigned char i;
-  unsigned char steps = jz->gc.speed;
+  jz_byte i;
+  jz_byte steps = jz->gc.speed;
 
   for (i = 0; i < steps; i++) {
     if (jz_gc_step(jz))

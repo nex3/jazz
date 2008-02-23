@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 
-typedef unsigned char jz_opcode;
+typedef jz_byte jz_opcode;
 typedef unsigned short int jz_index;
 
 typedef enum {

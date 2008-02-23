@@ -440,7 +440,7 @@ jz_parse_node* jz_pnode_new(JZ_STATE) {
   return to_ret;
 }
 
-jz_parse_leaf* jz_pleaf_new(JZ_STATE, unsigned char val) {
+jz_parse_leaf* jz_pleaf_new(JZ_STATE, jz_byte val) {
   jz_parse_leaf* to_ret = malloc(sizeof(jz_parse_leaf));
   to_ret->tag = JZ_TAG_WITH_TYPE(0, jz_t_enum);
   to_ret->val = val;
