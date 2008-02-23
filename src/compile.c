@@ -744,7 +744,7 @@ void compile_comma(STATE, jz_parse_node* node, jz_bool value) {
   state->stack_length = MAX(left_cap, right_cap);
 }
 
-void compile_logical_binop(STATE, jz_parse_node* node, jz_op_type op, jz_bool value) {
+void compile_logical_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
   int left_cap, right_cap;
   ptrdiff_t jump;
 
