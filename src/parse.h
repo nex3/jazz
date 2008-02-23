@@ -5,6 +5,7 @@
 #include "value.h"
 #include "gc.h"
 
+/* When updating this, don't forget to update jz_parse_names in parse.y */
 typedef enum {
   jz_parse_block,      /* A block statement consisting of multiple sub-statements.
                           cdr.node is the list of sub-statements. */
@@ -113,8 +114,12 @@ typedef enum {
   jz_op_pre_inc,
   jz_op_pre_dec,
   jz_op_post_inc,
-  jz_op_post_dec
+  jz_op_post_dec,
+
+  jz_parse_last
 } jz_parse_type;
+
+const char* jz_parse_names[jz_parse_last];
 
 #define JZ_PTYPE_IS_UNOP(type) ((type) >= jz_op_un_add)
 #define JZ_PTYPE_IS_BINOP(type) \

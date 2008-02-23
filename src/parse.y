@@ -10,6 +10,14 @@
 #include <stdarg.h>
 #include <assert.h>
 
+const char* jz_parse_names[] = {
+  "block", "return", "if", "do-while", "while", "for", "switch", "var", "expr",
+  "literal", "id", "this", "call", "func", "cond", "||", "&&", ",", "|", "^",
+  "&", "==", "!=", "===", "!==", "<", ">", "<=", ">=", "<<", ">>", ">>>", "+",
+  "-", "*", "/", "%", "=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", ">>>=",
+  "&=", "^=", "|=", "[]", "+@", "-@", "~", "!", "++@", "--@", "@++", "@--"
+};
+
 /* Reverses an s-expression list and returns the new list.
    The list is destructively modified,
    but no nodes are allocated or freed. */
@@ -568,7 +576,7 @@ static void print_parse_ptr(JZ_STATE, jz_parse_ptr ptr) {
 
   switch (JZ_TAG_TYPE(*ptr.tag)) {
   case jz_t_enum:
-    printf("[enum %d]", ptr.leaf->val);
+    printf("%s", jz_parse_names[ptr.leaf->val]);
     break;
 
   case jz_t_parse_node:
