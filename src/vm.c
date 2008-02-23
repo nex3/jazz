@@ -9,6 +9,14 @@
 #include <stdio.h>
 #include <assert.h>
 
+const char* jz_oc_names[] = {
+  "jump", "jump_unless", "jump_if", "store_global", "retrieve", "store",
+  "load_global", "call", "push_literal", "push_global", "index", "index_store",
+  "pop", "dup", "dup2", "rot4", "bw_or", "xor", "bw_and", "equals", "strict_eq",
+  "lt", "gt", "lt_eq", "gt_eq", "lshift", "rshift", "urshift", "add", "sub",
+  "times", "div", "mod", "to_num", "neg", "bw_not", "not", "ret", "end", "noop"
+};
+
 #define NEXT_OPCODE (*((code)++))
 #define READ_ARG_INTO(type, var)                \
   type var = *(type*)(code);                    \
@@ -338,177 +346,10 @@ void print_bytecode(const jz_bytecode* bytecode) {
   printf("Bytecode:\n");
   for (code = bytecode->code;
        code - bytecode->code < bytecode->code_length; code++) {
-    char* name = "???";
-    size_t argsize = 0;
+    jz_opcode op = *code;
+    size_t argsize = JZ_OC_ARGSIZE(op);
 
-    switch (*code) {
-    case jz_oc_push_literal:
-      name = "push_literal";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_push_global:
-      name = "push_global";
-      break;
-
-    case jz_oc_jump:
-      name = "jump";
-      argsize = JZ_OCS_PTRDIFF;
-      break;
-
-    case jz_oc_jump_unless:
-      name = "jump_unless";
-      argsize = JZ_OCS_PTRDIFF;
-      break;
-
-    case jz_oc_jump_if:
-      name = "jump_if";
-      argsize = JZ_OCS_PTRDIFF;
-      break;
-
-    case jz_oc_store:
-      name = "store";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_index_store:
-      name = "index_store";
-      break;
-
-    case jz_oc_store_global:
-      name = "store_global";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_retrieve:
-      name = "retrieve";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_index:
-      name = "index";
-      break;
-
-    case jz_oc_load_global:
-      name = "load_global";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_call:
-      name = "call";
-      argsize = JZ_OCS_INDEX;
-      break;
-
-    case jz_oc_pop:
-      name = "pop";
-      break;
-
-    case jz_oc_dup:
-      name = "dup";
-      break;
-
-    case jz_oc_dup2:
-      name = "dup2";
-      break;
-
-    case jz_oc_rot4:
-      name = "rot4";
-      break;
-
-    case jz_oc_bw_or:
-      name = "bw_or";
-      break;
-
-    case jz_oc_xor:
-      name = "xor";
-      break;
-
-    case jz_oc_bw_and:
-      name = "bw_and";
-      break;
-
-    case jz_oc_equals:
-      name = "equals";
-      break;
-
-    case jz_oc_strict_eq:
-      name = "strict_eq";
-      break;
-
-    case jz_oc_lt:
-      name = "lt";
-      break;
-
-    case jz_oc_gt:
-      name = "gt";
-      break;
-
-    case jz_oc_lt_eq:
-      name = "lt_eq";
-      break;
-
-    case jz_oc_gt_eq:
-      name = "gt_eq";
-      break;
-
-    case jz_oc_lshift:
-      name = "lshift";
-      break;
-
-    case jz_oc_rshift:
-      name = "rshift";
-      break;
-
-    case jz_oc_urshift:
-      name = "urshift";
-      break;
-
-    case jz_oc_add:
-      name = "add";
-      break;
-
-    case jz_oc_sub:
-      name = "sub";
-      break;
-
-    case jz_oc_times:
-      name = "times";
-      break;
-
-    case jz_oc_div:
-      name = "div";
-      break;
-
-    case jz_oc_mod:
-      name = "mod";
-      break;
-
-    case jz_oc_to_num:
-      name = "to_num";
-      break;
-
-    case jz_oc_neg:
-      name = "neg";
-      break;
-
-    case jz_oc_bw_not:
-      name = "bw_not";
-      break;
-
-    case jz_oc_not:
-      name = "not";
-      break;
-
-    case jz_oc_ret:
-      name = "ret";
-      break;
-
-    case jz_oc_end:
-      name = "end";
-      break;
-    }
-
-    printf("%d: %s (%lu)\n", code - bytecode->code, name,
+    printf("%4d:  %-15s (%lu)\n", code - bytecode->code, jz_oc_names[op],
            (unsigned long)argsize);
     code += argsize;
   }

@@ -8,19 +8,25 @@
 typedef jz_byte jz_opcode;
 typedef unsigned short int jz_index;
 
+/* When updating this, don't forget to update jz_oc_names in vm.c */
 typedef enum {
-  jz_oc_push_literal,
-  jz_oc_push_global,
+  /* Argument: ptrdiff_t */
   jz_oc_jump,
   jz_oc_jump_unless,
   jz_oc_jump_if,
-  jz_oc_store,
-  jz_oc_index_store,
+
+  /* Argument: jz_index */
   jz_oc_store_global,
   jz_oc_retrieve,
-  jz_oc_index,
+  jz_oc_store,
   jz_oc_load_global,
   jz_oc_call,
+  jz_oc_push_literal,
+
+  /* No argument */
+  jz_oc_push_global,
+  jz_oc_index,
+  jz_oc_index_store,
   jz_oc_pop,
   jz_oc_dup,
   jz_oc_dup2,
@@ -48,10 +54,17 @@ typedef enum {
   jz_oc_not,
   jz_oc_ret,
   jz_oc_end,
-  jz_oc_noop
+  jz_oc_noop,
+
+  jz_oc_last
 } jz_oc_type;
 
-#define JZ_OCS_TVALUE  (sizeof(jz_tvalue)/sizeof(jz_opcode))
+const char* jz_oc_names[jz_oc_last];
+
+#define JZ_OC_ARGSIZE(oc)                               \
+  ((oc) <= jz_oc_jump_if ? JZ_OCS_PTRDIFF :             \
+   ((oc) <= jz_oc_push_literal ? JZ_OCS_INDEX : 0))
+
 #define JZ_OCS_PTRDIFF (sizeof(ptrdiff_t)/sizeof(jz_opcode))
 #define JZ_OCS_INDEX   (sizeof(jz_index)/sizeof(jz_opcode))
 
