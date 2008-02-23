@@ -1,0 +1,8 @@
+*.o
+*.a
+y.tab.*
+*.gp.c
+*.gc*
+/coverage
+/jazz
+/src/jazz
