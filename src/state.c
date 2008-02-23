@@ -6,6 +6,9 @@
 #include "object.h"
 #include "function.h"
 
+/* Default stack size is 1 MB */
+#define STACK_SIZE (1 << 20)
+
 static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
 
@@ -13,6 +16,8 @@ static jz_tvalue jz_print(JZ_STATE, jz_args* args, int argc, const jz_tvalue* ar
 
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
+
+  state->stack = calloc(sizeof(jz_byte), STACK_SIZE);
 
   /* Assign value constants. */
   JZ_TVAL_SET_TYPE(state->undefined_val, jz_t_undef);

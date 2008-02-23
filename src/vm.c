@@ -46,7 +46,6 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);
-  printf("Stack length: %lu\n", (unsigned long)bytecode->stack_length);
   printf("Locals length: %lu\n", (unsigned long)bytecode->locals_length);
 #endif
 

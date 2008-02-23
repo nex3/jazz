@@ -6,9 +6,12 @@
 jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   /* Use calloc to ensure the frame is initially zeroed. */
   jz_frame* frame;
-  int extra_size = function->stack_length + function->locals_length - 1;
+  int extra_size = function->locals_length - 1;
 
-  frame = calloc(sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size, 1);
+  frame = (jz_frame*)jz->stack;
+  memset(frame, 0, sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size);
+
+  jz->stack += sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size;
   frame->bytecode = function;
   frame->stack_top = NULL;
   frame->upper = jz->current_frame;
@@ -18,5 +21,5 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
 }
 
 void jz_frame_free(JZ_STATE, jz_frame* frame) {
-  free(frame);
+  jz->stack = (jz_byte*)frame;
 }

@@ -8,6 +8,7 @@
 #include "gc.h"
 
 struct jz_state {
+  jz_byte* stack;
   jz_frame* current_frame;
   jz_obj* prototypes;
   jz_obj* global_obj;
