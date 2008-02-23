@@ -22,6 +22,7 @@ static void blacken_pnode(JZ_STATE, jz_parse_node* node);
 
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
+static void mark_frame(JZ_STATE, jz_frame* frame);
 static void mark_step(JZ_STATE);
 static jz_bool sweep_step(JZ_STATE);
 static void gc_free(JZ_STATE, jz_gc_header* obj);
@@ -183,7 +184,16 @@ jz_gc_header* pop_gray_stack(JZ_STATE) {
 }
 
 void mark_roots(JZ_STATE) {
-  jz_frame* frame = jz->current_frame;
+  mark_frame(jz, jz->current_frame);
+
+  if (jz->global_obj != NULL)
+    jz_gc_mark_gray(jz, &jz->global_obj->gc);
+
+  if (jz->prototypes != NULL)
+    jz_gc_mark_gray(jz, &jz->prototypes->gc);
+}
+
+static void mark_frame(JZ_STATE, jz_frame* frame) {
   jz_tvalue* next;
   jz_tvalue* top;
 
@@ -201,11 +211,7 @@ void mark_roots(JZ_STATE) {
   for (; next != top; next++)
     JZ_GC_MARK_VAL_GRAY(jz, *next);
 
-  if (jz->global_obj != NULL)
-    jz_gc_mark_gray(jz, &jz->global_obj->gc);
-
-  if (jz->prototypes != NULL)
-    jz_gc_mark_gray(jz, &jz->prototypes->gc);
+  mark_frame(jz, frame->upper);
 }
 
 void mark_step(JZ_STATE) {

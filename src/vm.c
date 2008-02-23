@@ -43,7 +43,6 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   jz_tvalue* consts = bytecode->consts;
 
   frame->stack_top = &stack;
-  jz->current_frame = frame;
 
 #if JZ_DEBUG_BYTECODE
   print_bytecode(bytecode);

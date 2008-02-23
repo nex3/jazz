@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "frame.h"
+#include "state.h"
 
 jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   /* Use calloc to ensure the frame is initially zeroed. */
@@ -10,6 +11,8 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   frame = calloc(sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size, 1);
   frame->bytecode = function;
   frame->stack_top = NULL;
+  frame->upper = jz->current_frame;
+  jz->current_frame = frame;
 
   return frame;
 }

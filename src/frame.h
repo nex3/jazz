@@ -5,11 +5,17 @@
 #include "compile.h"
 #include "value.h"
 
-typedef struct {
+typedef struct jz_frame jz_frame;
+
+struct jz_frame {
   const jz_bytecode* bytecode;
+  jz_frame* upper;
+  /* This points to the stack variable in jz_vm_run.
+     It allows the garbage collector to determine
+     where the stack ends. */
   jz_tvalue** stack_top;
   jz_tvalue locals_then_stack[1];
-} jz_frame;
+};
 
 jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function);
 void jz_frame_free(JZ_STATE, jz_frame* frame);
