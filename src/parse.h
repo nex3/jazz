@@ -43,10 +43,8 @@ typedef enum {
                           cadr.node is the expression initializer of the variable,
                           or NULL if there is no initializer. */
 
-  jz_parse_expr,       /* An expression.
-                          cdr.node is a list of sub-expressions.
-
-                          TODO: See if we can't get rid of this. */
+  jz_parse_expr,       /* An expression statement.
+                          cdr.node is the expression. */
   jz_parse_literal,    /* A literal value.
                           cadr.val is the value. */
   jz_parse_identifier, /* An identifier.
@@ -72,6 +70,7 @@ typedef enum {
      cadr.node and caddr.node are the operands. */
   jz_op_or,
   jz_op_and,
+  jz_op_comma,
   jz_op_bw_or,
   jz_op_xor,
   jz_op_bw_and,

@@ -85,7 +85,6 @@ static void compile_switch(STATE, jz_parse_node* node);
 static jz_ptrdiff_vector* compile_switch_conditionals(STATE, jz_parse_node* node);
 static void compile_switch_statements(STATE, jz_parse_node* node, jz_ptrdiff_vector* placeholders);
 
-static void compile_exprs(STATE, jz_parse_node* node, jz_bool value);
 static void compile_expr(STATE, jz_parse_node* node, jz_bool value);
 static variable compile_identifier(STATE, jz_parse_node* node, jz_bool value);
 static void compile_identifier_store(STATE, variable var);
@@ -95,6 +94,7 @@ static void compile_unop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool v
 static void compile_unit_shortcut(STATE, jz_parse_node* node,
                                   jz_opcode op, jz_bool pre, jz_bool value);
 static void compile_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value);
+static void compile_comma(STATE, jz_parse_node* node, jz_bool value);
 static void compile_logical_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value);
 static void compile_simple_binop(STATE, jz_parse_node* node, jz_opcode op, jz_bool value);
 static void compile_cond(STATE, jz_parse_node* node, jz_bool value);
@@ -201,7 +201,7 @@ static void compile_statement(STATE, jz_parse_node* node) {
     break;
       
   case jz_parse_expr:
-    compile_exprs(jz, state, node, jz_false);
+    compile_expr(jz, state, node, jz_false);
     break;
 
   case jz_parse_if:
@@ -265,7 +265,7 @@ void compile_return(STATE, jz_parse_node* node) {
   if (node == NULL)
     PUSH_OPCODE(jz_oc_end);
   else {
-    compile_exprs(jz, state, node, jz_true);
+    compile_expr(jz, state, node, jz_true);
     PUSH_OPCODE(jz_oc_ret);
   }
 }
@@ -274,7 +274,7 @@ void compile_if(STATE, jz_parse_node* node) {
   int expr_cap, if_cap;
   ptrdiff_t jump;
 
-  compile_exprs(jz, state, NODE(CAR(node)), jz_true);
+  compile_expr(jz, state, NODE(CAR(node)), jz_true);
   expr_cap = state->stack_length;
 
   PUSH_OPCODE(jz_oc_jump_unless);
@@ -324,7 +324,7 @@ void compile_do_while(STATE, jz_parse_node* node) {
   if (skip_conditional)
     PUSH_OPCODE(jz_oc_jump);
   else {
-    compile_exprs(jz, state, NODE(CAR(node)), jz_true);
+    compile_expr(jz, state, NODE(CAR(node)), jz_true);
     PUSH_OPCODE(jz_oc_jump_if);
   }
 
@@ -350,7 +350,7 @@ void compile_while(STATE, jz_parse_node* node) {
 
   if (skip_conditional) cap = 0;
   else {
-    compile_exprs(jz, state, NODE(CAR(node)), jz_true);
+    compile_expr(jz, state, NODE(CAR(node)), jz_true);
     cap = state->stack_length;
 
     PUSH_OPCODE(jz_oc_jump_unless);
@@ -377,8 +377,9 @@ void compile_for(STATE, jz_parse_node* node) {
 
   inc_expr = NODE(CADDR(node));
   if (inc_expr != NULL) {
-    inc_expr = jz_pnode_wrap(jz, jz_parse_expr, inc_expr);
-    body = jz_pnode_list(jz, 3, jz_pleaf_new(jz, jz_parse_block), inc_expr,
+    body = jz_pnode_list(jz, 3, jz_pleaf_new(jz, jz_parse_block),
+                         jz_pnode_cons(jz, (jz_tag*)jz_pleaf_new(jz, jz_parse_expr),
+                                       (jz_tag*)inc_expr),
                          NODE(CADDDR(node)));
   } else body = NODE(CADDDR(node));
 
@@ -393,7 +394,7 @@ void compile_switch(STATE, jz_parse_node* node) {
   jz_ptrdiff_vector* placeholders;
   int expr_cap, cond_cap;
 
-  compile_exprs(jz, state, NODE(CAR(node)), jz_true);
+  compile_expr(jz, state, NODE(CAR(node)), jz_true);
   expr_cap = state->stack_length;
 
   placeholders = compile_switch_conditionals(jz, state, NODE(CDR(node)));
@@ -423,7 +424,7 @@ jz_ptrdiff_vector* compile_switch_conditionals(STATE, jz_parse_node* node) {
       continue;
 
     PUSH_OPCODE(jz_oc_dup);
-    compile_exprs(jz, state, NODE(CAR(case_node)), jz_true);
+    compile_expr(jz, state, NODE(CAR(case_node)), jz_true);
     PUSH_OPCODE(jz_oc_strict_eq);
     PUSH_OPCODE(jz_oc_jump_if);
     jz_ptrdiff_vector_append(jz, placeholders,
@@ -471,34 +472,6 @@ void compile_switch_statements(STATE, jz_parse_node* node, jz_ptrdiff_vector* pl
     jump_to_top_from(jz, state, *next_placeholder);
 }
 
-void compile_exprs(STATE, jz_parse_node* node, jz_bool value) {
-  jz_bool first = jz_true;
-
-  /* This should really be handled by a transformation. */
-  if (node != NULL &&
-      CAR(node).tag != NULL &&
-      TYPE(CAR(node)) == jz_t_enum &&
-      ENUM(CAR(node)) == jz_parse_expr)
-    node = NODE(CDR(node));
-
-  while (node != NULL) {
-    int old_cap = first ? 0 : state->stack_length;
-    jz_bool this_value = jz_false;
-
-    /* Discard the return value of all expressions in a list
-       except maybe the last. */
-    if (NODE(CDR(node)) == NULL)
-      this_value = value;
-
-    compile_expr(jz, state, NODE(CAR(node)), this_value);
-
-    state->stack_length = MAX(old_cap, state->stack_length);
-
-    first = jz_false;
-    node = NODE(CDR(node));
-  }
-}
-
 void compile_expr(STATE, jz_parse_node* node, jz_bool value) {
   jz_parse_type type = ENUM(CAR(node));
   node = NODE(CDR(node));
@@ -514,10 +487,6 @@ void compile_expr(STATE, jz_parse_node* node, jz_bool value) {
 
   case jz_parse_this:
     compile_this(jz, state, node, value);
-    break;
-
-  case jz_parse_expr:
-    compile_exprs(jz, state, node, value);
     break;
 
   case jz_parse_call:
@@ -712,6 +681,10 @@ static void compile_unit_shortcut(STATE, jz_parse_node* node,
 
 void compile_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
   switch (op) {
+  case jz_op_comma:
+    compile_comma(jz, state, node, value);
+    break;
+
   case jz_op_and:
   case jz_op_or:
     compile_logical_binop(jz, state, node, op, value);
@@ -759,7 +732,19 @@ void compile_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) 
   }
 }
 
-void compile_logical_binop(STATE, jz_parse_node* node, jz_parse_type op, jz_bool value) {
+void compile_comma(STATE, jz_parse_node* node, jz_bool value) {
+  int left_cap, right_cap;
+
+  compile_expr(jz, state, NODE(CAR(node)), jz_false);
+  left_cap = state->stack_length;
+
+  compile_expr(jz, state, NODE(CADR(node)), value);
+  right_cap = state->stack_length;
+
+  state->stack_length = MAX(left_cap, right_cap);
+}
+
+void compile_logical_binop(STATE, jz_parse_node* node, jz_op_type op, jz_bool value) {
   int left_cap, right_cap;
   ptrdiff_t jump;
 

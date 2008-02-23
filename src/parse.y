@@ -85,8 +85,8 @@ static void yyerror(JZ_STATE, jz_parse_node** root, jz_lex_state* state, const c
              expr_statement return_statement empty_statement if_statement else
              iter_statement do_while_statement while_statement for_statement first_for_expr
              opt_expr switch_statement case_block case_block_list case_clauses case_clause default_clause
-                  expr      expr_list      assign_expr      cond_expr
-             stmt_expr stmt_expr_list stmt_assign_expr stmt_cond_expr
+                  expr      assign_expr      cond_expr
+             stmt_expr stmt_assign_expr stmt_cond_expr
                   or_expr      and_expr      bw_or_expr      xor_expr
              stmt_or_expr stmt_and_expr stmt_bw_or_expr stmt_xor_expr
                   bw_and_expr      eq_expr      rel_expr      shift_expr
@@ -145,7 +145,7 @@ var_decl: IDENTIFIER {
     $$ = jz_pnode_list(jz, 2, jz_str_deep_dup(jz, $1), $3);
  }
 
-expr_statement: stmt_expr SEMICOLON
+expr_statement: stmt_expr SEMICOLON { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), $1); }
 
 return_statement: RETURN expr SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, $2); }
   | RETURN SEMICOLON { $$ = jz_pnode_wrap(jz, jz_parse_return, NULL); }
@@ -174,8 +174,9 @@ for_statement: FOR LPAREN first_for_expr SEMICOLON
       $$ = jz_pnode_list(jz, 5, jz_pleaf_new(jz, jz_parse_for), $3, $5, $7, $9);
  }
 
-first_for_expr: opt_expr
+first_for_expr: expr { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), $1); }
   | VAR var_decls { $$ = $2; }
+  | /* empty */ { $$ = NULL; }
 
 opt_expr: expr
   | /* empty */ { $$ = NULL; }
@@ -202,13 +203,10 @@ case_clause: CASE expr COLON statement_list { $$ = CONS($2, $4); }
 default_clause: DEFAULT COLON statement_list { $$ = CONS(CONS(NULL, $3), NULL); }
   | DEFAULT COLON { $$ = CONS(CONS(NULL, NULL), NULL); }
 
-expr: expr_list { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), reverse_list(jz, $1)); }
-stmt_expr: stmt_expr_list { $$ = CONS(jz_pleaf_new(jz, jz_parse_expr), reverse_list(jz, $1)); }
-
-expr_list: assign_expr { $$ = CONS($1, NULL); }
-  | expr_list COMMA assign_expr { $$ = CONS($3, $1); }
-stmt_expr_list: stmt_assign_expr { $$ = CONS($1, NULL); }
-  | stmt_expr_list COMMA assign_expr { $$ = CONS($3, $1); }
+expr: assign_expr
+  | expr COMMA assign_expr { $$ = binop_node(jz, jz_op_comma, $1, $3); }
+stmt_expr: stmt_assign_expr
+  | stmt_expr COMMA assign_expr { $$ = binop_node(jz, jz_op_comma, $1, $3); }
 
 assign_expr: cond_expr
   | left_hand_expr assign_expr_op assign_expr { $$ = binop_node(jz, $2, $1, $3); }
