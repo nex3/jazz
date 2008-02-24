@@ -1,7 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "cons.h"
+#include "_cons.h"
 #include "parse.h"
 #include "state.h"
 #include "string.h"
@@ -100,7 +100,7 @@ jz_cons* jz_list_concat(JZ_STATE, jz_cons* list1, jz_cons* list2) {
 
   if (list1 == NULL) return list2;
 
-  while (next->cdr.node != NULL) next = next->cdr.node;
+  while (next->cdr.node != NULL) next = NODE(CDR(next));
   next->cdr.node = list2;
 
   return list1;
@@ -113,14 +113,14 @@ jz_cons* jz_list_reverse(JZ_STATE, jz_cons* head) {
   if (head == NULL) return NULL;
 
   curr = head;
-  next = curr->cdr.node;
+  next = NODE(CDR(curr));
 
   while (next != NULL) {
     curr->cdr.node = prev;
 
     prev = curr;
     curr = next;
-    next = next->cdr.node;
+    next = NODE(CDR(next));
   }
 
   curr->cdr.node = prev;
@@ -138,16 +138,16 @@ static void print_parse_list(JZ_STATE, jz_cons* node, jz_bool start) {
   if (start)
     putchar('(');
 
-  print_parse_ptr(jz, node->car);
+  print_parse_ptr(jz, CAR(node));
 
   if (node->cdr.tag == NULL)
     putchar(')');
-  else if (JZ_TAG_TYPE(*node->cdr.tag) == jz_t_parse_node) {
+  else if (TYPE(CDR(node)) == jz_t_parse_node) {
     putchar(' ');
-    print_parse_list(jz, node->cdr.node, jz_false);
+    print_parse_list(jz, NODE(CDR(node)), jz_false);
   } else {
     printf(" . ");
-    print_parse_ptr(jz, node->cdr);
+    print_parse_ptr(jz, CDR(node));
     putchar(')');
   }
 }
@@ -176,8 +176,8 @@ static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
 }
 
 void jz_cons_free(JZ_STATE, jz_cons* this) {
-  free_parse_ptr(jz, this->car);
-  free_parse_ptr(jz, this->cdr);
+  free_parse_ptr(jz, CAR(this));
+  free_parse_ptr(jz, CDR(this));
 }
 
 void free_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
