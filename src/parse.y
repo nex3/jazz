@@ -4,7 +4,7 @@
 #include "state.h"
 #include "string.h"
 #include "object.h"
-#include "cons.h"
+#include "_cons.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,8 +19,6 @@ const char* jz_parse_names[] = {
 };
 
 static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* msg);
-
-#define CONS(car, cdr) jz_cons_new(jz, (jz_tag*)(car), (jz_tag*)(cdr))
 
 #define binop_node(jz, type, left, right) jz_list(jz, 3, jz_enum_new(jz, type), (left), (right))
 #define unop_node(jz, type, next) jz_enum_wrap(jz, type, (next))

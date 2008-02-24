@@ -2,6 +2,7 @@
 #include "string.h"
 #include "function.h"
 #include "state.h"
+#include "_cons.h"
 
 #include <stdio.h>
 
@@ -44,25 +45,6 @@ typedef ptrdiff_t jz_ptrdiff;
 JZ_DECLARE_VECTOR(jz_ptrdiff)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
-
-#define TYPE(val) JZ_TAG_TYPE(*(val).tag)
-#define ASSERT_NODE(val) \
-  assert((val).node == NULL || TYPE(val) == jz_t_parse_node)
-#define NODE(val) (ASSERT_NODE(val), (val).node)
-#define ENUM(value) (assert(TYPE(value) == jz_t_enum), (value).leaf->val)
-
-#define CAR(n) ((n)->car)
-#define CDR(n) ((n)->cdr)
-#define CAAR(n) (CAR(CAR(n).node))
-#define CDAR(n) (CDR(CAR(n).node))
-#define CADR(n) (CAR(CDR(n).node))
-#define CDDR(n) (CDR(CDR(n).node))
-#define CAAAR(n) (CAR(CAAR(n).node))
-#define CAADR(n) (CAR(CADR(n).node))
-#define CADDR(n) (CAR(CDDR(n).node))
-#define CDDAR(n) (CDR(CDAR(n).node))
-#define CDDDR(n) (CDR(CDDR(n).node))
-#define CADDDR(n) (CAR(CDDDR(n).node))
 
 #define PUSH_OPCODE(opcode) jz_opcode_vector_append(jz, state->code, opcode)
 #define PUSH_ARG(arg) \
