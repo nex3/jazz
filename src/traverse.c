@@ -8,7 +8,7 @@ static void traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* 
 
 void jz_traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data,
                          int argc, ...) {
-  int* vals = calloc(sizeof(jz_byte), argc);
+  int* vals = calloc(sizeof(int), argc);
   va_list args;
   int i;
 
@@ -18,6 +18,7 @@ void jz_traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data
   va_end(args);
 
   traverse_several(jz, tree, fn, data, vals, argc);
+  free(vals);
 }
 
 

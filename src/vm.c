@@ -10,11 +10,13 @@
 #include <assert.h>
 
 const char* jz_oc_names[] = {
-  "jump", "jump_unless", "jump_if", "store_global", "retrieve", "store",
-  "load_global", "call", "push_literal", "push_global", "index", "index_store",
-  "pop", "dup", "dup2", "rot4", "bw_or", "xor", "bw_and", "equals", "strict_eq",
-  "lt", "gt", "lt_eq", "gt_eq", "lshift", "rshift", "urshift", "add", "sub",
-  "times", "div", "mod", "to_num", "neg", "bw_not", "not", "ret", "end", "noop"
+  "jump", "jump_unless", "jump_if", "store_global", "retrieve",
+  "store", "closure_retrieve", "closure_store", "load_global", "call",
+  "push_literal", "push_closure", "push_global", "index",
+  "index_store", "pop", "dup", "dup2", "rot4", "bw_or", "xor",
+  "bw_and", "equals", "strict_eq", "lt", "gt", "lt_eq", "gt_eq",
+  "lshift", "rshift", "urshift", "add", "sub", "times", "div", "mod",
+  "to_num", "neg", "bw_not", "not", "ret", "end", "noop"
 };
 
 #define NEXT_OPCODE (*((code)++))
@@ -44,11 +46,15 @@ static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
 jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
-  jz_opcode* code = bytecode->code;
-  jz_frame* frame = jz_frame_new(jz, bytecode);
+  return jz_vm_run_frame(jz, jz_frame_new(jz, bytecode));
+}
+
+jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
+  jz_opcode* code = frame->bytecode->code;
   jz_tvalue* stack = JZ_FRAME_STACK(frame);
+  jz_tvalue** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
   jz_tvalue* locals = JZ_FRAME_LOCALS(frame);
-  jz_tvalue* consts = bytecode->consts;
+  jz_tvalue* consts = frame->bytecode->consts;
 
   frame->stack_top = &stack;
 
@@ -64,6 +70,17 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
     case jz_oc_push_literal: {
       READ_ARG_INTO(jz_index, index);
       PUSH(consts[index]);
+      break;
+    }
+
+    case jz_oc_push_closure: {
+      jz_func_data* func;
+      READ_ARG_INTO(jz_index, index);
+      PUSH(consts[index]);
+
+      assert(JZ_TVAL_TYPE(consts[index]) == jz_t_obj);
+      func = JZ_FUNC_DATA(consts[index].value.obj);
+      func->scope = frame->closure_locals;
       break;
     }
 
@@ -127,6 +144,12 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       break;
     }
 
+    case jz_oc_closure_store: {
+      READ_ARG_INTO(jz_index, index);
+      *(closure_vars[index]) = POP();
+      break;
+    }
+
     case jz_oc_retrieve: {
       READ_ARG_INTO(jz_index, index);
       PUSH(locals[index]);
@@ -146,6 +169,12 @@ jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
       READ_ARG_INTO(jz_index, index);
 
       PUSH(jz_obj_get(jz, jz->global_obj, jz_to_str(jz, consts[index])));
+      break;
+    }
+
+    case jz_oc_closure_retrieve: {
+      READ_ARG_INTO(jz_index, index);
+      PUSH(*(closure_vars[index]));
       break;
     }
 

@@ -33,10 +33,14 @@ jz_obj* jz_obj_new(JZ_STATE);
 jz_obj* jz_obj_new_bare(JZ_STATE);
 
 jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key);
+#define jz_obj_get_ptr(jz, this, key)           \
+  ((void*)jz_obj_get(jz, this, key).value.ptr)
 #define jz_obj_get2(jz, this, key)              \
   jz_obj_get(jz, this, jz_str_from_literal(jz, key))
 
 void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val);
+#define jz_obj_put_ptr(jz, this, key, val)              \
+  jz_obj_put(jz, this, key, jz_wrap_void(jz, (val)))
 #define jz_obj_put2(jz, this, key, val)                         \
   jz_obj_put(jz, this, jz_str_from_literal(jz, key), val)
 

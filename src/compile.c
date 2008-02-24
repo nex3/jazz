@@ -4,26 +4,19 @@
 #include "state.h"
 #include "_cons.h"
 #include "traverse.h"
+#include "object.h"
 
 #include <stdio.h>
 
 typedef struct {
   enum {
     local_var,
+    closure_var,
     global_var
   } type;
-  union {
-    jz_index index;
-    jz_str* name;
-  } val;
-} variable;
-
-typedef struct lvar_node lvar_node;
-struct lvar_node {
-  lvar_node* next;
   jz_str* name;
   jz_index index;
-};
+} variable;
 
 typedef struct const_node const_node;
 struct const_node {
@@ -31,12 +24,16 @@ struct const_node {
   jz_tvalue val;
 };
 
-typedef struct {
+typedef struct comp_state comp_state;
+struct comp_state {
+  comp_state* scope;
   jz_opcode_vector* code;
-  lvar_node* locals;
+  jz_obj* local_vars;
+  jz_obj* closure_vars;
+  size_t closure_vars_length;
   const_node* consts;
   size_t consts_length;
-} comp_state;
+};
 
 #define STATE JZ_STATE, comp_state* state
 
@@ -50,9 +47,17 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
   push_multibyte_arg(jz, state, &(arg), sizeof(arg)/sizeof(jz_opcode))
 
 
+static comp_state* comp_state_new(JZ_STATE, comp_state* scope);
+static jz_bytecode* compile(STATE, jz_cons* parse_tree);
+
 static jz_tvalue* consts_to_array(STATE);
 
-static jz_bool record_vars(JZ_STATE, jz_cons* node, void* data);
+static jz_bool init_funcs(JZ_STATE, jz_cons* node, void* data);
+static jz_bool analyze_vars(JZ_STATE, jz_cons* node, void* data);
+static jz_bool analyze_identifiers(JZ_STATE, jz_cons* node, void* data);
+static jz_bool assign_indices(STATE);
+static void assign_indices_iterator(JZ_STATE, jz_str* key, jz_tvalue val, void* data);
+static jz_bool assign_indices_walker(JZ_STATE, jz_cons* node, void* data);
 
 static void compile_statements(STATE, jz_cons* node);
 static void compile_statement(STATE, jz_cons* node);
@@ -68,8 +73,8 @@ static jz_ptrdiff_vector* compile_switch_conditionals(STATE, jz_cons* node);
 static void compile_switch_statements(STATE, jz_cons* node, jz_ptrdiff_vector* placeholders);
 
 static void compile_expr(STATE, jz_cons* node, jz_bool value);
-static variable compile_identifier(STATE, jz_cons* node, jz_bool value);
-static void compile_identifier_store(STATE, variable var);
+static variable* compile_identifier(STATE, jz_cons* node, jz_bool value);
+static void compile_identifier_store(STATE, variable* var);
 static void compile_literal(STATE, jz_cons* node, jz_bool value);
 static void compile_this(STATE, jz_cons* node, jz_bool value);
 static void compile_unop(STATE, jz_cons* node, jz_parse_type op, jz_bool value);
@@ -88,9 +93,8 @@ static void compile_index_assign(STATE, jz_cons* node, jz_opcode op, jz_bool val
 
 static jz_tvalue get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success);
 
-static variable get_var(STATE, jz_str* name);
-static lvar_node* add_lvar(STATE, jz_str* name);
-static lvar_node* get_lvar(STATE, jz_str* name);
+static variable* get_var(STATE, jz_str* name, jz_bool from_inner_scope);
+static variable* add_lvar(STATE, jz_str* name);
 
 static jz_index add_const(STATE, jz_tvalue value);
 
@@ -107,14 +111,36 @@ JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
 
 jz_bytecode* jz_compile(JZ_STATE, jz_cons* parse_tree) {
+  comp_state* state = comp_state_new(jz, NULL);
+
+  jz_traverse_several(jz, parse_tree, analyze_vars, state,
+                      2, jz_parse_var, jz_parse_func);
+  jz_traverse_one(jz, parse_tree, init_funcs, state, jz_parse_func);
+  jz_traverse_several(jz, parse_tree, analyze_identifiers, state,
+                      3, jz_parse_identifier, jz_parse_var, jz_parse_func);
+
+  assign_indices(jz, state);
+  jz_traverse_one(jz, parse_tree, assign_indices_walker, state, jz_parse_func);
+
+  return compile(jz, state, parse_tree);
+}
+
+comp_state* comp_state_new(JZ_STATE, comp_state* scope) {
   comp_state* state = malloc(sizeof(comp_state));
 
-  state->code = jz_opcode_vector_new(jz);
-  state->locals = NULL;
+  state->scope  = scope;
+  state->code   = jz_opcode_vector_new(jz);
+  state->local_vars = jz_obj_new_bare(jz);
+  state->closure_vars = jz_obj_new_bare(jz);
+  state->closure_vars_length = 0;
   state->consts = NULL;
   state->consts_length = 0;
 
-  jz_traverse_several(jz, parse_tree, record_vars, state,
+  return state;
+}
+
+jz_bytecode* compile(STATE, jz_cons* parse_tree) {
+  jz_traverse_several(jz, parse_tree, analyze_vars, state,
                       2, jz_parse_var, jz_parse_func);
 
   compile_statements(jz, state, parse_tree);
@@ -123,8 +149,9 @@ jz_bytecode* jz_compile(JZ_STATE, jz_cons* parse_tree) {
   {
     jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
 
-    bytecode->locals_length =
-      state->locals == NULL ? 0 : state->locals->index + 1;
+    bytecode->locals_length = state->local_vars->size;
+    bytecode->closure_vars_length = state->closure_vars_length;
+    bytecode->closure_locals_length = state->closure_vars->size;
     bytecode->code_length = state->code->next - state->code->values;
     bytecode->code = calloc(sizeof(jz_opcode), bytecode->code_length);
     memcpy(bytecode->code, state->code->values, bytecode->code_length);
@@ -147,7 +174,28 @@ jz_tvalue* consts_to_array(STATE) {
   return bottom;
 }
 
-jz_bool record_vars(JZ_STATE, jz_cons* node, void* data) {
+/* Sets cadr.ptr of each func to be that func's comp_state. */
+jz_bool init_funcs(JZ_STATE, jz_cons* node, void* data) {
+  comp_state* scope = (comp_state*)data;
+  comp_state* state = comp_state_new(jz, scope);
+
+  /* First we figure out what our local vars are... */
+  jz_traverse_several(jz, NODE(CDR(node)), analyze_vars, state,
+                      2, jz_parse_var, jz_parse_func);
+
+  /* Then we init sub-funcs, thus figuring out what our closure vars are... */
+  jz_traverse_one(jz, NODE(CDR(node)), init_funcs, state, jz_parse_func);
+
+  /* And finally we record where our own vars point. */
+  jz_traverse_several(jz, NODE(CDR(node)), analyze_identifiers, state,
+                      3, jz_parse_identifier, jz_parse_var, jz_parse_func);
+
+  CDR(node).node = CONS(VOID(state).tag, CDR(node).tag);
+
+  return jz_false;
+}
+
+jz_bool analyze_vars(JZ_STATE, jz_cons* node, void* data) {
   comp_state* state = (comp_state*)data;
   jz_cons* next = NODE(CDR(node));
 
@@ -159,6 +207,60 @@ jz_bool record_vars(JZ_STATE, jz_cons* node, void* data) {
     add_lvar(jz, state, CAAR(next).str);
     next = NODE(CDR(next));
   }
+
+  return jz_true;
+}
+
+jz_bool analyze_identifiers(JZ_STATE, jz_cons* node, void* data) {
+  comp_state* state = (comp_state*)data;
+  variable* var;
+
+  if (ENUM(CAR(node)) == jz_parse_func)
+    return jz_false;
+
+  if (ENUM(CAR(node)) == jz_parse_var) {
+    jz_cons* var_node = NODE(CDR(node));
+
+    while (var_node != NULL) {
+      assert(TYPE(CAAR(var_node)) == jz_t_str);
+      var = get_var(jz, state, CAAR(var_node).str, jz_false);
+      CDAR(var_node).node = CONS(VOID(var).tag, CDAR(var_node).tag);
+
+      var_node = NODE(CDR(var_node));
+    }
+
+    return jz_true;
+  }
+
+  assert(ENUM(CAR(node)) == jz_parse_identifier);
+  assert(TYPE(CADR(node)) == jz_t_str);
+  var = get_var(jz, state, CADR(node).str, jz_false);
+  CDR(node).node = CONS(VOID(var).tag, CDR(node).tag);
+
+  return jz_true;
+}
+
+jz_bool assign_indices(STATE) {
+  int i = state->scope == NULL ? 0 : state->scope->closure_vars_length;
+  jz_obj_each(jz, state->closure_vars, assign_indices_iterator, &i);
+  state->closure_vars_length = i;
+
+  return jz_true;
+}
+
+void assign_indices_iterator(JZ_STATE, jz_str* key, jz_tvalue val, void* data) {
+  int* i = (int*)data;
+  variable* var;
+
+  assert(JZ_TVAL_TYPE(val) == jz_t_void);
+  var = val.value.ptr;
+  var->index = *i;
+
+  *i = *i + 1;
+}
+
+jz_bool assign_indices_walker(JZ_STATE, jz_cons* node, void* data) {
+  assign_indices(jz, UNVOID(CADR(node), comp_state*));
 
   return jz_true;
 }
@@ -231,20 +333,18 @@ void compile_vars(STATE, jz_cons* node) {
 }
 
 void compile_var(STATE, jz_cons* node) {
+  variable* var;
   jz_index index;
   jz_cons* expr;
 
-  assert(TYPE(CAR(node)) == jz_t_str);
+  var = UNVOID(CADR(node), variable*);
+  index = var->index;
 
-  index = get_lvar(jz, state, CAR(node).str)->index;
-
-  expr = NODE(CADR(node));
+  expr = NODE(CADDR(node));
 
   if (expr != NULL) {
     compile_expr(jz, state, expr, jz_true);
-
-    PUSH_OPCODE(jz_oc_store);
-    PUSH_ARG(index);
+    compile_identifier_store(jz, state, var);
   }
 }
 
@@ -466,65 +566,74 @@ void compile_expr(STATE, jz_cons* node, jz_bool value) {
   }
 }
 
-variable compile_identifier(STATE, jz_cons* node, jz_bool value) {
-  variable var;
+variable* compile_identifier(STATE, jz_cons* node, jz_bool value) {
+  variable* var;
 
   /* Callers can send in any sub-expression that might be an identifier
      and compile_identifier will die if it isn't. */
   if (TYPE(CAR(node)) == jz_t_enum) {
-    if (TYPE(CADR(node)) == jz_t_str)
+    if (ENUM(CAR(node)) == jz_parse_identifier)
       node = NODE(CDR(node));
     else {
       fprintf(stderr, "Invalid identifier.\n");
       exit(1);
     }
-  } else
-    assert(TYPE(CAR(node)) == jz_t_str);
+  }
 
-  var = get_var(jz, state, CAR(node).str);
+  var = UNVOID(CAR(node), variable*);
 
   if (!value)
     return var;
 
-  switch (var.type) {
+  switch (var->type) {
   case local_var:
     PUSH_OPCODE(jz_oc_retrieve);
-    PUSH_ARG(var.val.index);
+    PUSH_ARG(var->index);
     break;
 
   case global_var: {
-    jz_index index = add_const(jz, state, jz_wrap_str(jz, var.val.name));
+    jz_index index = add_const(jz, state, jz_wrap_str(jz, var->name));
 
     PUSH_OPCODE(jz_oc_load_global);
     PUSH_ARG(index);
     break;
   }
 
+  case closure_var:
+    PUSH_OPCODE(jz_oc_closure_retrieve);
+    PUSH_ARG(var->index);
+    break;
+
   default:
-    fprintf(stderr, "Unrecognized variable type %d\n", var.type);
+    fprintf(stderr, "Unrecognized variable type %d\n", var->type);
     exit(1);
   }
 
   return var;
 }
 
-void compile_identifier_store(STATE, variable var) {
-  switch (var.type) {
+void compile_identifier_store(STATE, variable* var) {
+  switch (var->type) {
   case local_var:
     PUSH_OPCODE(jz_oc_store);
-    PUSH_ARG(var.val.index);
+    PUSH_ARG(var->index);
     break;
 
   case global_var: {
-    jz_index index = add_const(jz, state, jz_wrap_str(jz, var.val.name));
+    jz_index index = add_const(jz, state, jz_wrap_str(jz, var->name));
 
     PUSH_OPCODE(jz_oc_store_global);
     PUSH_ARG(index);
     break;
   }
 
+  case closure_var:
+    PUSH_OPCODE(jz_oc_closure_store);
+    PUSH_ARG(var->index);
+    break;
+
   default:
-    fprintf(stderr, "Unrecognized variable type %d\n", var.type);
+    fprintf(stderr, "Unrecognized variable type %d\n", var->type);
     exit(1);
   }
 }
@@ -588,10 +697,11 @@ void compile_unop(STATE, jz_cons* node, jz_parse_type op, jz_bool value) {
   }
 }
 
+/* TODO: a.b++? */
 static void compile_unit_shortcut(STATE, jz_cons* node,
                                   jz_opcode op, jz_bool pre, jz_bool value) {
   jz_index unit_index = add_const(jz, state, jz_wrap_num(jz, 1));
-  variable var = compile_identifier(jz, state, node, jz_true);
+  variable* var = compile_identifier(jz, state, node, jz_true);
 
   if (!pre && value)
     PUSH_OPCODE(jz_oc_dup);
@@ -751,10 +861,10 @@ void compile_func(STATE, jz_cons* node, jz_bool value) {
        this won't always be appropriate. */
     return;
 
-  code = jz_compile(jz, NODE(CAR(node)));
+  code = compile(jz, UNVOID(CAR(node), comp_state*), NODE(CADR(node)));
 
   index = add_const(jz, state, jz_wrap_obj(jz, jz_func_new(jz, code, 0)));
-  PUSH_OPCODE(jz_oc_push_literal);
+  PUSH_OPCODE(jz_oc_push_closure);
   PUSH_ARG(index);
 }
 
@@ -774,13 +884,17 @@ void compile_assign_binop(STATE, jz_cons* node, jz_opcode op, jz_bool value) {
 void compile_identifier_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value) {
   jz_cons* left = NODE(CAR(node));
   jz_cons* right = NODE(CADR(node));
-  variable var;
+  variable* var;
+
+  assert(TYPE(CAR(left)) == jz_t_enum);
+  assert(ENUM(CAR(left)) == jz_parse_identifier);
 
   /* Noop signals that this is just a plain assignment.
      Otherwise we want to run an operation before assigning. */
   if (op == jz_oc_noop) {
-    assert(TYPE(CADR(left)) == jz_t_str);
-    var = get_var(jz, state, CADR(left).str);
+    assert(TYPE(CADR(left)) == jz_t_void);
+
+    var = UNVOID(CADR(left), variable*);
     compile_expr(jz, state, right, jz_true);
   } else {
     var = compile_identifier(jz, state, left, jz_true);
@@ -788,7 +902,7 @@ void compile_identifier_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value
     compile_expr(jz, state, right, jz_true);
     PUSH_OPCODE(op);
   }
-
+  
   if (value)
     PUSH_OPCODE(jz_oc_dup);
 
@@ -836,49 +950,57 @@ jz_tvalue get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success) {
   return jz_cons_ptr_unwrap(jz, CADR(node));
 }
 
-variable get_var(STATE, jz_str* name) {
-  lvar_node* local = get_lvar(jz, state, name);
-  variable var;
+variable* get_var(STATE, jz_str* name, jz_bool from_inner_scope) {
+  variable* var;
 
-  if (local != NULL) {
-    var.type = local_var;
-    var.val.index = local->index;
+  /* Are we at the end of the scope chain? */
+  if (state == NULL) {
+    /* TODO: Store these in some sort of data structure
+       so that they can be freed later on. */
+    var = malloc(sizeof(variable));
+    var->type = global_var;
+    var->name = name;
+    var->index = 0;
+
+    /* Precompute hash code */
+    jz_str_hash(jz, var->name);
+    return var;    
+  }
+
+  var = jz_obj_get_ptr(jz, state->local_vars, name);
+  if (var != NULL) {
+    if (from_inner_scope) {
+      /* We want to make this a closure var */
+      jz_obj_remove(jz, state->local_vars, name);
+      jz_obj_put_ptr(jz, state->closure_vars, name, var);
+      var->type = closure_var;
+    }
+
     return var;
   }
 
-  /* Not a local, so it must be a global */
-  var.type = global_var;
-  var.val.name = name;
+  /* Not a local, try closure vars. */
+  var = jz_obj_get_ptr(jz, state->closure_vars, name);
+  if (var != NULL)
+    return var;
 
-  /* Precompute hash code */
-  jz_str_hash(jz, var.val.name);
-  return var;
+  /* Neither local nor closure, either defined above or global. */
+  return get_var(jz, state->scope, name, jz_true);
 }
 
-lvar_node* add_lvar(STATE, jz_str* name) {
-  lvar_node* node;
+variable* add_lvar(STATE, jz_str* name) {
+  variable* node;
 
-  if ((node = get_lvar(jz, state, name)))
+  if ((node = jz_obj_get_ptr(jz, state->local_vars, name)))
     return node;
 
-  node = malloc(sizeof(lvar_node));
-  node->next = state->locals;
+  node = malloc(sizeof(variable));
+  node->type = local_var;
   node->name = name;
-  node->index = state->locals == NULL ? 0 : state->locals->index + 1;
-  state->locals = node;
+  node->index = state->local_vars->size;
+  jz_obj_put_ptr(jz, state->local_vars, name, node);
 
   return node;
-}
-
-lvar_node* get_lvar(STATE, jz_str* name) {
-  lvar_node* node = state->locals;
-
-  while (node != NULL) {
-    if (jz_str_equal(jz, name, node->name)) return node;
-    node = node->next;
-  }
-
-  return NULL;
 }
 
 jz_index add_const(STATE, jz_tvalue value) {
@@ -939,12 +1061,6 @@ ptrdiff_t push_placeholder(STATE, size_t size) {
 }
 
 void free_comp_state(STATE) {
-  while (state->locals != NULL) {
-    lvar_node* old_locals = state->locals;
-    state->locals = state->locals->next;
-    free(old_locals);
-  }
-
   while (state->consts != NULL) {
     const_node* old_consts = state->consts;
     state->consts = state->consts->next;

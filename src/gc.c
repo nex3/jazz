@@ -17,6 +17,7 @@ static void blacken(JZ_STATE, jz_gc_header* obj);
 static void blacken_obj(JZ_STATE, jz_obj* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
+static void blacken_closure_locals(JZ_STATE, jz_closure_locals* closure_locals);
 static void blacken_proto(JZ_STATE, jz_proto* proto);
 static void blacken_cons(JZ_STATE, jz_cons* node);
 
@@ -54,6 +55,9 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
 
 jz_bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
   jz_gc_node* node;
+
+  if (obj == NULL)
+    return jz_false;
 
   /* If the object is already black,
      we don't need to do anything about it. */
@@ -121,6 +125,9 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   case jz_t_str_value:
     blacken_str_value(jz, (jz_str_value*)obj);
     break;
+  case jz_t_closure_locals:
+    blacken_closure_locals(jz, (jz_closure_locals*)obj);
+    break;
   case jz_t_proto:
     blacken_proto(jz, (jz_proto*)obj);
     break;
@@ -155,6 +162,16 @@ void blacken_obj(JZ_STATE, jz_obj* obj) {
 void blacken_str(JZ_STATE, jz_str* str) {
   if (JZ_STR_IS_INT(str) && str->value.val != NULL)
     jz_gc_mark_gray(jz, &str->value.val->gc);
+}
+
+void blacken_closure_locals(JZ_STATE, jz_closure_locals* closure_locals) {
+  jz_tvalue* var = closure_locals->vars;
+  jz_tvalue* top = closure_locals->vars + closure_locals->length;
+
+  jz_gc_mark_gray(jz, &closure_locals->scope->gc);
+
+  for (; var < top; var++)
+    JZ_GC_MARK_VAL_GRAY(jz, *var);
 }
 
 void blacken_proto(JZ_STATE, jz_proto* proto) {
@@ -200,7 +217,9 @@ static void mark_frame(JZ_STATE, jz_frame* frame) {
   if (frame == NULL)
     return;
 
-  next = frame->locals_then_stack;
+  jz_gc_mark_gray(jz, &frame->closure_locals->gc);
+
+  next = JZ_FRAME_LOCALS(frame);
   top = *frame->stack_top;
 
   for (; next != top; next++)

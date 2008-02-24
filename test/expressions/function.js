@@ -11,5 +11,5 @@ return ((function() { return 12; })() == 12 &&
         c() == undefined &&
         function() { b = "Woop!"; } &&
         b == "goodbye" &&
-        (function() { a = "blather"; })() &&
+        ((function() { a = "blather"; })(), true) &&
         a == "blather");

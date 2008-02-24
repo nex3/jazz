@@ -4,6 +4,7 @@
 #include "jazz.h"
 #include "value.h"
 #include "compile.h"
+#include "frame.h"
 
 /* Note that the argument list for this type is empty
    to allow arbitary arguments to be passed.
@@ -45,9 +46,18 @@ typedef struct jz_args {
   const jz_tvalue* argv;
 } jz_args;
 
-jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv);
+typedef struct jz_func_data {
+  int arity;
+  jz_bytecode* code;
+  jz_closure_locals* scope;
+} jz_func_data;
 
 #define JZ_ARITY_VAR -1
+
+/* TODO: Assert that func is a function */
+#define JZ_FUNC_DATA(func) ((jz_func_data*)((func)->data))
+
+jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv);
 
 jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity);
 

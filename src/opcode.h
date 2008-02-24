@@ -19,9 +19,12 @@ typedef enum {
   jz_oc_store_global,
   jz_oc_retrieve,
   jz_oc_store,
+  jz_oc_closure_retrieve,
+  jz_oc_closure_store,
   jz_oc_load_global,
   jz_oc_call,
   jz_oc_push_literal,
+  jz_oc_push_closure,
 
   /* No argument */
   jz_oc_push_global,

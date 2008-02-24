@@ -28,12 +28,13 @@ core/core.a: core/core.o core/global.o
 main.o: main.c state.h string.h parse.h compile.h vm.h core/core.h
 
 value.o: value.c value.h string.h object.h
-compile.o: compile.c compile.h string.h function.h state.h _cons.h traverse.h
+compile.o: compile.c compile.h string.h function.h state.h _cons.h traverse.h \
+  object.h
 vm.o: vm.c vm.h frame.h state.h string.h gc.h object.h Makefile
 lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h gc.h state.h
 state.o: state.c state.h lex.h object.h function.h prototype.h
-frame.o: frame.c frame.h state.h
+frame.o: frame.c frame.h state.h function.h object.h
 gc.o: gc.c gc.h state.h string.h object.h
 object.o: object.c object.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
@@ -58,11 +59,11 @@ lex.h: jazz.h value.h y.tab.h
 string.h: jazz.h value.h gc.h
 frame.h: jazz.h compile.h value.h
 compile.h: jazz.h parse.h opcode.h vector.h cons.h
-vm.h: jazz.h value.h compile.h
+vm.h: jazz.h value.h compile.h frame.h
 state.h: jazz.h value.h frame.h gc.h
 object.h: jazz.h gc.h value.h string.h function.h
 prototype.h: jazz.h object.h
-function.h: jazz.h value.h compile.h
+function.h: jazz.h value.h compile.h frame.h
 traverse.h: cons.h
 
 core/core.h: jazz.h

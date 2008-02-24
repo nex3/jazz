@@ -15,6 +15,8 @@ typedef struct {
   jz_opcode* code;
   size_t code_length;
   size_t locals_length;
+  size_t closure_vars_length;
+  size_t closure_locals_length;
   jz_tvalue* consts;
   size_t consts_length;
 } jz_bytecode;

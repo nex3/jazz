@@ -33,6 +33,7 @@ typedef enum {
   jz_t_cons,
   jz_t_str,
   jz_t_str_value,
+  jz_t_closure_locals,
   jz_t_obj,
   jz_t_proto
 } jz_type;
