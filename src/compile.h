@@ -9,6 +9,7 @@
 #include "parse.h"
 #include "opcode.h"
 #include "vector.h"
+#include "cons.h"
 
 typedef struct {
   jz_opcode* code;
@@ -23,7 +24,7 @@ JZ_DECLARE_VECTOR(jz_opcode)
 /* Compiles a parse tree into Jazz bytecode.
    The caller is responsible for freeing the returned bytecode
    using jz_free_bytecode. */
-jz_bytecode* jz_compile(JZ_STATE, jz_parse_node* parse_tree);
+jz_bytecode* jz_compile(JZ_STATE, jz_cons* parse_tree);
 
 /* Frees a jz_bytecode*.
    Does nothing if 'this' is NULL. */

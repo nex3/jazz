@@ -4,6 +4,7 @@
 #include "jazz.h"
 #include "value.h"
 #include "gc.h"
+#include "cons.h"
 
 /* When updating this, don't forget to update jz_parse_names in parse.y */
 typedef enum {
@@ -52,7 +53,7 @@ typedef enum {
                           cadr.str is the name. */
   jz_parse_this,       /* The `this' keyword.
                           
-                          TODO: Would it be too inconsistent to not wrap this in a pnode?
+                          TODO: Would it be too inconsistent to not wrap this in a cons?
                           What would the compiler code look like? */
   jz_parse_call,       /* A function call.
                           cadr.node is the function,
@@ -125,81 +126,8 @@ const char* jz_parse_names[jz_parse_last];
 #define JZ_PTYPE_IS_BINOP(type) \
   ((type) >= jz_op_or && (type) <= jz_op_un_add)
 
-typedef struct jz_parse_node jz_parse_node;
-
-/* Parse tree leaf node.
-   Can hold enum values.
-   tvalues can be used directly,
-   as they're already tagged. */
-typedef struct jz_parse_leaf {
-  jz_tag tag;
-  jz_byte val;
-} jz_parse_leaf;
-
-/* Potential values for the car and cdr of a jz_parse_node.
-
-   Note that all of these should be pointers to values
-   where the first element is a jz_tag.
-
-   Also, the Jazz null value isn't a pointer to a null tvalue,
-   but rather an actual NULL pointer.
-   This avoids ambiguity between null tvalues and objects. */
-typedef union {
-  jz_tag* tag;
-  jz_gc_header* gc;
-  jz_parse_node* node;
-  jz_str* str;
-  jz_tvalue* val;
-  jz_parse_leaf* leaf;
-} jz_parse_ptr;
-
-/* A node in the parse tree.
-   The types of 'car' and 'cdr' are defined by 'type'.
-   See the documentation for jz_parse_type. */
-struct jz_parse_node {
-  jz_gc_header gc;
-  jz_parse_ptr car;
-  jz_parse_ptr cdr;
-};
-
 /* Parses a Javascript program and returns its parse tree.
    The root node of the parse tree is jz_parse_statements. */
-jz_parse_node* jz_parse_string(JZ_STATE, const jz_str* code);
-
-jz_parse_node* jz_pnode_list(JZ_STATE, int argc, ...);
-
-/* Returns a new parse node with NULL car and cdr. */
-jz_parse_node* jz_pnode_new(JZ_STATE);
-
-jz_parse_leaf* jz_pleaf_new(JZ_STATE, jz_byte val);
-
-jz_parse_node* jz_pnode_cons(JZ_STATE, jz_tag* car, jz_tag* cdr);
-
-/* Wraps a jz_tvalue in a jz_parse_ptr.
-   This pointer may need to be freed later on -
-   jz_free_parse_tree in compile.h handles this.
-
-   Note that this doesn't necessarily return a pointer to a jz_tvalue;
-   if the tvalue is itself a pointer to a garbage-collectable object,
-   that pointer will be returned instead. */
-jz_parse_ptr jz_tval_to_pleaf(JZ_STATE, jz_tvalue val);
-
-jz_tvalue jz_pleaf_to_tval(JZ_STATE, jz_parse_ptr ptr);
-
-/* Concatenates two lists.
-   list1 is modified so that its last element
-   points to the first element of list2.
-   No new nodes are allocated.
-
-   list1 is returned as a convenience, unless it's NULL,
-   in which case list2 is returned. */
-jz_parse_node* jz_plist_concat(JZ_STATE, jz_parse_node* list1, jz_parse_node* list2);
-
-void jz_print_parse_tree(JZ_STATE, jz_parse_node* root);
-
-void jz_pnode_free(JZ_STATE, jz_parse_node* this);
-
-#define jz_pnode_pair(jz, type, car, cdr) jz_pnode_list(jz, 3, jz_pleaf_new(jz, type), car, cdr)
-#define jz_pnode_wrap(jz, type, car)      jz_pnode_list(jz, 2, jz_pleaf_new(jz, type), car)
+jz_cons* jz_parse_string(JZ_STATE, const jz_str* code);
 
 #endif

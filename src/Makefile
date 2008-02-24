@@ -16,7 +16,7 @@ jazz: main.o libjazz.a core/core.a
 	$(CC) $(LFLAGS) -o $@ main.o libjazz.a core/core.a
 
 libjazz.a: lex.o string.o y.tab.o vm.o compile.o value.o state.o frame.o gc.o \
-  object.o prototype.o function.o
+  object.o prototype.o function.o cons.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -38,6 +38,7 @@ gc.o: gc.c gc.h state.h string.h object.h
 object.o: object.c object.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
 function.o: function.c function.h object.h prototype.h state.h vm.h
+cons.o: cons.c cons.h parse.h state.h string.h
 
 core/core.o: core/core.c core/core.h core/global.h
 core/global.o: core/global.c core/global.h state.h function.h object.h
@@ -49,11 +50,12 @@ jazz.h:
 gc.h: jazz.h value.h
 vector.h: jazz.h
 value.h: jazz.h
-parse.h: jazz.h value.h
+cons.h: jazz.h gc.h
+parse.h: jazz.h value.h cons.h
 lex.h: jazz.h value.h y.tab.h
 string.h: jazz.h value.h gc.h
 frame.h: jazz.h compile.h value.h
-compile.h: jazz.h parse.h opcode.h vector.h	
+compile.h: jazz.h parse.h opcode.h vector.h cons.h
 vm.h: jazz.h value.h compile.h
 state.h: jazz.h value.h frame.h gc.h
 object.h: jazz.h gc.h value.h string.h function.h
@@ -67,6 +69,6 @@ keywords.gp.c: keywords.gperf
 	gperf --output-file=$@ -I -t -C -E $?
 
 y.tab.o: y.tab.c y.tab.h
-y.tab.c y.tab.h: parse.y parse.h state.h string.h Makefile
+y.tab.c y.tab.h: parse.y parse.h state.h string.h cons.h Makefile
 	$(YACC) parse.y
 

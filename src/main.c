@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
   {
     jz_state* jz = jz_init();
     jz_str* input = jz_str_external(jz, len, str);
-    jz_parse_node* root; 
+    jz_cons* root; 
     jz_bytecode* bytecode;
     char* result;
 
