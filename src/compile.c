@@ -327,9 +327,8 @@ void compile_for(STATE, jz_cons* node) {
   inc_expr = NODE(CADDR(node));
   if (inc_expr != NULL) {
     body = jz_list(jz, 3, jz_enum_new(jz, jz_parse_block),
-                         jz_cons_new(jz, (jz_tag*)jz_enum_new(jz, jz_parse_expr),
-                                       (jz_tag*)inc_expr),
-                         NODE(CADDDR(node)));
+                   CONS(jz_enum_new(jz, jz_parse_expr), inc_expr),
+                   NODE(CADDDR(node)));
   } else body = NODE(CADDDR(node));
 
   while_statement = jz_list(jz, 3, jz_enum_new(jz, jz_parse_while),
