@@ -17,6 +17,9 @@
 #define NODE(val) (ASSERT_NODE(val), (val).node)
 #define ENUM(value) (assert(TYPE(value) == jz_t_enum), (value).leaf->val)
 
+#define VOID(ptr) (jz_cons_ptr_wrap(jz, jz_wrap_void(jz, ptr)))
+#define UNVOID(node, type) \
+  ((type)(assert(TYPE(node) == jz_t_void), (node).val->value.ptr))
 #define CONS(car, cdr) jz_cons_new(jz, (jz_tag*)(car), (jz_tag*)(cdr))
 
 #define CAR(n) ((n)->car)

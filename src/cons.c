@@ -167,6 +167,10 @@ static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
     print_parse_list(jz, ptr.node, jz_true);
     break;
 
+  case jz_t_void:
+    printf("<void>");
+    break;
+
   default: {
     char* str = jz_str_to_chars(jz, jz_to_str(jz, jz_cons_ptr_unwrap(jz, ptr)));
     printf("%s", str);

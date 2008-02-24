@@ -28,6 +28,9 @@ typedef enum {
   /* Not actually used in tvalues; just used for the parser. */
   jz_t_enum,
 
+  /* An opaque pointer or value. */
+  jz_t_void,
+
   /* All type flags past this point
      must refer to types with jz_gc_header headers. */
   jz_t_cons,
@@ -45,6 +48,7 @@ typedef union {
   jz_obj* obj;
   jz_str* str;
   jz_proto* proto;
+  void* ptr;
 } jz_value;
 
 typedef struct {
@@ -116,6 +120,8 @@ jz_tvalue jz_wrap_bool(JZ_STATE, jz_bool b);
 jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj);
 jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
 jz_tvalue jz_wrap_proto(JZ_STATE, jz_proto* proto);
+
+jz_tvalue jz_wrap_void(JZ_STATE, void* ptr);
 
 double jz_to_num(JZ_STATE, jz_tvalue val);
 jz_str* jz_to_str(JZ_STATE, jz_tvalue val);
