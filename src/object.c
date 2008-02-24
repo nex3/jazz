@@ -74,6 +74,16 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
   cell->key = key;
 }
 
+jz_bool jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key) {
+  jz_obj_cell* cell = get_cell(jz, this, key, jz_false);
+
+  if (cell->key != JZ_OBJ_EMPTY_KEY) {
+    cell->key = JZ_OBJ_REMOVED_KEY;
+    return jz_true;
+  } else
+    return jz_false;
+}
+
 jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
                       jz_str* key, jz_bool removed) {
   jz_obj_cell* cell;
@@ -84,13 +94,13 @@ jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
   cell = this->table + hash;
 
   for (; cell->key != JZ_OBJ_EMPTY_KEY; cell++) {
-    if (removed) {
-      if (cell->key == JZ_OBJ_REMOVED_KEY)
+    if (cell->key == JZ_OBJ_REMOVED_KEY) {
+      if (removed)
+        return cell;
+    } else {
+      if (jz_str_equal(jz, cell->key, key))
         return cell;
     }
-
-    if (jz_str_equal(jz, cell->key, key))
-      return cell;
 
     /* Wrap around */
     if (cell == this->table + this->capacity - 1)
