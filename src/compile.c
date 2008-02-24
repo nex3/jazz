@@ -6,13 +6,11 @@
 
 #include <stdio.h>
 
-typedef enum {
-  local_var,
-  global_var
-} variable_type;
-
-typedef struct variable {
-  variable_type type;
+typedef struct {
+  enum {
+    local_var,
+    global_var
+  } type;
   union {
     jz_index index;
     jz_str* name;
