@@ -124,7 +124,7 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   case jz_t_proto:
     blacken_proto(jz, (jz_proto*)obj);
     break;
-  case jz_t_parse_node:
+  case jz_t_cons:
     blacken_cons(jz, (jz_cons*)obj);
     break;
   default:
@@ -272,7 +272,7 @@ void gc_free(JZ_STATE, jz_gc_header* obj) {
   case jz_t_obj:
     jz_obj_free(jz, (jz_obj*)obj);
     return;
-  case jz_t_parse_node:
+  case jz_t_cons:
     jz_cons_free(jz, (jz_cons*)obj);
     return;
   default:

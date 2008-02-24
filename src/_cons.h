@@ -11,7 +11,7 @@
 
 #define TYPE(val) JZ_TAG_TYPE(*(val).tag)
 #define ASSERT_NODE(val) \
-  assert((val).node == NULL || TYPE(val) == jz_t_parse_node)
+  assert((val).node == NULL || TYPE(val) == jz_t_cons)
 #define NODE(val) (ASSERT_NODE(val), (val).node)
 #define ENUM(value) (assert(TYPE(value) == jz_t_enum), (value).leaf->val)
 

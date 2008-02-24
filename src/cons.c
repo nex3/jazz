@@ -12,7 +12,7 @@ static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr);
 static void free_parse_ptr(JZ_STATE, jz_cons_ptr ptr);
 
 jz_cons* jz_cons_empty(JZ_STATE) {
-  jz_cons* to_ret = (jz_cons*)jz_gc_malloc(jz, jz_t_parse_node, sizeof(jz_cons));
+  jz_cons* to_ret = (jz_cons*)jz_gc_malloc(jz, jz_t_cons, sizeof(jz_cons));
 
   to_ret->car.node = to_ret->cdr.node = NULL;
   return to_ret;
@@ -54,7 +54,7 @@ jz_tvalue jz_cons_ptr_unwrap(JZ_STATE, jz_cons_ptr val) {
     return JZ_NULL;
 
   assert(JZ_TAG_TYPE(*val.tag) != jz_t_enum);
-  assert(JZ_TAG_TYPE(*val.tag) != jz_t_parse_node);
+  assert(JZ_TAG_TYPE(*val.tag) != jz_t_cons);
 
   if (!JZ_TAG_CAN_BE_GCED(*val.tag))
     return *val.val;
@@ -142,7 +142,7 @@ static void print_parse_list(JZ_STATE, jz_cons* node, jz_bool start) {
 
   if (node->cdr.tag == NULL)
     putchar(')');
-  else if (TYPE(CDR(node)) == jz_t_parse_node) {
+  else if (TYPE(CDR(node)) == jz_t_cons) {
     putchar(' ');
     print_parse_list(jz, NODE(CDR(node)), jz_false);
   } else {
@@ -163,7 +163,7 @@ static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
     printf("%s", jz_parse_names[ptr.leaf->val]);
     break;
 
-  case jz_t_parse_node:
+  case jz_t_cons:
     print_parse_list(jz, ptr.node, jz_true);
     break;
 
