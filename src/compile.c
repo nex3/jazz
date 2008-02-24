@@ -52,6 +52,8 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 
 static jz_tvalue* consts_to_array(STATE);
 
+static jz_bool record_vars(JZ_STATE, jz_cons* node, void* data);
+
 static void compile_statements(STATE, jz_cons* node);
 static void compile_statement(STATE, jz_cons* node);
 static void compile_vars(STATE, jz_cons* node);
@@ -87,7 +89,7 @@ static void compile_index_assign(STATE, jz_cons* node, jz_opcode op, jz_bool val
 static jz_tvalue get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success);
 
 static variable get_var(STATE, jz_str* name);
-static lvar_node* add_lvar(STATE, jz_str* name, jz_bool* new);
+static lvar_node* add_lvar(STATE, jz_str* name);
 static lvar_node* get_lvar(STATE, jz_str* name);
 
 static jz_index add_const(STATE, jz_tvalue value);
@@ -111,6 +113,9 @@ jz_bytecode* jz_compile(JZ_STATE, jz_cons* parse_tree) {
   state->locals = NULL;
   state->consts = NULL;
   state->consts_length = 0;
+
+  jz_traverse_several(jz, parse_tree, record_vars, state,
+                      2, jz_parse_var, jz_parse_func);
 
   compile_statements(jz, state, parse_tree);
   PUSH_OPCODE(jz_oc_end);
@@ -140,6 +145,22 @@ jz_tvalue* consts_to_array(STATE) {
     *top++ = node->val;
 
   return bottom;
+}
+
+jz_bool record_vars(JZ_STATE, jz_cons* node, void* data) {
+  comp_state* state = (comp_state*)data;
+  jz_cons* next = NODE(CDR(node));
+
+  if (ENUM(CAR(node)) == jz_parse_func)
+    return jz_false;
+
+  while (next != NULL) {
+    assert(TYPE(CAAR(next)) == jz_t_str);
+    add_lvar(jz, state, CAAR(next).str);
+    next = NODE(CDR(next));
+  }
+
+  return jz_true;
 }
 
 void compile_statements(STATE, jz_cons* node) {
@@ -210,13 +231,12 @@ void compile_vars(STATE, jz_cons* node) {
 }
 
 void compile_var(STATE, jz_cons* node) {
-  jz_bool new_node;
   jz_index index;
   jz_cons* expr;
 
   assert(TYPE(CAR(node)) == jz_t_str);
 
-  index = add_lvar(jz, state, CAR(node).str, &new_node)->index;
+  index = get_lvar(jz, state, CAR(node).str)->index;
 
   expr = NODE(CADR(node));
 
@@ -835,13 +855,11 @@ variable get_var(STATE, jz_str* name) {
   return var;
 }
 
-lvar_node* add_lvar(STATE, jz_str* name, jz_bool* new) {
+lvar_node* add_lvar(STATE, jz_str* name) {
   lvar_node* node;
 
-  if ((node = get_lvar(jz, state, name))) {
-    *new = jz_false;
+  if ((node = get_lvar(jz, state, name)))
     return node;
-  } else *new = jz_true;
 
   node = malloc(sizeof(lvar_node));
   node->next = state->locals;
