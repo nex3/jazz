@@ -7,6 +7,8 @@
    for example, they aren't namespaced under "jz_",
    and they implicitly depend on a jz_state variable named "jz" existing. */
 
+#include <assert.h>
+
 #include "cons.h"
 
 #define TYPE(val) JZ_TAG_TYPE(*(val).tag)
