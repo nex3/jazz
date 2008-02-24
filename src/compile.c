@@ -3,6 +3,7 @@
 #include "function.h"
 #include "state.h"
 #include "_cons.h"
+#include "traverse.h"
 
 #include <stdio.h>
 

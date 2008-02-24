@@ -16,7 +16,7 @@ jazz: main.o libjazz.a core/core.a
 	$(CC) $(LFLAGS) -o $@ main.o libjazz.a core/core.a
 
 libjazz.a: lex.o string.o y.tab.o vm.o compile.o value.o state.o frame.o gc.o \
-  object.o prototype.o function.o cons.o
+  object.o prototype.o function.o cons.o traverse.o
 	$(AR) $@ $?
 	$(RANLIB) $@
 
@@ -28,7 +28,7 @@ core/core.a: core/core.o core/global.o
 main.o: main.c state.h string.h parse.h compile.h vm.h core/core.h
 
 value.o: value.c value.h string.h object.h
-compile.o: compile.c compile.h string.h function.h state.h _cons.h
+compile.o: compile.c compile.h string.h function.h state.h _cons.h traverse.h
 vm.o: vm.c vm.h frame.h state.h string.h gc.h object.h Makefile
 lex.o: lex.c lex.h state.h value.h string.h y.tab.h keywords.gp.c Makefile
 string.o: string.c string.h lex.h gc.h state.h
@@ -39,6 +39,7 @@ object.o: object.c object.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
 function.o: function.c function.h object.h prototype.h state.h vm.h
 cons.o: cons.c _cons.h parse.h state.h string.h
+traverse.o: traverse.c traverse.h _cons.h
 
 core/core.o: core/core.c core/core.h core/global.h
 core/global.o: core/global.c core/global.h state.h function.h object.h
@@ -62,6 +63,7 @@ state.h: jazz.h value.h frame.h gc.h
 object.h: jazz.h gc.h value.h string.h function.h
 prototype.h: jazz.h object.h
 function.h: jazz.h value.h compile.h
+traverse.h: cons.h
 
 core/core.h: jazz.h
 core/global.h: jazz.h
