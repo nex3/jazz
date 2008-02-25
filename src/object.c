@@ -84,6 +84,17 @@ jz_bool jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key) {
     return jz_false;
 }
 
+void jz_obj_each(JZ_STATE, jz_obj* this, jz_obj_fn* fn, void* data) {
+  jz_obj_cell* cell = this->table;
+  jz_obj_cell* top = this->table + this->capacity;
+
+  for (; cell < top; cell++) {
+    if (cell->key != JZ_OBJ_EMPTY_KEY &&
+        cell->key != JZ_OBJ_REMOVED_KEY)
+      fn(jz, cell->key, cell->value, data);
+  }
+}
+
 jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
                       jz_str* key, jz_bool removed) {
   jz_obj_cell* cell;
