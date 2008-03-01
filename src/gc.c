@@ -20,6 +20,7 @@ static void blacken_str(JZ_STATE, jz_str* str);
 static void blacken_closure_locals(JZ_STATE, jz_closure_locals* closure_locals);
 static void blacken_proto(JZ_STATE, jz_proto* proto);
 static void blacken_cons(JZ_STATE, jz_cons* node);
+#define blacken_enum(jz, val) /* Enums have no references. */
 
 static jz_gc_header* pop_gray_stack(JZ_STATE);
 static void mark_roots(JZ_STATE);
@@ -133,6 +134,9 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
     break;
   case jz_t_cons:
     blacken_cons(jz, (jz_cons*)obj);
+    break;
+  case jz_t_enum:
+    blacken_enum(jz, (jz_enum*)obj);
     break;
   default:
     fprintf(stderr, "Unknown GC type %d\n", JZ_GC_TYPE(obj));
@@ -290,9 +294,6 @@ void gc_free(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
   case jz_t_obj:
     jz_obj_free(jz, (jz_obj*)obj);
-    return;
-  case jz_t_cons:
-    jz_cons_free(jz, (jz_cons*)obj);
     return;
   default:
     free(obj);

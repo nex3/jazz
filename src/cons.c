@@ -9,8 +9,6 @@
 static void print_parse_list(JZ_STATE, jz_cons* node, jz_bool start);
 static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr);
 
-static void free_parse_ptr(JZ_STATE, jz_cons_ptr ptr);
-
 jz_cons* jz_cons_empty(JZ_STATE) {
   jz_cons* to_ret = (jz_cons*)jz_gc_malloc(jz, jz_t_cons, sizeof(jz_cons));
 
@@ -19,14 +17,15 @@ jz_cons* jz_cons_empty(JZ_STATE) {
 }
 
 jz_enum* jz_enum_new(JZ_STATE, jz_byte val) {
-  jz_enum* to_ret = malloc(sizeof(jz_enum));
-  to_ret->tag = JZ_TAG_WITH_TYPE(0, jz_t_enum);
+  jz_enum* to_ret = (jz_enum*)jz_gc_malloc(jz, jz_t_enum, sizeof(jz_enum));
+
   to_ret->val = val;
   return to_ret;
 }
 
 jz_cons* jz_cons_new(JZ_STATE, jz_tag* car, jz_tag* cdr) {
   jz_cons* to_ret = jz_cons_empty(jz);
+
   to_ret->car.tag = car;
   to_ret->cdr.tag = cdr;
   return to_ret;
@@ -177,19 +176,5 @@ static void print_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
     free(str);
   }
   }
-}
-
-void jz_cons_free(JZ_STATE, jz_cons* this) {
-  free_parse_ptr(jz, CAR(this));
-  free_parse_ptr(jz, CDR(this));
-}
-
-void free_parse_ptr(JZ_STATE, jz_cons_ptr ptr) {
-  if (ptr.tag == NULL)
-    return;
-  else if (JZ_TAG_CAN_BE_GCED(*ptr.tag))
-    return;
-  else
-    free(ptr.tag);
 }
 

@@ -365,7 +365,9 @@ stmt_member_expr: stmt_primary_expr
 
 member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
   /* TODO: This is hideous and belongs in a compilation transformation. */
-  | DOT identifier { $$ = jz_enum_wrap(jz, jz_parse_literal, CAR(NODE(CDR($2))).str); }
+  | DOT identifier {
+    $$ = jz_enum_wrap(jz, jz_parse_literal, CADR($2).str);
+ }
 
 function_expr: FUNCTION LPAREN RPAREN LCURLY opt_source_elements RCURLY {
   $$ = jz_enum_wrap(jz, jz_parse_func, $5);

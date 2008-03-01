@@ -9,7 +9,7 @@ typedef struct jz_cons jz_cons;
 /* A tagged wrapper for enums.
    Pretty much just used for parse types at the moment. */
 typedef struct {
-  jz_tag tag;
+  jz_gc_header gc;
   jz_byte val;
 } jz_enum;
 
@@ -73,8 +73,6 @@ jz_cons* jz_list_concat(JZ_STATE, jz_cons* list1, jz_cons* list2);
 jz_cons* jz_list_reverse(JZ_STATE, jz_cons* head);
 
 void jz_cons_print(JZ_STATE, jz_cons* root);
-
-void jz_cons_free(JZ_STATE, jz_cons* this);
 
 #define jz_enum_wrap(jz, type, car) jz_list(jz, 2, jz_enum_new(jz, type), car)
 
