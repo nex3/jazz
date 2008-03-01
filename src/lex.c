@@ -377,6 +377,8 @@ void jz_lex_free(JZ_STATE) {
   uregex_close(jz->lex.identifier_re);
   uregex_close(jz->lex.whitespace_re);
   uregex_close(jz->lex.line_terminator_re);
+  uregex_close(jz->lex.one_line_comment_re);
+  uregex_close(jz->lex.multiline_comment_re);
   uregex_close(jz->lex.punctuation_re);
   uregex_close(jz->lex.hex_literal_re);
   uregex_close(jz->lex.decimal_literal_re1);
