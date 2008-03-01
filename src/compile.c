@@ -106,6 +106,7 @@ static void push_multibyte_arg(STATE, const void* data, size_t size);
 static ptrdiff_t push_placeholder(STATE, size_t size);
 
 static void free_comp_state(STATE);
+static void free_variable(JZ_STATE, jz_str* key, jz_tvalue val, void* data);
 
 JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
@@ -1061,6 +1062,9 @@ ptrdiff_t push_placeholder(STATE, size_t size) {
 }
 
 void free_comp_state(STATE) {
+  jz_obj_each(jz, state->local_vars, free_variable, NULL);
+  jz_obj_each(jz, state->closure_vars, free_variable, NULL);
+
   while (state->consts != NULL) {
     const_node* old_consts = state->consts;
     state->consts = state->consts->next;
@@ -1069,6 +1073,10 @@ void free_comp_state(STATE) {
 
   jz_opcode_vector_free(jz, state->code);
   free(state);
+}
+
+void free_variable(JZ_STATE, jz_str* key, jz_tvalue val, void* data) {
+  free(val.value.ptr);
 }
 
 void jz_free_bytecode(JZ_STATE, jz_bytecode* this) {
