@@ -22,7 +22,7 @@ typedef enum {
   /* Giving undefined a 0 flag means that zero-ed memory
      is identified as jz_t_undef, which saves some manual setting. */
   jz_t_undef = 0x00,
-  jz_t_num,
+  jz_t_int,
   jz_t_bool,
 
   /* An opaque pointer or value. */
@@ -31,6 +31,7 @@ typedef enum {
   /* All type flags past this point
      must refer to types with jz_gc_header headers. */
   jz_t_str,
+  jz_t_num,
   jz_t_enum, /* Used in parser */
   jz_t_cons,
   jz_t_str_value,
@@ -40,8 +41,9 @@ typedef enum {
 } jz_type;
 
 typedef union {
-  double num;
   jz_bool b;
+  int i;
+  jz_num* num;
   jz_gc_header* gc;
   jz_obj* obj;
   jz_str* str;
@@ -89,6 +91,8 @@ typedef enum {
          ((field) |= JZ_BITMASK(bit)) :         \
          ((field) &= ~JZ_BITMASK(bit)))
 
+#define JZ_IS_NUM(v) ((JZ_TVAL_TYPE(v) == jz_t_num) || JZ_TVAL_TYPE(v) == jz_t_int)
+
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
 #define JZ_NEG_INF (-1.0/0.0)
@@ -113,6 +117,7 @@ double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2);
 #define jz_to_wrapped_str(jz, val) \
   (jz_wrap_str(jz, jz_to_str(jz, val)))
 
+jz_tvalue jz_wrap_int(JZ_STATE, int num);
 jz_tvalue jz_wrap_num(JZ_STATE, double num);
 jz_tvalue jz_wrap_bool(JZ_STATE, jz_bool b);
 jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj);

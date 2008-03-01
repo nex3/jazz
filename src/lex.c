@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "lex.h"
 #include "state.h"
@@ -26,7 +27,7 @@ typedef struct hash_result hash_result;
 
 static jz_bool try_filler(STATE);
 static jz_bool try_hex_literal(STATE, YYSTYPE* lex_val);
-static jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val);
+static int try_decimal_literal(STATE, YYSTYPE* lex_val);
 static jz_bool try_string_literal(STATE, YYSTYPE* lex_val);
 typedef const UChar* const_uchars;
 static UChar hex_escape(STATE, int chars, const jz_str* match,
@@ -59,20 +60,24 @@ static jz_str* get_match(STATE, URegularExpression* re, int number);
 double jz_parse_number(JZ_STATE, const jz_str* num) {
   jz_lex_state* state = jz_lex_new(jz, num);
   YYSTYPE lval;
-  double res;
+  int type;
 
   lval.num = JZ_NAN;
-  if (try_hex_literal(jz, state, &lval));
-  else if (try_decimal_literal(jz, state, &lval));
-  res = lval.num;
+  if (try_hex_literal(jz, state, &lval)) type = INTEGER;
+  else type = try_decimal_literal(jz, state, &lval);
 
   /* Make sure that we consumed the entire string. */
-  if (state->code->length != 0)
-    res = JZ_NAN;
+  if (state->code->length != 0) {
+    free(state);
+    return JZ_NAN;
+  }
 
   free(state);
 
-  return res;
+  if (type == INTEGER)
+    return lval.i;
+  else
+    return lval.num;
 }
 
 int yylex(YYSTYPE* lex_val, STATE) {
@@ -84,8 +89,8 @@ int yylex(YYSTYPE* lex_val, STATE) {
   while (try_filler(jz, state));
 
   if ((res = try_identifier(jz, state, lex_val))) to_ret = res;
-  else if (try_hex_literal(jz, state, lex_val)) to_ret = NUMBER;
-  else if (try_decimal_literal(jz, state, lex_val)) to_ret = NUMBER;
+  else if (try_hex_literal(jz, state, lex_val)) to_ret = INTEGER;
+  else if ((res = try_decimal_literal(jz, state, lex_val))) to_ret = res;
   else if (try_string_literal(jz, state, lex_val)) to_ret = STRING;
   else if ((res = try_punctuation(jz, state, lex_val))) to_ret = res;
 
@@ -104,7 +109,7 @@ jz_bool try_filler(STATE) {
   return jz_false;
 }
 
-jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
+int try_decimal_literal(STATE, YYSTYPE* lex_val) {
   URegularExpression* matched;
 
   if (try_re(jz, state, jz->lex.decimal_literal_re1))
@@ -113,9 +118,10 @@ jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
     matched = jz->lex.decimal_literal_re2;
   else if (try_re(jz, state, jz->lex.decimal_literal_re3))
     matched = jz->lex.decimal_literal_re3;
-  else return jz_false;
+  else return 0;
 
   {
+    int res;
     jz_str* match;
     char *num, *dec, *exp;
 
@@ -128,16 +134,36 @@ jz_bool try_decimal_literal(STATE, YYSTYPE* lex_val) {
     match = get_match(jz, state, matched, 3);
     exp = jz_str_to_chars(jz, match);
 
-    lex_val->num = (*num) ? atof(num) : 0.0;
-
     /* dec[0] is always '.' if it's not '\0' */
-    if (dec[0] && dec[1]) lex_val->num += atof(dec);
-    if (*exp) lex_val->num *= pow(10.0, atof(exp));
+    if (dec[0] && dec[1]) {
+      /* Can also come here from else side,
+         if the integers overflow */
+    overflow_detected:
+      lex_val->num = (*num) ? atof(num) : 0.0;
+      if (dec[0] && dec[1]) lex_val->num += atof(dec);
+      if (*exp) lex_val->num *= pow(10.0, atof(exp));
+      res = NUMBER;
+    } else {
+      lex_val->i = (*num) ? atoi(num) : 0;
+      if (lex_val->i == INT_MAX || lex_val->i == INT_MIN)
+        goto overflow_detected;
+
+      if (*exp) {
+        int exp_num = atoi(exp);
+        double overflow_check = lex_val->i * pow(10, exp_num);
+
+        if (exp_num < 0 || overflow_check > INT_MAX || overflow_check < INT_MIN)
+          goto overflow_detected;
+
+        lex_val->i = (int)overflow_check;
+      }
+      res = INTEGER;
+    }
 
     free(num);
     free(dec);
     free(exp);
-    return jz_true;
+    return res;
   }
 }
 
@@ -149,8 +175,9 @@ jz_bool try_hex_literal(STATE, YYSTYPE* lex_val) {
     char *num = jz_str_to_chars(jz, match);
     unsigned int hex;
 
+    /* TODO: Overflow? */
     sscanf(num + 2, "%x", &hex);
-    lex_val->num = (double)hex;
+    lex_val->i = hex;
     free(num);
     return jz_true;
   }

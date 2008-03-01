@@ -27,7 +27,7 @@ core/core.a: core/core.o core/global.o
 
 main.o: main.c state.h string.h parse.h compile.h vm.h core/core.h
 
-value.o: value.c value.h string.h object.h
+value.o: value.c value.h string.h object.h num.h
 compile.o: compile.c compile.h string.h function.h state.h _cons.h traverse.h \
   object.h
 vm.o: vm.c vm.h frame.h state.h string.h gc.h object.h Makefile
@@ -54,6 +54,7 @@ vector.h: jazz.h
 value.h: jazz.h
 cons.h: jazz.h gc.h
 _cons.h: cons.h
+num.h: jazz.h value.h
 parse.h: jazz.h value.h cons.h
 lex.h: jazz.h value.h y.tab.h
 string.h: jazz.h value.h gc.h

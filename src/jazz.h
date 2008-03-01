@@ -9,6 +9,7 @@ typedef jz_byte jz_bool;
 
 /* Prototype structs that would cause ciruclar-reference problems otherwise. */ 
 typedef struct jz_state jz_state;
+typedef struct jz_num jz_num;
 typedef struct jz_obj jz_obj;
 typedef struct jz_str jz_str;
 typedef struct jz_proto jz_proto;

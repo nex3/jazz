@@ -25,16 +25,16 @@ const char* jz_oc_names[] = {
   code += sizeof(type)/sizeof(jz_opcode);
 
 #define POP()     (*(--stack))
-#define PUSH(val) (*(stack++) = (val))
-#define PUSH_WB(val) {                          \
+#define PUSH_NO_WB(val) (*(stack++) = (val))
+#define PUSH(val) {                          \
     jz_tvalue tmp = (val);                      \
     *(stack++) = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 
-#define STACK_SET(i, val) (stack[(i)] = (val))
-#define STACK_SET_WB(i, val) {                  \
+#define STACK_SET_NO_WB(i, val) (stack[(i)] = (val))
+#define STACK_SET(i, val) {                  \
     jz_tvalue tmp = (val);                      \
     stack[(i)] = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
@@ -69,14 +69,14 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     switch (NEXT_OPCODE) {
     case jz_oc_push_literal: {
       READ_ARG_INTO(jz_index, index);
-      PUSH(consts[index]);
+      PUSH_NO_WB(consts[index]);
       break;
     }
 
     case jz_oc_push_closure: {
       jz_func_data* func;
       READ_ARG_INTO(jz_index, index);
-      PUSH(consts[index]);
+      PUSH_NO_WB(consts[index]);
 
       assert(JZ_TVAL_TYPE(consts[index]) == jz_t_obj);
       func = JZ_FUNC_DATA(consts[index].value.obj);
@@ -85,7 +85,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     }
 
     case jz_oc_push_global: {
-      PUSH(jz_wrap_obj(jz, jz->global_obj));
+      PUSH_NO_WB(jz_wrap_obj(jz, jz->global_obj));
       break;
     }
 
@@ -101,7 +101,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
         exit(1);
       }
 
-      STACK_SET_WB(-argc - 1, jz_call_arr(jz, obj.value.obj, argc, stack - argc));
+      STACK_SET(-argc - 1, jz_call_arr(jz, obj.value.obj, argc, stack - argc));
       stack -= argc;
       break;
     }
@@ -152,7 +152,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
 
     case jz_oc_retrieve: {
       READ_ARG_INTO(jz_index, index);
-      PUSH(locals[index]);
+      PUSH_NO_WB(locals[index]);
       break;
     }
 
@@ -224,22 +224,23 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       break;
 
     case jz_oc_equals:
-      STACK_SET(-2, jz_wrap_bool(jz, jz_values_equal(jz, stack[-2],
-                                                     stack[-1])));
+      STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_values_equal(jz, stack[-2],
+                                                           stack[-1])));
       stack--;
       break;
 
-    case jz_oc_strict_eq:
-      STACK_SET(-2, jz_wrap_bool(jz, jz_values_strict_equal(jz, stack[-2],
-                                                            stack[-1])));
+    case jz_oc_strict_eq: {
+      STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_values_strict_equal(jz, stack[-2],
+                                                                  stack[-1])));
       stack--;
       break;
+    }
 
     case jz_oc_lt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
-      else STACK_SET(-2, jz_wrap_bool(jz, comp < 0));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_false));
+      else STACK_SET_NO_WB(-2, jz_wrap_bool(jz, comp < 0));
 
       stack--;
       break;
@@ -248,8 +249,8 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     case jz_oc_gt: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
-      else STACK_SET(-2, jz_wrap_bool(jz, comp > 0));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_false));
+      else STACK_SET_NO_WB(-2, jz_wrap_bool(jz, comp > 0));
 
       stack--;
       break;
@@ -258,8 +259,8 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     case jz_oc_lt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
-      else STACK_SET(-2, jz_wrap_bool(jz, comp <= 0));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_false));
+      else STACK_SET_NO_WB(-2, jz_wrap_bool(jz, comp <= 0));
 
       stack--;
       break;
@@ -268,8 +269,8 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     case jz_oc_gt_eq: {
       double comp = jz_values_comp(jz, stack[-2], stack[-1]);
 
-      if (JZ_NUM_IS_NAN(comp)) STACK_SET(-2, jz_wrap_bool(jz, jz_false));
-      else STACK_SET(-2, jz_wrap_bool(jz, comp >= 0));
+      if (JZ_NUM_IS_NAN(comp)) STACK_SET_NO_WB(-2, jz_wrap_bool(jz, jz_false));
+      else STACK_SET_NO_WB(-2, jz_wrap_bool(jz, comp >= 0));
 
       stack--;
       break;
@@ -298,8 +299,8 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       jz_tvalue v2 = stack[-1];
 
       if (JZ_TVAL_TYPE(v1) == jz_t_str || JZ_TVAL_TYPE(v2) == jz_t_str) {
-        STACK_SET_WB(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
-                                                       jz_to_str(jz, v2))));
+        STACK_SET(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
+                                                    jz_to_str(jz, v2))));
       } else {
         STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) +
                                   jz_to_num(jz, stack[-1])));
@@ -344,7 +345,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       break;
 
     case jz_oc_not:
-      STACK_SET(-1, jz_wrap_bool(jz, !jz_to_bool(jz, stack[-1])));
+      STACK_SET_NO_WB(-1, jz_wrap_bool(jz, !jz_to_bool(jz, stack[-1])));
       break;
 
     case jz_oc_ret: {

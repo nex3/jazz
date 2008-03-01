@@ -14,6 +14,7 @@
   (JZ_SET_BIT(JZ_GC_TAG(obj), JZ_GC_FLAG_BIT, !jz->gc.black_bit))
 
 static void blacken(JZ_STATE, jz_gc_header* obj);
+#define blacken_num(jz, val) /* Numbers have no references. */
 static void blacken_obj(JZ_STATE, jz_obj* obj);
 static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
@@ -117,6 +118,9 @@ jz_bool jz_gc_step(JZ_STATE) {
 
 void blacken(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
+  case jz_t_num:
+    blacken_num(jz, (jz_num*)obj);
+    break;
   case jz_t_obj:
     blacken_obj(jz, (jz_obj*)obj);
     break;

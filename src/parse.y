@@ -47,6 +47,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
   struct jz_cons* node;
   jz_str* str;
   double num;
+  int i;
   char boolean;
   int operation;
   jz_tvalue tvalue;
@@ -55,6 +56,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
 
 /* Literal value tokens. */
 %token <str> IDENTIFIER STRING
+%token <i>   INTEGER
 %token <num> NUMBER
 
 /* Constant Literal Tokens */
@@ -388,6 +390,7 @@ identifier: IDENTIFIER {
 literal: literal_tval { $$ = jz_enum_wrap(jz, jz_parse_literal, jz_cons_ptr_wrap(jz, $1)); }
 
 literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
+  | INTEGER { $$ = jz_wrap_int(jz, $1); }
   | STRING { $$ = jz_wrap_str(jz, $1); }
   | bool_val { $$ = jz_wrap_bool(jz, $1); }
   | NULL_VAL { $$ = JZ_NULL; }
