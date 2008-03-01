@@ -39,6 +39,9 @@ jz_cons_ptr jz_cons_ptr_wrap(JZ_STATE, jz_tvalue val) {
   else if (JZ_TVAL_IS_NULL(val))
     to_ret.tag = NULL;
   else {
+    /* TODO: This memory isn't freed.
+       to get it to be,
+       we'll need OOPs. */
     to_ret.val = malloc(sizeof(jz_tvalue));
     *to_ret.val = val;
   }
