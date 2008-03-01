@@ -59,8 +59,8 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
   frame->stack_top = &stack;
 
 #if JZ_DEBUG_BYTECODE
-  print_bytecode(bytecode);
-  printf("Locals length: %lu\n", (unsigned long)bytecode->locals_length);
+  print_bytecode(frame->bytecode);
+  printf("Locals length: %lu\n", (unsigned long)frame->bytecode->locals_length);
 #endif
 
   while (jz_true) {
