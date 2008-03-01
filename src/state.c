@@ -63,9 +63,10 @@ void init_global_object(JZ_STATE) {
 void jz_free_state(JZ_STATE) {
   free(jz->stack);
   jz_lex_free(jz);
+  jz->stack = NULL;
+  jz->current_frame = NULL;
   jz->global_obj = NULL;
   jz->prototypes = NULL;
-  jz->stack = NULL;
   jz_gc_cycle(jz);
   free(jz);
 }
