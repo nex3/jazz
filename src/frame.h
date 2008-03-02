@@ -42,7 +42,7 @@ void jz_frame_free(JZ_STATE, jz_frame* frame);
                 (frame)->bytecode->locals_length * sizeof(jz_val)))
 #define JZ_FRAME_LOCALS(frame)                                          \
   ((jz_val*)((frame)->data +                                         \
-                 (frame)->bytecode->closure_locals_length * sizeof(jz_val*)))
+                 (frame)->bytecode->closure_vars_length * sizeof(jz_val*)))
 #define JZ_FRAME_CLOSURE_VARS(frame) ((jz_val**)((frame)->data))
 
 #endif
