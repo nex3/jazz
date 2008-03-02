@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "frame.h"
 #include "state.h"
@@ -42,6 +43,9 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   frame->closure_locals = (jz_closure_locals*)
     jz_gc_dyn_malloc(jz, jz_t_closure_locals, sizeof(jz_closure_locals),
                      sizeof(jz_val), function->closure_locals_length);
+  if (jz_gc_write_barrier_active(jz))
+    jz_gc_mark_gray(jz, &frame->closure_locals->gc);
+
   frame->closure_locals->scope = NULL;
   frame->closure_locals->length = function->closure_locals_length;
   copy_closure_locals(jz, function, frame);
