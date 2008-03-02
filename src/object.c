@@ -134,16 +134,20 @@ jz_obj_cell* get_cell(JZ_STATE, jz_obj* this,
 
 void grow(JZ_STATE, jz_obj* this) {
   jz_obj_cell* old_table = this->table;
+  jz_obj_cell* old_table_iter = old_table;
   jz_obj_cell* old_table_end = this->table + this->capacity;
 
   this->order += ORDER_INCREMENT;
   this->capacity = 1 << this->order;
   this->table = calloc(sizeof(jz_obj_cell), this->capacity);
 
-  for (; old_table < old_table_end; old_table++) {
-    if (old_table->key != JZ_OBJ_EMPTY_KEY && old_table->key != JZ_OBJ_REMOVED_KEY)
-      jz_obj_put(jz, this, old_table->key, old_table->value);
+  for (; old_table_iter < old_table_end; old_table_iter++) {
+    if (old_table_iter->key != JZ_OBJ_EMPTY_KEY &&
+        old_table_iter->key != JZ_OBJ_REMOVED_KEY)
+      jz_obj_put(jz, this, old_table_iter->key, old_table_iter->value);
   }
+
+  free(old_table);
 }
 
 jz_val jz_obj_to_str(JZ_STATE, jz_obj* obj) {
