@@ -13,29 +13,11 @@ typedef struct {
   jz_byte val;
 } jz_enum;
 
-/* Potential values for the car and cdr of a jz_cons.
-
-   Note that all of these should be pointers to values
-   where the first element is a jz_tag.
-
-   Also, in a cons the Jazz null value
-   isn't represented by a pointer to a null tvalue,
-   but rather an actual NULL pointer.
-   This avoids ambiguity between null tvalues and objects. */
-typedef union {
-  jz_tag* tag;
-  jz_gc_header* gc;
-  jz_cons* node;
-  jz_str* str;
-  jz_tvalue* val;
-  jz_enum* leaf;
-} jz_cons_ptr;
-
 /* A cons cell. */
 struct jz_cons {
   jz_gc_header gc;
-  jz_cons_ptr car;
-  jz_cons_ptr cdr;
+  jz_val car;
+  jz_val cdr;
 };
 
 
@@ -44,18 +26,7 @@ jz_cons* jz_cons_empty(JZ_STATE);
 
 jz_enum* jz_enum_new(JZ_STATE, jz_byte val);
 
-jz_cons* jz_cons_new(JZ_STATE, jz_tag* car, jz_tag* cdr);
-
-/* Wraps a jz_tvalue in a jz_cons_ptr.
-   This pointer should be assigned to the car or cdr of one and only one jz_cons;
-   otherwise, it won't be garbage cllected properly.
-
-   Note that this doesn't necessarily return a pointer to a jz_tvalue;
-   if the tvalue is itself a pointer to a garbage-collectable object,
-   that pointer will be returned instead. */
-jz_cons_ptr jz_cons_ptr_wrap(JZ_STATE, jz_tvalue val);
-
-jz_tvalue jz_cons_ptr_unwrap(JZ_STATE, jz_cons_ptr ptr);
+jz_cons* jz_cons_new(JZ_STATE, jz_val car, jz_val cdr);
 
 jz_cons* jz_list(JZ_STATE, int argc, ...);
 

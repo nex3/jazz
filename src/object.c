@@ -29,7 +29,7 @@ jz_obj* jz_obj_new(JZ_STATE) {
 
   /* Note: the prototype property of a plain object
      is not specified by ECMAscript. */
-  jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, obj->prototype->obj));
+  jz_obj_put2(jz, obj, "prototype", obj->prototype->obj);
 
   return obj;
 }
@@ -47,18 +47,29 @@ jz_obj* jz_obj_new_bare(JZ_STATE) {
   return this;
 }
 
-jz_tvalue jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
+jz_val jz_obj_get(JZ_STATE, jz_obj* this, jz_str* key) {
   jz_obj_cell* cell = get_cell(jz, this, key, jz_false);
 
-  if (JZ_TVAL_TYPE(cell->value) == jz_t_undef && this->prototype != NULL)
-    return jz_obj_get(jz, this->prototype->obj, key);
+  if (cell->key == JZ_OBJ_EMPTY_KEY) {
+    if (this->prototype != NULL)
+      return jz_obj_get(jz, this->prototype->obj, key);
+    else
+      return JZ_UNDEFINED;
+  }
 
-  /* Handily enough, a missing cell has a nulled value,
-     and a fully null tvalue is not-so-coincidentally undefined. */
   return cell->value;
 }
 
-void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_tvalue val) {
+void* jz_obj_get_ptr(JZ_STATE, jz_obj* this, jz_str* key) {
+  jz_val val = jz_obj_get(jz, this, key);
+
+  if (val == JZ_UNDEFINED)
+    return NULL;
+
+  return jz_unwrap_void(jz, val);
+}
+
+void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_val val) {
   jz_obj_cell* cell;
 
   JZ_GC_WRITE_BARRIER(jz, this, key);
@@ -135,14 +146,14 @@ void grow(JZ_STATE, jz_obj* this) {
   }
 }
 
-jz_tvalue jz_obj_to_str(JZ_STATE, jz_obj* obj) {
+jz_val jz_obj_to_str(JZ_STATE, jz_obj* obj) {
   /* TODO: Replace calls to this with actual calls to toString(). */
-  return jz_wrap_str(jz, jz_str_from_literal(jz, "[object Object]"));
+  return jz_str_from_literal(jz, "[object Object]");
 }
 
-jz_tvalue jz_obj_value_of(JZ_STATE, jz_obj* obj) {
+jz_val jz_obj_value_of(JZ_STATE, jz_obj* obj) {
   /* TODO: Replace calls to this with actual calls to toString(). */
-  return jz_wrap_obj(jz, obj);
+  return obj;
 }
 
 void jz_obj_free(JZ_STATE, jz_obj* obj) {

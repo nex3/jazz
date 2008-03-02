@@ -12,22 +12,12 @@
 static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
 
-static jz_tvalue jz_print(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv);
+static jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
 
   state->stack = calloc(sizeof(jz_byte), STACK_SIZE);
-
-  /* Assign value constants. */
-  JZ_TVAL_SET_TYPE(state->undefined_val, jz_t_undef);
-  JZ_TVAL_SET_TYPE(state->null_val, jz_t_obj);
-  state->null_val.value.obj = NULL;
-  JZ_TVAL_SET_TYPE(state->true_val, jz_t_bool);
-  state->true_val.value.b = jz_true;
-  JZ_TVAL_SET_TYPE(state->false_val, jz_t_bool);
-  state->false_val.value.b = jz_false;
-
   state->current_frame = NULL;
 
   jz_gc_init(state);
@@ -73,7 +63,7 @@ void jz_free_state(JZ_STATE) {
 
 /* TODO: This definitely doesn't belong here.
    Move it to src/io.c? lib/io.c? */
-jz_tvalue jz_print(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv) {
+jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
   int i;
 
   for (i = 0; i < argc; i++) {

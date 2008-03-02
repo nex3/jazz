@@ -173,8 +173,8 @@ void blacken_str(JZ_STATE, jz_str* str) {
 }
 
 void blacken_closure_locals(JZ_STATE, jz_closure_locals* closure_locals) {
-  jz_tvalue* var = closure_locals->vars;
-  jz_tvalue* top = closure_locals->vars + closure_locals->length;
+  jz_val* var = closure_locals->vars;
+  jz_val* top = closure_locals->vars + closure_locals->length;
 
   jz_gc_mark_gray(jz, &closure_locals->scope->gc);
 
@@ -188,10 +188,8 @@ void blacken_proto(JZ_STATE, jz_proto* proto) {
 }
 
 void blacken_cons(JZ_STATE, jz_cons* node) {
-  if (JZ_TAG_CAN_BE_GCED(*node->car.tag))
-    jz_gc_mark_gray(jz, node->car.gc);
-  if (JZ_TAG_CAN_BE_GCED(*node->cdr.tag))
-    jz_gc_mark_gray(jz, node->cdr.gc);
+  JZ_GC_MARK_VAL_GRAY(jz, node->car);
+  JZ_GC_MARK_VAL_GRAY(jz, node->cdr);
 }
 
 jz_gc_header* pop_gray_stack(JZ_STATE) {
@@ -219,8 +217,8 @@ void mark_roots(JZ_STATE) {
 }
 
 static void mark_frame(JZ_STATE, jz_frame* frame) {
-  jz_tvalue* next;
-  jz_tvalue* top;
+  jz_val* next;
+  jz_val* top;
 
   if (frame == NULL)
     return;

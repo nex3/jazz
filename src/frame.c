@@ -5,6 +5,7 @@
 #include "function.h"
 #include "object.h"
 
+static void init_locals(JZ_STATE, jz_frame* frame);
 static void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame);
 static void copy_closure_vars(JZ_STATE, jz_closure_locals* vars, jz_frame* frame);
 
@@ -19,22 +20,24 @@ jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function) {
 jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   /* Use calloc to ensure the frame is initially zeroed. */
   jz_frame* frame;
-  size_t extra_size = function->locals_length * sizeof(jz_tvalue) +
-    function->closure_vars_length * sizeof(jz_tvalue*) - 1;
+  size_t extra_size = function->locals_length * sizeof(jz_val) +
+    function->closure_vars_length * sizeof(jz_val*) - 1;
 
   frame = (jz_frame*)jz->stack;
   memset(frame, 0, sizeof(jz_frame) + extra_size);
 
-  jz->stack += sizeof(jz_frame) + sizeof(jz_tvalue) * extra_size;
+  jz->stack += sizeof(jz_frame) + sizeof(jz_val) * extra_size;
   frame->function = NULL;
   frame->bytecode = function;
   frame->stack_top = NULL;
   frame->upper = jz->current_frame;
   jz->current_frame = frame;
 
+  init_locals(jz, frame);
+
   frame->closure_locals = (jz_closure_locals*)
     jz_gc_dyn_malloc(jz, jz_t_closure_locals, sizeof(jz_closure_locals),
-                     sizeof(jz_tvalue), function->closure_locals_length);
+                     sizeof(jz_val), function->closure_locals_length);
   frame->closure_locals->scope = NULL; /* TODO: Actually handle this */
   frame->closure_locals->length = function->closure_locals_length;
   copy_closure_locals(jz, function, frame);
@@ -42,11 +45,19 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   return frame;
 }
 
+void init_locals(JZ_STATE, jz_frame* frame) {
+  jz_val* locals = JZ_FRAME_LOCALS(frame);
+  jz_val* top = JZ_FRAME_STACK(frame);
+
+  for (; locals < top; locals++)
+    *locals = JZ_UNDEFINED;
+}
+
 void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame) {
-  jz_tvalue* closure_locals = frame->closure_locals->vars;
-  jz_tvalue** closure_vars = JZ_FRAME_CLOSURE_VARS(frame) +
+  jz_val* closure_locals = frame->closure_locals->vars;
+  jz_val** closure_vars = JZ_FRAME_CLOSURE_VARS(frame) +
     function->closure_vars_length - function->closure_locals_length;
-  jz_tvalue** top = JZ_FRAME_CLOSURE_VARS(frame) + function->closure_vars_length;
+  jz_val** top = JZ_FRAME_CLOSURE_VARS(frame) + function->closure_vars_length;
 
   for (; closure_vars < top; closure_vars++, closure_locals++) {
     *closure_vars = closure_locals;
@@ -54,9 +65,9 @@ void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame)
 }
 
 void copy_closure_vars(JZ_STATE, jz_closure_locals* vars, jz_frame* frame) {
-  jz_tvalue* closure_locals = vars->vars;
-  jz_tvalue** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
-  jz_tvalue** top = JZ_FRAME_CLOSURE_VARS(frame) + vars->length;
+  jz_val* closure_locals = vars->vars;
+  jz_val** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
+  jz_val** top = JZ_FRAME_CLOSURE_VARS(frame) + vars->length;
 
   for (; closure_vars < top; closure_vars++, closure_locals++) {
     *closure_vars = closure_locals;

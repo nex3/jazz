@@ -50,7 +50,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
   int i;
   char boolean;
   int operation;
-  jz_tvalue tvalue;
+  jz_val val;
   char none;
 }
 
@@ -101,7 +101,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
                   add_expr_op mult_expr_op unary_expr_op postfix_expr_op
 
-%type <tvalue> literal_tval
+%type <val> literal_tval
 
 %type <boolean> bool_val
 
@@ -368,7 +368,7 @@ stmt_member_expr: stmt_primary_expr
 member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
   /* TODO: This is hideous and belongs in a compilation transformation. */
   | DOT identifier {
-    $$ = jz_enum_wrap(jz, jz_parse_literal, CADR($2).str);
+    $$ = jz_enum_wrap(jz, jz_parse_literal, (jz_str*)CADR($2));
  }
 
 function_expr: FUNCTION LPAREN RPAREN LCURLY opt_source_elements RCURLY {
@@ -387,13 +387,13 @@ identifier: IDENTIFIER {
   $$ = jz_enum_wrap(jz, jz_parse_identifier, jz_str_deep_dup(jz, $1));
  }
 
-literal: literal_tval { $$ = jz_enum_wrap(jz, jz_parse_literal, jz_cons_ptr_wrap(jz, $1)); }
+literal: literal_tval { $$ = jz_enum_wrap(jz, jz_parse_literal, $1); }
 
-literal_tval: NUMBER { $$ = jz_wrap_num(jz, $1); }
+literal_tval: STRING { $$ = (jz_val)$1; }
+  | NUMBER { $$ = jz_wrap_num(jz, $1); }
   | INTEGER { $$ = jz_wrap_int(jz, $1); }
-  | STRING { $$ = jz_wrap_str(jz, $1); }
   | bool_val { $$ = jz_wrap_bool(jz, $1); }
-  | NULL_VAL { $$ = JZ_NULL; }
+  | NULL_VAL { $$ = NULL; }
 
 bool_val: TRUE_VAL { $$ = jz_true; }
   | FALSE_VAL { $$ = jz_false; }

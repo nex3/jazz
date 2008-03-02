@@ -16,31 +16,31 @@
 static void write_integral_double(UChar* buffer_end, double d);
 static int add_decimal_point(UChar* buffer, int index);
 
-jz_bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
-  if (JZ_TVAL_TYPE(v1) == JZ_TVAL_TYPE(v2) ||
+jz_bool jz_values_equal(JZ_STATE, jz_val v1, jz_val v2) {
+  if (JZ_VAL_TYPE(v1) == JZ_VAL_TYPE(v2) ||
       (JZ_IS_NUM(v1) && JZ_IS_NUM(v2)))
     return jz_values_strict_equal(jz, v1, v2);
 
-  if (JZ_TVAL_TYPE(v1) == jz_t_bool ||
-      (JZ_TVAL_TYPE(v1) == jz_t_str && JZ_IS_NUM(v2)))
+  if (JZ_VAL_TYPE(v1) == jz_t_bool ||
+      (JZ_VAL_TYPE(v1) == jz_t_str && JZ_IS_NUM(v2)))
     return jz_values_equal(jz, jz_to_wrapped_num(jz, v1), v2);
 
-  if (JZ_TVAL_TYPE(v2) == jz_t_bool ||
-      (JZ_IS_NUM(v1) && JZ_TVAL_TYPE(v2) == jz_t_str))
+  if (JZ_VAL_TYPE(v2) == jz_t_bool ||
+      (JZ_IS_NUM(v1) && JZ_VAL_TYPE(v2) == jz_t_str))
     return jz_values_equal(jz, v1, jz_to_wrapped_num(jz, v2));
 
-  if (JZ_TVAL_TYPE(v1) == jz_t_obj) {
-    if (JZ_TVAL_IS_NULL(v1))
-      return JZ_TVAL_TYPE(v2) == jz_t_undef;
-    if (JZ_TVAL_TYPE(v2) == jz_t_str || JZ_IS_NUM(v2))
+  if (JZ_VAL_TYPE(v1) == jz_t_obj) {
+    if (JZ_VAL_IS_NULL(v1))
+      return JZ_VAL_TYPE(v2) == jz_t_undef;
+    if (JZ_VAL_TYPE(v2) == jz_t_str || JZ_IS_NUM(v2))
       return jz_values_equal(jz, jz_to_primitive(jz, v1, jz_hint_none), v2);
     return jz_false;
   }
 
-  if (JZ_TVAL_TYPE(v2) == jz_t_obj) {
-    if (JZ_TVAL_IS_NULL(v2))
-      return JZ_TVAL_TYPE(v1) == jz_t_undef;
-    if (JZ_TVAL_TYPE(v1) == jz_t_str || JZ_IS_NUM(v1))
+  if (JZ_VAL_TYPE(v2) == jz_t_obj) {
+    if (JZ_VAL_IS_NULL(v2))
+      return JZ_VAL_TYPE(v1) == jz_t_undef;
+    if (JZ_VAL_TYPE(v1) == jz_t_str || JZ_IS_NUM(v1))
       return jz_values_equal(jz, v1, jz_to_primitive(jz, v2, jz_hint_none));
     return jz_false;
   }
@@ -48,22 +48,22 @@ jz_bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   return jz_false;
 }
 
-jz_bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
-  if (JZ_TVAL_TYPE(v1) != JZ_TVAL_TYPE(v2) &&
-      !(JZ_IS_NUM(v1) && JZ_IS_NUM(v2)))
+jz_bool jz_values_strict_equal(JZ_STATE, jz_val v1, jz_val v2) {
+  jz_type t1 = JZ_VAL_TYPE(v1);
+  jz_type t2 = JZ_VAL_TYPE(v2);
+  if (t1 != t2 && !(JZ_TYPE_IS_NUM(t1) && JZ_TYPE_IS_NUM(t2)))
     return jz_false;
-  if (JZ_TVAL_TYPE(v1) == jz_t_str)
-    return jz_str_equal(jz, v1.value.str, v2.value.str);
-  if (JZ_TVAL_TYPE(v1) == jz_t_bool) return v1.value.b == v2.value.b;
-  if (JZ_TVAL_TYPE(v1) == jz_t_undef) return jz_true;
-  if (JZ_TVAL_TYPE(v1) == jz_t_obj) return v1.value.obj == v2.value.obj;
-  else {
+  if (t1 == jz_t_str)
+    return jz_str_equal(jz, jz_to_str(jz, v1), jz_to_str(jz, v2));
+  if (JZ_VAL_IS_CONST(v1) || t1 == jz_t_obj) return v1 == v2;
+
+  assert(JZ_TYPE_IS_NUM(t1));
+  assert(JZ_TYPE_IS_NUM(t2));
+
+  {
     double num1;
     double num2;
     jz_bool ret;
-
-    assert(JZ_IS_NUM(v1));
-    assert(JZ_IS_NUM(v2));
 
     num1 = jz_to_num(jz, v1);
     num2 = jz_to_num(jz, v2);
@@ -73,15 +73,15 @@ jz_bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   }
 }
 
-double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
+double jz_values_comp(JZ_STATE, jz_val v1, jz_val v2) {
   double num1;
   double num2;
 
   v1 = jz_to_primitive(jz, v1, jz_hint_number);
   v2 = jz_to_primitive(jz, v2, jz_hint_number);
 
-  if (JZ_TVAL_TYPE(v1) == jz_t_str && JZ_TVAL_TYPE(v2) == jz_t_str)
-    return jz_str_comp(jz, v1.value.str, v2.value.str);
+  if (JZ_VAL_TYPE(v1) == jz_t_str && JZ_VAL_TYPE(v2) == jz_t_str)
+    return jz_str_comp(jz, jz_to_str(jz, v1), jz_to_str(jz, v2));
 
   num1 = jz_to_num(jz, v1);
   num2 = jz_to_num(jz, v2);
@@ -98,140 +98,104 @@ double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2) {
   return num1 - num2;
 }
 
-jz_tvalue jz_wrap_int(JZ_STATE, int num) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_int);
-  tvalue.value.i = num;
-  return tvalue;
+jz_val jz_wrap_int(JZ_STATE, int num) {
+  if (num > JZ_INT_MAX || num < JZ_INT_MIN)
+    return jz_wrap_num(jz, (double)num);
+
+  return (jz_val)((num << 2) + jz_tt_int);
 }
 
-jz_tvalue jz_wrap_num(JZ_STATE, double num) {
-  jz_tvalue tvalue;
+jz_val jz_wrap_num(JZ_STATE, double num) {
+  jz_num* val;
 
   if (JZ_NUM_IS_INT(num) && !JZ_NUM_IS_NEG_0(num) &&
-      num < INT_MAX && num > INT_MIN) {
-    JZ_TVAL_SET_TYPE(tvalue, jz_t_int);
-    tvalue.value.i = (int)num;
-  } else {
-    JZ_TVAL_SET_TYPE(tvalue, jz_t_num);
-    tvalue.value.num = (jz_num*)jz_gc_malloc(jz, jz_t_num, sizeof(jz_num));
-    tvalue.value.num->num = num;
-  }
+      num < JZ_INT_MAX && num > JZ_INT_MIN)
+    return jz_wrap_int(jz, num);
 
-  return tvalue;
+  val = (jz_num*)jz_gc_malloc(jz, jz_t_num, sizeof(jz_num));
+  val->num = num;
+  return val;
 }
 
-jz_tvalue jz_wrap_bool(JZ_STATE, jz_bool b) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_bool);
-  tvalue.value.b = b;
-  return tvalue;
-}
-
-jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_obj);
-  tvalue.value.obj = obj;
-  return tvalue;
-}
-
-jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_str);
-  tvalue.value.str = str;
-  return tvalue;
-}
-
-jz_tvalue jz_wrap_proto(JZ_STATE, jz_proto* proto) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_proto);
-  tvalue.value.proto = proto;
-  return tvalue;
-}
-
-jz_tvalue jz_wrap_void(JZ_STATE, void* ptr) {
-  jz_tvalue tvalue;
-  JZ_TVAL_SET_TYPE(tvalue, jz_t_void);
-  tvalue.value.ptr = ptr;
-  return tvalue;
-}
-
-double jz_to_num(JZ_STATE, jz_tvalue val) {
-  switch (JZ_TVAL_TYPE(val)) {
-  case jz_t_int:   return (double)val.value.i;
-  case jz_t_num:   return val.value.num->num;
-  case jz_t_bool:  return (double)(val.value.b);
+double jz_to_num(JZ_STATE, jz_val val) {
+  switch (JZ_VAL_TYPE(val)) {
+  case jz_t_bool:
+  case jz_t_int:   return (double)((int)(val) >> 2);
+  case jz_t_num:   return ((jz_num*)val)->num;
   case jz_t_undef: return JZ_NAN;
-  case jz_t_str:   return jz_str_to_num(jz, val.value.str);
+  case jz_t_str:   return jz_str_to_num(jz, jz_to_str(jz, val));
   case jz_t_obj:
-    if (JZ_TVAL_IS_NULL(val))
+    if (JZ_VAL_IS_NULL(val))
       return 0;
     return jz_to_num(jz, jz_to_primitive(jz, val, jz_hint_number));
   default:
-    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
+    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
 
-jz_str* jz_to_str(JZ_STATE, jz_tvalue val) {
-  switch (JZ_TVAL_TYPE(val)) {
-  case jz_t_str: return val.value.str;
+jz_str* jz_to_str(JZ_STATE, jz_val val) {
+  switch (JZ_VAL_TYPE(val)) {
+  case jz_t_str: return (jz_str*)val;
   case jz_t_int:
   case jz_t_num: return jz_num_to_str(jz, jz_to_num(jz, val));
   case jz_t_bool:
-    if (val.value.b) return jz_str_from_literal(jz, "true");
+    if ((jz_ival)(val) >> 2) return jz_str_from_literal(jz, "true");
     else return jz_str_from_literal(jz, "false");
   case jz_t_obj:
-    if (JZ_TVAL_IS_NULL(val))
+    if (JZ_VAL_IS_NULL(val))
       return jz_str_from_literal(jz, "null");
     return jz_to_str(jz, jz_to_primitive(jz, val, jz_hint_string));
   case jz_t_undef: return jz_str_from_literal(jz, "undefined");
   default:
-    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
+    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
 
-jz_obj* jz_to_obj(JZ_STATE, jz_tvalue val) {
-  switch (JZ_TVAL_TYPE(val)) {
+jz_obj* jz_to_obj(JZ_STATE, jz_val val) {
+  switch (JZ_VAL_TYPE(val)) {
   case jz_t_obj:
-    if (!JZ_TVAL_IS_NULL(val))
-      return val.value.obj;
+    if (!JZ_VAL_IS_NULL(val))
+      return (jz_obj*)val;
     fprintf(stderr, "TypeError: Can't convert `null' to object");
     exit(1);
   case jz_t_undef:
     fprintf(stderr, "TypeError: Can't convert `undefined' to object");
     exit(1);
   default:
-    fprintf(stderr, "ToObject not implemented for jz_tvalue type %d\n",
-            JZ_TVAL_TYPE(val));
+    fprintf(stderr, "ToObject not implemented for jz_val type %d\n",
+            JZ_VAL_TYPE(val));
     exit(1);
   }
 }
 
-jz_bool jz_to_bool(JZ_STATE, jz_tvalue val) {
-  switch (JZ_TVAL_TYPE(val)) {
-  case jz_t_bool: return val.value.b;
-  case jz_t_int: return (jz_bool)(val.value.i);
-  case jz_t_num:
-    if (JZ_NUM_IS_NAN(val.value.num->num)) return jz_false;
-    else return (jz_bool)(val.value.num->num);
-  case jz_t_str: return val.value.str->length != 0;
+jz_bool jz_to_bool(JZ_STATE, jz_val val) {
+  switch (JZ_VAL_TYPE(val)) {
+  case jz_t_bool:
+  case jz_t_int: return (jz_bool)((int)(val) >> 2);
+  case jz_t_num: {
+    double num = jz_to_num(jz, val);
+
+    if (JZ_NUM_IS_NAN(num)) return jz_false;
+    else return (jz_bool)num;
+  }
+  case jz_t_str: return jz_to_str(jz, val)->length != 0;
   case jz_t_undef: return jz_false;
-  case jz_t_obj: return !JZ_TVAL_IS_NULL(val);
+  case jz_t_obj: return !JZ_VAL_IS_NULL(val);
   default:
-    fprintf(stderr, "Unknown jz_tvalue type %d\n", JZ_TVAL_TYPE(val));
+    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
 
-int jz_to_int32(JZ_STATE, jz_tvalue val) {
+int jz_to_int32(JZ_STATE, jz_val val) {
   unsigned int num = jz_to_uint32(jz, val);
   if (num >= pow(2, 31)) return num - pow(2, 32);
   return num;
 }
 
-unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val) {
+unsigned int jz_to_uint32(JZ_STATE, jz_val val) {
   double num = jz_to_num(jz, val);
   if (!((int)num) || JZ_NUM_IS_NAN(num) || JZ_NUM_IS_INF(num)) return 0;
   num = SIGN(num) * floor(ABS(num));
@@ -244,23 +208,23 @@ unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val) {
 }
 
 
-#define TRY_STRING_PRIMITIVE(val) {                     \
-    jz_tvalue res = jz_obj_to_str(jz, (val).value.obj); \
-                                                        \
-    if (JZ_TVAL_IS_PRIMITIVE(res))                      \
-      return res;                                       \
+#define TRY_STRING_PRIMITIVE(val) {                  \
+    jz_val res = jz_obj_to_str(jz, (jz_obj*)(val));  \
+                                                     \
+    if (JZ_VAL_IS_PRIMITIVE(res))                    \
+      return res;                                    \
   }
 
-#define TRY_VALUE_PRIMITIVE(val) {                              \
-    jz_tvalue res = jz_obj_value_of(jz, (val).value.obj);       \
-                                                                \
-    if (JZ_TVAL_IS_PRIMITIVE(res))                              \
-      return res;                                               \
+#define TRY_VALUE_PRIMITIVE(val) {                           \
+    jz_val res = jz_obj_value_of(jz, (jz_obj*)(val));        \
+                                                             \
+    if (JZ_VAL_IS_PRIMITIVE(res))                            \
+      return res;                                            \
   }
 
-jz_tvalue jz_to_primitive(JZ_STATE, jz_tvalue val,
+jz_val jz_to_primitive(JZ_STATE, jz_val val,
                           jz_to_primitive_hint hint) {
-  if (JZ_TVAL_TYPE(val) != jz_t_obj || JZ_TVAL_IS_NULL(val))
+  if (JZ_VAL_TYPE(val) != jz_t_obj || JZ_VAL_IS_NULL(val))
     return val;
 
   /* TODO: Really call [[DefaultValue]] */
@@ -279,7 +243,7 @@ jz_tvalue jz_to_primitive(JZ_STATE, jz_tvalue val,
   exit(1);
 }
 
-double jz_num_mod(JZ_STATE, jz_tvalue val1, jz_tvalue val2) {
+double jz_num_mod(JZ_STATE, jz_val val1, jz_val val2) {
   double dividend = jz_to_num(jz, val1);
   double divisor = jz_to_num(jz, val2);
 

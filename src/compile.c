@@ -21,7 +21,7 @@ typedef struct {
 typedef struct const_node const_node;
 struct const_node {
   const_node* next;
-  jz_tvalue val;
+  jz_val val;
 };
 
 typedef struct comp_state comp_state;
@@ -50,13 +50,13 @@ JZ_DECLARE_VECTOR(jz_ptrdiff)
 static comp_state* comp_state_new(JZ_STATE, comp_state* scope);
 static jz_bytecode* compile(STATE, jz_cons* parse_tree);
 
-static jz_tvalue* consts_to_array(STATE);
+static jz_val* consts_to_array(STATE);
 
 static jz_bool init_funcs(JZ_STATE, jz_cons* node, void* data);
 static jz_bool analyze_vars(JZ_STATE, jz_cons* node, void* data);
 static jz_bool analyze_identifiers(JZ_STATE, jz_cons* node, void* data);
 static jz_bool assign_indices(STATE);
-static void assign_indices_iterator(JZ_STATE, jz_str* key, jz_tvalue val, void* data);
+static void assign_indices_iterator(JZ_STATE, jz_str* key, jz_val val, void* data);
 static jz_bool assign_indices_walker(JZ_STATE, jz_cons* node, void* data);
 
 static void compile_statements(STATE, jz_cons* node);
@@ -91,12 +91,12 @@ static void compile_assign_binop(STATE, jz_cons* node, jz_opcode op, jz_bool val
 static void compile_identifier_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value);
 static void compile_index_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value);
 
-static jz_tvalue get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success);
+static jz_val get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success);
 
 static variable* get_var(STATE, jz_str* name, jz_bool from_inner_scope);
 static variable* add_lvar(STATE, jz_str* name);
 
-static jz_index add_const(STATE, jz_tvalue value);
+static jz_index add_const(STATE, jz_val value);
 
 static void jump_to_top_from(STATE, ptrdiff_t index);
 static void jump_to_from_top(STATE, ptrdiff_t index);
@@ -106,7 +106,7 @@ static void push_multibyte_arg(STATE, const void* data, size_t size);
 static ptrdiff_t push_placeholder(STATE, size_t size);
 
 static void free_comp_state(STATE);
-static void free_variable(JZ_STATE, jz_str* key, jz_tvalue val, void* data);
+static void free_variable(JZ_STATE, jz_str* key, jz_val val, void* data);
 
 JZ_DEFINE_VECTOR(jz_ptrdiff, 10)
 JZ_DEFINE_VECTOR(jz_opcode, 20)
@@ -164,10 +164,10 @@ jz_bytecode* compile(STATE, jz_cons* parse_tree) {
   }
 }
 
-jz_tvalue* consts_to_array(STATE) {
+jz_val* consts_to_array(STATE) {
   const_node* node;
-  jz_tvalue* bottom = calloc(sizeof(jz_tvalue), state->consts_length);
-  jz_tvalue* top = bottom;
+  jz_val* bottom = calloc(sizeof(jz_val), state->consts_length);
+  jz_val* top = bottom;
 
   for (node = state-> consts; node != NULL; node = node->next)
     *top++ = node->val;
@@ -191,7 +191,7 @@ jz_bool init_funcs(JZ_STATE, jz_cons* node, void* data) {
   jz_traverse_several(jz, NODE(CDR(node)), analyze_identifiers, state,
                       3, jz_parse_identifier, jz_parse_var, jz_parse_func);
 
-  CDR(node).node = CONS(VOID(state).tag, CDR(node).tag);
+  CDR(node) = CONS(VOID(state), CDR(node));
 
   return jz_false;
 }
@@ -204,8 +204,8 @@ jz_bool analyze_vars(JZ_STATE, jz_cons* node, void* data) {
     return jz_false;
 
   while (next != NULL) {
-    assert(TYPE(CAAR(next)) == jz_t_str);
-    add_lvar(jz, state, CAAR(next).str);
+    ASSERT_GC_TYPE(CAAR(next), jz_t_str);
+    add_lvar(jz, state, (jz_str*)CAAR(next));
     next = NODE(CDR(next));
   }
 
@@ -223,9 +223,9 @@ jz_bool analyze_identifiers(JZ_STATE, jz_cons* node, void* data) {
     jz_cons* var_node = NODE(CDR(node));
 
     while (var_node != NULL) {
-      assert(TYPE(CAAR(var_node)) == jz_t_str);
-      var = get_var(jz, state, CAAR(var_node).str, jz_false);
-      CDAR(var_node).node = CONS(VOID(var).tag, CDAR(var_node).tag);
+      ASSERT_GC_TYPE(CAAR(var_node), jz_t_str);
+      var = get_var(jz, state, (jz_str*)CAAR(var_node), jz_false);
+      CDAR(var_node) = CONS(VOID(var), CDAR(var_node));
 
       var_node = NODE(CDR(var_node));
     }
@@ -234,9 +234,9 @@ jz_bool analyze_identifiers(JZ_STATE, jz_cons* node, void* data) {
   }
 
   assert(ENUM(CAR(node)) == jz_parse_identifier);
-  assert(TYPE(CADR(node)) == jz_t_str);
-  var = get_var(jz, state, CADR(node).str, jz_false);
-  CDR(node).node = CONS(VOID(var).tag, CDR(node).tag);
+  ASSERT_GC_TYPE(CADR(node), jz_t_str);
+  var = get_var(jz, state, (jz_str*)CADR(node), jz_false);
+  CDR(node) = CONS(VOID(var), CDR(node));
 
   return jz_true;
 }
@@ -249,12 +249,12 @@ jz_bool assign_indices(STATE) {
   return jz_true;
 }
 
-void assign_indices_iterator(JZ_STATE, jz_str* key, jz_tvalue val, void* data) {
+void assign_indices_iterator(JZ_STATE, jz_str* key, jz_val val, void* data) {
   int* i = (int*)data;
   variable* var;
 
-  assert(JZ_TVAL_TYPE(val) == jz_t_void);
-  var = val.value.ptr;
+  assert(JZ_VAL_TAG(val) == jz_tt_void);
+  var = jz_unwrap_void(jz, val);
   var->index = *i;
 
   *i = *i + 1;
@@ -389,7 +389,7 @@ void compile_if(STATE, jz_cons* node) {
 void compile_do_while(STATE, jz_cons* node) {
   ptrdiff_t jump;
   jz_bool conditional_is_literal = jz_false;
-  jz_tvalue conditional_literal = get_literal_value(jz, NODE(CAR(node)),
+  jz_val conditional_literal = get_literal_value(jz, NODE(CAR(node)),
                                                     &conditional_is_literal);
 
   /* If the conditional is a literal value that evaluates to true,
@@ -413,7 +413,7 @@ void compile_do_while(STATE, jz_cons* node) {
 void compile_while(STATE, jz_cons* node) {
   ptrdiff_t index, placeholder;
   jz_bool conditional_is_literal = jz_false;
-  jz_tvalue conditional_literal = get_literal_value(jz, NODE(CAR(node)),
+  jz_val conditional_literal = get_literal_value(jz, NODE(CAR(node)),
                                                     &conditional_is_literal);
 
   /* If the conditional is NULL or a literal value that evaluates to true,
@@ -572,7 +572,7 @@ variable* compile_identifier(STATE, jz_cons* node, jz_bool value) {
 
   /* Callers can send in any sub-expression that might be an identifier
      and compile_identifier will die if it isn't. */
-  if (TYPE(CAR(node)) == jz_t_enum) {
+  if (JZ_IS_GC_TYPE(CAR(node), jz_t_enum)) {
     if (ENUM(CAR(node)) == jz_parse_identifier)
       node = NODE(CDR(node));
     else {
@@ -593,7 +593,7 @@ variable* compile_identifier(STATE, jz_cons* node, jz_bool value) {
     break;
 
   case global_var: {
-    jz_index index = add_const(jz, state, jz_wrap_str(jz, var->name));
+    jz_index index = add_const(jz, state, var->name);
 
     PUSH_OPCODE(jz_oc_load_global);
     PUSH_ARG(index);
@@ -621,7 +621,7 @@ void compile_identifier_store(STATE, variable* var) {
     break;
 
   case global_var: {
-    jz_index index = add_const(jz, state, jz_wrap_str(jz, var->name));
+    jz_index index = add_const(jz, state, var->name);
 
     PUSH_OPCODE(jz_oc_store_global);
     PUSH_ARG(index);
@@ -640,7 +640,7 @@ void compile_identifier_store(STATE, variable* var) {
 }
 
 void compile_literal(STATE, jz_cons* node, jz_bool value) {
-  jz_index index = add_const(jz, state, jz_cons_ptr_unwrap(jz, CAR(node)));
+  jz_index index = add_const(jz, state, CAR(node));
 
   if (!value)
     return;
@@ -864,7 +864,7 @@ void compile_func(STATE, jz_cons* node, jz_bool value) {
 
   code = compile(jz, UNVOID(CAR(node), comp_state*), NODE(CADR(node)));
 
-  index = add_const(jz, state, jz_wrap_obj(jz, jz_func_new(jz, code, 0)));
+  index = add_const(jz, state, jz_func_new(jz, code, 0));
   PUSH_OPCODE(jz_oc_push_closure);
   PUSH_ARG(index);
 }
@@ -887,13 +887,13 @@ void compile_identifier_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value
   jz_cons* right = NODE(CADR(node));
   variable* var;
 
-  assert(TYPE(CAR(left)) == jz_t_enum);
+  ASSERT_GC_TYPE(CAR(left), jz_t_enum);
   assert(ENUM(CAR(left)) == jz_parse_identifier);
 
   /* Noop signals that this is just a plain assignment.
      Otherwise we want to run an operation before assigning. */
   if (op == jz_oc_noop) {
-    assert(TYPE(CADR(left)) == jz_t_void);
+    assert(JZ_VAL_TAG(CADR(left)) == jz_tt_void);
 
     var = UNVOID(CADR(left), variable*);
     compile_expr(jz, state, right, jz_true);
@@ -938,17 +938,17 @@ void compile_index_assign(STATE, jz_cons* node, jz_opcode op, jz_bool value) {
   PUSH_OPCODE(jz_oc_index_store);
 }
 
-/* Get the jz_tvalue of a jz_parse_exprs node if it's just a literal value,
+/* Get the jz_val of a jz_parse_exprs node if it's just a literal value,
    or NULL if it's not. */
-jz_tvalue get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success) {
+jz_val get_literal_value(JZ_STATE, jz_cons* node, jz_bool* success) {
   success = jz_false;
 
   if (node == NULL ||
-      TYPE(CAR(node)) != jz_t_enum ||
+      !JZ_IS_GC_TYPE(CAR(node), jz_t_enum) ||
       ENUM(CAR(node)) != jz_parse_literal)
-    return JZ_NULL;
+    return NULL;
 
-  return jz_cons_ptr_unwrap(jz, CADR(node));
+  return CADR(node);
 }
 
 variable* get_var(STATE, jz_str* name, jz_bool from_inner_scope) {
@@ -1004,7 +1004,7 @@ variable* add_lvar(STATE, jz_str* name) {
   return node;
 }
 
-jz_index add_const(STATE, jz_tvalue value) {
+jz_index add_const(STATE, jz_val value) {
   const_node* last_node = NULL;
   const_node* node = state->consts;
   jz_index index = 0;
@@ -1075,8 +1075,8 @@ void free_comp_state(STATE) {
   free(state);
 }
 
-void free_variable(JZ_STATE, jz_str* key, jz_tvalue val, void* data) {
-  free(val.value.ptr);
+void free_variable(JZ_STATE, jz_str* key, jz_val val, void* data) {
+  free(jz_unwrap_void(jz, val));
 }
 
 void jz_free_bytecode(JZ_STATE, jz_bytecode* this) {

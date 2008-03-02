@@ -24,8 +24,8 @@ void jz_traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data
 
 void traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data,
                       int* enum_vals, size_t enum_vals_size) {
-  jz_cons_ptr car;
-  jz_cons_ptr cdr;
+  jz_val car;
+  jz_val cdr;
 
   if (tree == NULL)
     return;
@@ -33,7 +33,7 @@ void traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data,
   car = CAR(tree);
   cdr = CDR(tree);
 
-  if (car.node != NULL) {
+  if (car != NULL) {
     jz_byte type = TYPE(car);
 
     if (type == jz_t_cons)
@@ -53,6 +53,6 @@ void traverse_several(JZ_STATE, jz_cons* tree, jz_traverse_fn* fn, void* data,
     }
   }
 
-  if (cdr.node != NULL && TYPE(cdr) == jz_t_cons)
+  if (cdr != NULL && TYPE(cdr) == jz_t_cons)
     traverse_several(jz, NODE(cdr), fn, data, enum_vals, enum_vals_size);
 }

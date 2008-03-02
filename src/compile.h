@@ -17,7 +17,7 @@ typedef struct {
   size_t locals_length;
   size_t closure_vars_length;
   size_t closure_locals_length;
-  jz_tvalue* consts;
+  jz_val* consts;
   size_t consts_length;
 } jz_bytecode;
 

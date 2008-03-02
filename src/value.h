@@ -6,6 +6,27 @@
 
 #include "jazz.h"
 
+typedef enum {
+  jz_tt_ptr,
+  jz_tt_const,
+  jz_tt_void,
+  jz_tt_int
+} jz_tag_type;
+
+typedef enum {
+  jz_ct_false,
+  jz_ct_true,
+  jz_ct_undef
+} jz_const_type;
+
+typedef void* jz_val;
+
+/* The integral type that jz_val is converted to
+   to do bit-twiddling and so forth.
+
+   TODO: Really an unsigned int? */
+typedef unsigned int jz_ival;
+
 /* This tag stores type information
    and various other sorts of metadata
    about a value.
@@ -19,17 +40,6 @@
 typedef jz_byte jz_tag;
 
 typedef enum {
-  /* Giving undefined a 0 flag means that zero-ed memory
-     is identified as jz_t_undef, which saves some manual setting. */
-  jz_t_undef = 0x00,
-  jz_t_int,
-  jz_t_bool,
-
-  /* An opaque pointer or value. */
-  jz_t_void,
-
-  /* All type flags past this point
-     must refer to types with jz_gc_header headers. */
   jz_t_str,
   jz_t_num,
   jz_t_enum, /* Used in parser */
@@ -37,28 +47,23 @@ typedef enum {
   jz_t_str_value,
   jz_t_closure_locals,
   jz_t_obj,
-  jz_t_proto
+  jz_t_proto,
+
+  /* Non-GCable types */
+  jz_t_void,
+  jz_t_undef,
+  jz_t_bool,
+  jz_t_int
 } jz_type;
 
-typedef union {
-  jz_bool b;
-  int i;
-  jz_num* num;
-  jz_gc_header* gc;
-  jz_obj* obj;
-  jz_str* str;
-  jz_proto* proto;
-  void* ptr;
-} jz_value;
-
-typedef struct {
-  /* The lower four bits are used as property flags
-     when storing the value in an object.
-     The value of these flags is undefined
-     unless otherwise specified by the function returning the tvalue.*/
+struct jz_gc_header {
+  /* The first two bits (0 and 1) of this tag
+     are reserved for the GC's internal use.
+     The second two (2 and 3) may be used by individual structs
+     for any tagging they need. */
   jz_tag tag;
-  jz_value value;
-} jz_tvalue;
+  jz_gc_header* next;
+};
 
 typedef enum {
   jz_hint_none,
@@ -69,19 +74,28 @@ typedef enum {
 #define JZ_TAG_TYPE(tag) ((tag) >> 4)
 #define JZ_TAG_WITH_TYPE(tag, type) (((tag) & ~0xf0) | ((type) << 4))
 
-#define JZ_TVAL_TYPE(value) JZ_TAG_TYPE((value).tag)
-#define JZ_TVAL_SET_TYPE(value, type) \
-  ((value).tag = JZ_TAG_WITH_TYPE((value).tag, type))
+#define JZ_VAL_TAG(value) (((jz_ival)(value)) & 3)
+#define JZ_VAL_TYPE(value)                              \
+  (value == NULL                    ? jz_t_obj     :    \
+   JZ_VAL_TAG(value) == jz_tt_void  ? jz_t_void    :    \
+   JZ_VAL_TAG(value) == jz_tt_int   ? jz_t_int     :    \
+   (value) == JZ_UNDEFINED          ? jz_t_undef   :    \
+   (value) == JZ_TRUE ||                                \
+   (value) == JZ_FALSE              ? jz_t_bool    :    \
+   JZ_TAG_TYPE(((jz_gc_header*)value)->tag))
 
-#define JZ_TAG_CAN_BE_GCED(tag) (JZ_TAG_TYPE(tag) >= jz_t_str)
-#define JZ_TVAL_CAN_BE_GCED(val) \
-  (JZ_TAG_CAN_BE_GCED((val).tag) && (val).value.gc != NULL)
+#define JZ_IS_GC_TYPE(val, type)                       \
+  (val != NULL && JZ_VAL_TAG(val) == jz_tt_ptr &&      \
+   JZ_TAG_TYPE(((jz_gc_header*)val)->tag) == type)
 
-#define JZ_TVAL_IS_NULL(val) \
-  (JZ_TVAL_TYPE(val) == jz_t_obj && (val).value.obj == NULL)
+#define JZ_VAL_CAN_BE_GCED(val) \
+  (!JZ_VAL_IS_NULL(val) && JZ_VAL_TAG(val) == jz_tt_ptr)
 
-#define JZ_TVAL_IS_PRIMITIVE(val) \
-  (JZ_TVAL_TYPE(val) != jz_t_obj || (val).value.obj == NULL)
+#define JZ_VAL_IS_CONST(val) (JZ_VAL_TAG(val) == jz_tt_const)
+#define JZ_VAL_IS_NULL(val) ((val) == NULL)
+
+#define JZ_VAL_IS_PRIMITIVE(val) \
+  (JZ_VAL_TYPE(val) != jz_t_obj || JZ_VAL_IS_NULL(val))
 
 #define JZ_BITMASK(bit) (1 << (bit))
 
@@ -91,7 +105,15 @@ typedef enum {
          ((field) |= JZ_BITMASK(bit)) :         \
          ((field) &= ~JZ_BITMASK(bit)))
 
-#define JZ_IS_NUM(v) ((JZ_TVAL_TYPE(v) == jz_t_num) || JZ_TVAL_TYPE(v) == jz_t_int)
+#define JZ_TYPE_IS_NUM(t) (t == jz_t_num || t == jz_t_int)
+#define JZ_IS_NUM(v) (JZ_TYPE_IS_NUM(JZ_VAL_TYPE(v)))
+
+#define JZ_INT_MAX ((1 << ((sizeof(void*) * 8) - 3)) - 1)
+#define JZ_INT_MIN (-(1 << ((sizeof(void*) * 8) - 3)))
+
+#define JZ_UNDEFINED ((jz_val)((jz_ct_undef << 2) + jz_tt_const))
+#define JZ_TRUE      ((jz_val)((jz_ct_true  << 2) + jz_tt_const))
+#define JZ_FALSE     ((jz_val)((jz_ct_false << 2) + jz_tt_const))
 
 #define JZ_NEG_0   (-0.0)
 #define JZ_INF     (1.0/0.0)
@@ -106,36 +128,32 @@ typedef enum {
 #define JZ_NUMS_WITHIN_EPS(n1, n2) (JZ_NUM_WITHIN_EPS(n1 - n2))
 #define JZ_NUM_IS_INT(num)         (JZ_NUMS_WITHIN_EPS(num, floor(num)))
 
-jz_bool jz_values_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2);
-jz_bool jz_values_strict_equal(JZ_STATE, jz_tvalue v1, jz_tvalue v2);
-double jz_values_comp(JZ_STATE, jz_tvalue v1, jz_tvalue v2);
+jz_bool jz_values_equal(JZ_STATE, jz_val v1, jz_val v2);
+jz_bool jz_values_strict_equal(JZ_STATE, jz_val v1, jz_val v2);
+double jz_values_comp(JZ_STATE, jz_val v1, jz_val v2);
 
 #define jz_to_wrapped_num(jz, val) \
   (jz_wrap_num(jz, jz_to_num(jz, val)))
 #define jz_to_wrapped_bool(jz, val) \
   (jz_wrap_bool(jz, jz_to_bool(jz, val)))
-#define jz_to_wrapped_str(jz, val) \
-  (jz_wrap_str(jz, jz_to_str(jz, val)))
 
-jz_tvalue jz_wrap_int(JZ_STATE, int num);
-jz_tvalue jz_wrap_num(JZ_STATE, double num);
-jz_tvalue jz_wrap_bool(JZ_STATE, jz_bool b);
-jz_tvalue jz_wrap_obj(JZ_STATE, jz_obj* obj);
-jz_tvalue jz_wrap_str(JZ_STATE, jz_str* str);
-jz_tvalue jz_wrap_proto(JZ_STATE, jz_proto* proto);
+jz_val jz_wrap_int(JZ_STATE, int num);
+jz_val jz_wrap_num(JZ_STATE, double num);
+#define jz_wrap_bool(jz, b) ((jz_val)((((b) ? 1 : 0) << 2) + jz_tt_const))
+#define jz_wrap_void(jz, ptr) ((jz_val)(((jz_ival)(ptr)) | jz_tt_void))
 
-jz_tvalue jz_wrap_void(JZ_STATE, void* ptr);
+#define jz_unwrap_void(jz, val) ((void*)(((jz_ival)(val)) & ~jz_tt_void))
 
-double jz_to_num(JZ_STATE, jz_tvalue val);
-jz_str* jz_to_str(JZ_STATE, jz_tvalue val);
-jz_obj* jz_to_obj(JZ_STATE, jz_tvalue val);
-jz_bool jz_to_bool(JZ_STATE, jz_tvalue val);
-int jz_to_int32(JZ_STATE, jz_tvalue val);
-unsigned int jz_to_uint32(JZ_STATE, jz_tvalue val);
-jz_tvalue jz_to_primitive(JZ_STATE, jz_tvalue val,
+double jz_to_num(JZ_STATE, jz_val val);
+jz_str* jz_to_str(JZ_STATE, jz_val val);
+jz_obj* jz_to_obj(JZ_STATE, jz_val val);
+jz_bool jz_to_bool(JZ_STATE, jz_val val);
+int jz_to_int32(JZ_STATE, jz_val val);
+unsigned int jz_to_uint32(JZ_STATE, jz_val val);
+jz_val jz_to_primitive(JZ_STATE, jz_val val,
                           jz_to_primitive_hint hint);
 
-double jz_num_mod(JZ_STATE, jz_tvalue val1, jz_tvalue val2);
+double jz_num_mod(JZ_STATE, jz_val val1, jz_val val2);
 jz_str* jz_num_to_str(JZ_STATE, double num);
 
 #endif

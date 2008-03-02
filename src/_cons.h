@@ -11,28 +11,30 @@
 
 #include "cons.h"
 
-#define TYPE(val) JZ_TAG_TYPE(*(val).tag)
+#define TYPE(val) JZ_VAL_TYPE(val)
+#define ASSERT_GC_TYPE(val, t) (assert(JZ_IS_GC_TYPE(val, t)))
 #define ASSERT_NODE(val) \
-  assert((val).node == NULL || TYPE(val) == jz_t_cons)
-#define NODE(val) (ASSERT_NODE(val), (val).node)
-#define ENUM(value) (assert(TYPE(value) == jz_t_enum), (value).leaf->val)
+  assert((val) == NULL || JZ_IS_GC_TYPE(val, jz_t_cons))
+#define NODE(val) ((jz_cons*)(ASSERT_NODE(val), (val)))
+#define ENUM(value) \
+  (ASSERT_GC_TYPE(value, jz_t_enum), ((jz_enum*)(value))->val)
 
-#define VOID(ptr) (jz_cons_ptr_wrap(jz, jz_wrap_void(jz, ptr)))
+#define VOID(ptr) (jz_wrap_void(jz, ptr))
 #define UNVOID(node, type) \
-  ((type)(assert(TYPE(node) == jz_t_void), (node).val->value.ptr))
-#define CONS(car, cdr) jz_cons_new(jz, (jz_tag*)(car), (jz_tag*)(cdr))
+  ((type)(assert(JZ_VAL_TAG(node) == jz_tt_void), jz_unwrap_void(jz, node)))
+#define CONS(car, cdr) jz_cons_new(jz, car, cdr)
 
-#define CAR(n) ((n)->car)
-#define CDR(n) ((n)->cdr)
-#define CAAR(n) (CAR(CAR(n).node))
-#define CDAR(n) (CDR(CAR(n).node))
-#define CADR(n) (CAR(CDR(n).node))
-#define CDDR(n) (CDR(CDR(n).node))
-#define CAAAR(n) (CAR(CAAR(n).node))
-#define CAADR(n) (CAR(CADR(n).node))
-#define CADDR(n) (CAR(CDDR(n).node))
-#define CDDAR(n) (CDR(CDAR(n).node))
-#define CDDDR(n) (CDR(CDDR(n).node))
-#define CADDDR(n) (CAR(CDDDR(n).node))
+#define CAR(n) (((jz_cons*)(n))->car)
+#define CDR(n) (((jz_cons*)(n))->cdr)
+#define CAAR(n) (CAR(CAR(n)))
+#define CDAR(n) (CDR(CAR(n)))
+#define CADR(n) (CAR(CDR(n)))
+#define CDDR(n) (CDR(CDR(n)))
+#define CAAAR(n) (CAR(CAAR(n)))
+#define CAADR(n) (CAR(CADR(n)))
+#define CADDR(n) (CAR(CDDR(n)))
+#define CDDAR(n) (CDR(CDAR(n)))
+#define CDDDR(n) (CDR(CDDR(n)))
+#define CADDDR(n) (CAR(CDDDR(n)))
 
 #endif

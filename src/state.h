@@ -12,10 +12,6 @@ struct jz_state {
   jz_frame* current_frame;
   jz_obj* prototypes;
   jz_obj* global_obj;
-  jz_tvalue undefined_val;
-  jz_tvalue null_val;
-  jz_tvalue true_val;
-  jz_tvalue false_val;
   struct {
     jz_byte state;
     jz_byte speed;
@@ -42,11 +38,6 @@ struct jz_state {
     URegularExpression* string_literal_re;
   } lex;
 };
-
-#define JZ_UNDEFINED (jz->undefined_val)
-#define JZ_NULL      (jz->null_val)
-#define JZ_TRUE      (jz->true_val)
-#define JZ_FALSE     (jz->false_val)
 
 jz_state* jz_init();
 

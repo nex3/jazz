@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-static jz_tvalue is_nan(JZ_STATE, jz_args* args, jz_tvalue arg) {
+static jz_val is_nan(JZ_STATE, jz_args* args, jz_val arg) {
   double num = jz_to_num(jz, arg);
   return jz_wrap_bool(jz, JZ_NUM_IS_NAN(num));
 }

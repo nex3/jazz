@@ -27,7 +27,7 @@ const char* jz_oc_names[] = {
 #define POP()     (*(--stack))
 #define PUSH_NO_WB(val) (*(stack++) = (val))
 #define PUSH(val) {                          \
-    jz_tvalue tmp = (val);                      \
+    jz_val tmp = (val);                      \
     *(stack++) = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
@@ -35,7 +35,7 @@ const char* jz_oc_names[] = {
 
 #define STACK_SET_NO_WB(i, val) (stack[(i)] = (val))
 #define STACK_SET(i, val) {                  \
-    jz_tvalue tmp = (val);                      \
+    jz_val tmp = (val);                      \
     stack[(i)] = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
@@ -45,16 +45,16 @@ const char* jz_oc_names[] = {
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-jz_tvalue jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
+jz_val jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
   return jz_vm_run_frame(jz, jz_frame_new(jz, bytecode));
 }
 
-jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
+jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
   jz_opcode* code = frame->bytecode->code;
-  jz_tvalue* stack = JZ_FRAME_STACK(frame);
-  jz_tvalue** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
-  jz_tvalue* locals = JZ_FRAME_LOCALS(frame);
-  jz_tvalue* consts = frame->bytecode->consts;
+  jz_val* stack = JZ_FRAME_STACK(frame);
+  jz_val** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
+  jz_val* locals = JZ_FRAME_LOCALS(frame);
+  jz_val* consts = frame->bytecode->consts;
 
   frame->stack_top = &stack;
 
@@ -78,30 +78,30 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       READ_ARG_INTO(jz_index, index);
       PUSH_NO_WB(consts[index]);
 
-      assert(JZ_TVAL_TYPE(consts[index]) == jz_t_obj);
-      func = JZ_FUNC_DATA(consts[index].value.obj);
+      assert(JZ_VAL_TYPE(consts[index]) == jz_t_obj);
+      func = JZ_FUNC_DATA((jz_obj*)consts[index]);
       func->scope = frame->closure_locals;
       break;
     }
 
     case jz_oc_push_global: {
-      PUSH_NO_WB(jz_wrap_obj(jz, jz->global_obj));
+      PUSH_NO_WB(jz->global_obj);
       break;
     }
 
     case jz_oc_call: {
-      jz_tvalue obj;
+      jz_val obj;
       READ_ARG_INTO(jz_index, argc);
 
       obj = stack[-argc - 1];
 
-      if (JZ_TVAL_TYPE(obj) != jz_t_obj) {
+      if (JZ_VAL_TYPE(obj) != jz_t_obj) {
         fprintf(stderr, "TypeError: %s is not an object.\n",
                 jz_str_to_chars(jz, jz_to_str(jz, obj)));
         exit(1);
       }
 
-      STACK_SET(-argc - 1, jz_call_arr(jz, obj.value.obj, argc, stack - argc));
+      STACK_SET(-argc - 1, jz_call_arr(jz, (jz_obj*)obj, argc, stack - argc));
       stack -= argc;
       break;
     }
@@ -157,11 +157,11 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     }
 
     case jz_oc_index:
-      if (JZ_TVAL_TYPE(stack[-2]) != jz_t_obj) {
+      if (JZ_VAL_TYPE(stack[-2]) != jz_t_obj) {
         fprintf(stderr, "Indexing not yet implemented for non-object values.\n");
         exit(1);
       }
-      STACK_SET(-2, jz_obj_get(jz, stack[-2].value.obj, jz_to_str(jz, stack[-1])));
+      STACK_SET(-2, jz_obj_get(jz, (jz_obj*)stack[-2], jz_to_str(jz, stack[-1])));
       stack--;
       break;
 
@@ -196,7 +196,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     }
 
     case jz_oc_rot4: {
-      jz_tvalue tmp = stack[-1];
+      jz_val tmp = stack[-1];
 
       stack[-1] = stack[-2];
       stack[-2] = stack[-3];
@@ -295,12 +295,12 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       break;
 
     case jz_oc_add: {
-      jz_tvalue v1 = stack[-2];
-      jz_tvalue v2 = stack[-1];
+      jz_val v1 = stack[-2];
+      jz_val v2 = stack[-1];
 
-      if (JZ_TVAL_TYPE(v1) == jz_t_str || JZ_TVAL_TYPE(v2) == jz_t_str) {
-        STACK_SET(-2, jz_wrap_str(jz, jz_str_concat(jz, jz_to_str(jz, v1),
-                                                    jz_to_str(jz, v2))));
+      if (JZ_VAL_TYPE(v1) == jz_t_str || JZ_VAL_TYPE(v2) == jz_t_str) {
+        STACK_SET(-2, jz_str_concat(jz, jz_to_str(jz, v1),
+                                    jz_to_str(jz, v2)));
       } else {
         STACK_SET(-2, jz_wrap_num(jz, jz_to_num(jz, stack[-2]) +
                                   jz_to_num(jz, stack[-1])));
@@ -349,7 +349,7 @@ jz_tvalue jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       break;
 
     case jz_oc_ret: {
-      jz_tvalue res;
+      jz_val res;
 
       res = stack[-1];
       jz_frame_free(jz, frame);

@@ -10,15 +10,15 @@
 #define ARG(i) ((i) < argc ? argv[i] : JZ_UNDEFINED)
 
 static jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data);
-static jz_tvalue call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv);
+static jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 static void finalizer(JZ_STATE, jz_obj* obj);
 
-jz_tvalue jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_tvalue* argv) {
+jz_val jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_val* argv) {
   jz_args* args;
-  jz_tvalue ret;
+  jz_val ret;
 
   if (func->call == NULL) {
-    fprintf(stderr, "TypeError: %s is not a function.\n", jz_str_to_chars(jz, jz_to_str(jz, jz_wrap_obj(jz, func))));
+    fprintf(stderr, "TypeError: %s is not a function.\n", jz_str_to_chars(jz, jz_to_str(jz, func)));
     exit(1);
   }
 
@@ -81,8 +81,8 @@ jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data) {
   obj->data = *data;
 
   jz_obj_put2(jz, obj, "length", jz_wrap_num(jz, arity));
-  jz_obj_put2(jz, proto, "constructor", jz_wrap_obj(jz, obj));
-  jz_obj_put2(jz, obj, "prototype", jz_wrap_obj(jz, proto));
+  jz_obj_put2(jz, proto, "constructor", obj);
+  jz_obj_put2(jz, obj, "prototype", proto);
 
   return obj;
 }
@@ -98,7 +98,7 @@ jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
   return obj;
 }
 
-jz_tvalue call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_tvalue* argv) {
+jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
   return jz_vm_run_frame(jz, jz_frame_new_from_func(jz, args->callee));
 }
 
