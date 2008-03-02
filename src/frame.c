@@ -79,5 +79,6 @@ void copy_closure_vars(JZ_STATE, jz_closure_locals* vars, jz_frame* frame) {
 }
 
 void jz_frame_free(JZ_STATE, jz_frame* frame) {
+  jz->current_frame = frame->upper;
   jz->stack = (jz_byte*)frame;
 }
