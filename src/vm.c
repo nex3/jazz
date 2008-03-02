@@ -366,6 +366,8 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       fprintf(stderr, "Unknown opcode %d\n", code[-1]);
       exit(1);
     }
+
+    jz_check_overflow(jz, (jz_byte*)stack);
   }
 }
 

@@ -27,9 +27,10 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
     function->closure_vars_length * sizeof(jz_val*) - 1;
 
   frame = (jz_frame*)jz->stack;
+  jz->stack += sizeof(jz_frame) + sizeof(jz_val) * extra_size;
+  jz_check_overflow(jz, NULL);
   memset(frame, 0, sizeof(jz_frame) + extra_size);
 
-  jz->stack += sizeof(jz_frame) + sizeof(jz_val) * extra_size;
   frame->function = NULL;
   frame->bytecode = function;
   frame->stack_top = NULL;

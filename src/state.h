@@ -9,6 +9,7 @@
 
 struct jz_state {
   jz_byte* stack;
+  jz_byte* stack_bottom;
   jz_frame* current_frame;
   jz_obj* prototypes;
   jz_obj* global_obj;
@@ -40,6 +41,9 @@ struct jz_state {
 };
 
 jz_state* jz_init();
+
+/* If stack is NULL, checks the global stack pointer */
+void jz_check_overflow(JZ_STATE, jz_byte* stack);
 
 void jz_free_state(JZ_STATE);
 

@@ -6,18 +6,19 @@
 #include "object.h"
 #include "function.h"
 
-/* Default stack size is 1 MB */
-#define STACK_SIZE (1 << 20)
-
 static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
 
 static jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 
+/* Default stack size is 1 MB */
+#define STACK_SIZE (1 << 20)
+
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
 
   state->stack = calloc(sizeof(jz_byte), STACK_SIZE);
+  state->stack_bottom = state->stack;
   state->current_frame = NULL;
 
   jz_gc_init(state);
@@ -50,10 +51,21 @@ void init_global_object(JZ_STATE) {
   jz_def(jz, jz->global_obj, "print", jz_print, JZ_ARITY_VAR);
 }
 
+void jz_check_overflow(JZ_STATE, jz_byte* stack) {
+  if (stack == NULL)
+    stack = jz->stack;
+
+  if (stack - jz->stack_bottom >= STACK_SIZE) {
+    fprintf(stderr, "Stack overflow\n");
+    exit(1);
+  }
+}
+
 void jz_free_state(JZ_STATE) {
-  free(jz->stack);
+  free(jz->stack_bottom);
   jz_lex_free(jz);
   jz->stack = NULL;
+  jz->stack_bottom = NULL;
   jz->current_frame = NULL;
   jz->global_obj = NULL;
   jz->prototypes = NULL;
