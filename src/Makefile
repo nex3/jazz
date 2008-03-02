@@ -36,7 +36,7 @@ string.o: string.c string.h lex.h gc.h state.h
 state.o: state.c state.h lex.h object.h function.h prototype.h
 frame.o: frame.c frame.h state.h function.h object.h
 gc.o: gc.c gc.h state.h string.h object.h
-object.o: object.c object.h string.h gc.h prototype.h
+object.o: object.c object.h state.h string.h gc.h prototype.h
 prototype.o: prototype.c prototype.h state.h
 function.o: function.c function.h object.h prototype.h state.h vm.h
 cons.o: cons.c _cons.h parse.h state.h string.h
