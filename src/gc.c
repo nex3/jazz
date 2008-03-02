@@ -228,6 +228,7 @@ static void mark_frame(JZ_STATE, jz_frame* frame) {
     return;
 
   jz_gc_mark_gray(jz, &frame->closure_locals->gc);
+  jz_gc_mark_gray(jz, &frame->function->gc);
 
   next = JZ_FRAME_LOCALS(frame);
   top = *frame->stack_top;
