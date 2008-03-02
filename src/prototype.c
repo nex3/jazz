@@ -10,6 +10,7 @@ jz_proto* jz_proto_new1(JZ_STATE, jz_str* name) {
   jz_str* obj_str = jz_str_from_literal(jz, "Object");
 
   proto->finalizer = default_finalizer;
+  proto->marker = NULL;
   proto->class = name;
   proto->obj = jz_obj_new_bare(jz);
 

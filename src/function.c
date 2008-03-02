@@ -12,6 +12,7 @@
 static jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data);
 static jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 static void finalizer(JZ_STATE, jz_obj* obj);
+static void marker(JZ_STATE, jz_obj* obj);
 
 jz_val jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_val* argv) {
   jz_args* args;
@@ -78,6 +79,7 @@ jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data) {
   *data = malloc(sizeof(jz_func_data));
   (*data)->code = NULL;
   (*data)->arity = 0;
+  (*data)->scope = NULL;
   obj->data = *data;
 
   jz_obj_put2(jz, obj, "length", jz_wrap_num(jz, arity));
@@ -116,10 +118,18 @@ void jz_init_func_proto(JZ_STATE) {
   jz_proto* proto = jz_proto_new(jz, "Function");
 
   proto->finalizer = finalizer;
+  proto->marker = marker;
 }
 
 void finalizer(JZ_STATE, jz_obj* obj) {
   jz_func_data* data = (jz_func_data*)obj->data;
   jz_free_bytecode(jz, data->code);
   free(data);
+}
+
+void marker(JZ_STATE, jz_obj* obj) {
+  jz_func_data* data = (jz_func_data*)obj->data;
+
+  if (data->scope)
+    jz_gc_mark_gray(jz, &data->scope->gc);
 }

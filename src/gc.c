@@ -163,8 +163,12 @@ void blacken_obj(JZ_STATE, jz_obj* obj) {
     JZ_GC_MARK_VAL_GRAY(jz, cell->value);
   }
 
-  if (obj->prototype != NULL)
+  if (obj->prototype != NULL) {
     jz_gc_mark_gray(jz, &obj->prototype->gc);
+
+    if (obj->prototype->marker != NULL)
+      obj->prototype->marker(jz, obj);
+  }
 }
 
 void blacken_str(JZ_STATE, jz_str* str) {
