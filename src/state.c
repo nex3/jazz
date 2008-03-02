@@ -11,8 +11,7 @@ static void init_global_object(JZ_STATE);
 
 static jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 
-/* Default stack size is 1 MB */
-#define STACK_SIZE (1 << 20)
+#define STACK_SIZE (1 << 18)
 
 jz_state* jz_init() {
   jz_state* state = malloc(sizeof(jz_state));
