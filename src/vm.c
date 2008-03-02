@@ -26,16 +26,16 @@ const char* jz_oc_names[] = {
 
 #define POP()     (*(--stack))
 #define PUSH_NO_WB(val) (*(stack++) = (val))
-#define PUSH(val) {                          \
-    jz_val tmp = (val);                      \
+#define PUSH(val) {                             \
+    jz_val tmp = (val);                         \
     *(stack++) = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
   }
 
 #define STACK_SET_NO_WB(i, val) (stack[(i)] = (val))
-#define STACK_SET(i, val) {                  \
-    jz_val tmp = (val);                      \
+#define STACK_SET(i, val) {                     \
+    jz_val tmp = (val);                         \
     stack[(i)] = tmp;                           \
     if (jz_gc_write_barrier_active(jz))         \
       JZ_GC_MARK_VAL_GRAY(jz, tmp);             \
