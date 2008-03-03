@@ -9,7 +9,7 @@
 
 #define ARG(i) ((i) < argc ? argv[i] : JZ_UNDEFINED)
 
-static jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data);
+static jz_obj* create_func(JZ_STATE, int arity);
 static jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
 static void finalizer(JZ_STATE, jz_obj* obj);
 static void marker(JZ_STATE, jz_obj* obj);
@@ -72,15 +72,18 @@ jz_val jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_val* argv) {
   return ret;
 }
 
-jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data) {
+jz_obj* create_func(JZ_STATE, int arity) {
   jz_obj* obj = jz_inst(jz, "Function");
   jz_obj* proto = jz_obj_new(jz);
 
-  *data = malloc(sizeof(jz_func_data));
-  (*data)->code = NULL;
-  (*data)->arity = 0;
-  (*data)->scope = NULL;
-  obj->data = *data;
+  /* jz_func_data includes room for one byte of arity calculation.
+     This cancels out the rounding-down of integer division. */
+  jz_func_data* data = malloc(sizeof(jz_func_data));
+
+  obj->data = data;
+  data->code = NULL;
+  data->arity = 0;
+  data->scope = NULL;
 
   jz_obj_put2(jz, obj, "length", jz_wrap_num(jz, arity));
   jz_obj_put2(jz, proto, "constructor", obj);
@@ -90,8 +93,8 @@ jz_obj* create_func(JZ_STATE, int arity, jz_func_data** data) {
 }
 
 jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
-  jz_func_data* data;
-  jz_obj* obj = create_func(jz, arity, &data);
+  jz_obj* obj = create_func(jz, arity);
+  jz_func_data* data = JZ_FUNC_DATA(obj);
 
   obj->call = call_jazz_func;
   data->arity = JZ_ARITY_VAR;
@@ -105,8 +108,8 @@ jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
 }
 
 jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {
-  jz_func_data* data;
-  jz_obj* obj = create_func(jz, arity, &data);
+  jz_obj* obj = create_func(jz, arity);
+  jz_func_data* data = JZ_FUNC_DATA(obj);
 
   obj->call = fn;
   data->arity = arity;
