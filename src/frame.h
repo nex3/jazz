@@ -37,11 +37,11 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function);
 void jz_frame_free(JZ_STATE, jz_frame* frame);
 
 #define JZ_FRAME_STACK(frame)                                           \
-  ((jz_val*)((frame)->data +                                         \
-                (frame)->bytecode->closure_vars_length * sizeof(jz_val*) + \
-                (frame)->bytecode->locals_length * sizeof(jz_val)))
+  ((jz_val*)((frame)->data +                                            \
+             (frame)->bytecode->closure_vars_length * sizeof(jz_val*) + \
+             (frame)->bytecode->locals_length * sizeof(jz_val)))
 #define JZ_FRAME_LOCALS(frame)                                          \
-  ((jz_val*)((frame)->data +                                         \
+  ((jz_val*)((frame)->data +                                            \
                  (frame)->bytecode->closure_vars_length * sizeof(jz_val*)))
 #define JZ_FRAME_CLOSURE_VARS(frame) ((jz_val**)((frame)->data))
 
