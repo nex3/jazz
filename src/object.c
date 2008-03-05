@@ -85,14 +85,30 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_val val) {
   cell->key = key;
 }
 
-jz_bool jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key) {
+void* jz_obj_remove_ptr(JZ_STATE, jz_obj* this, jz_str* key, jz_bool* found) {
+  jz_val val = jz_obj_remove(jz, this, key, found);
+
+  if (val == JZ_UNDEFINED)
+    return NULL;
+
+  return jz_unwrap_void(jz, val);
+}
+
+jz_val jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key, jz_bool* found) {
   jz_obj_cell* cell = get_cell(jz, this, key, jz_false);
 
   if (cell->key != JZ_OBJ_EMPTY_KEY) {
+    if (found != NULL)
+      *found = jz_true;
+
     cell->key = JZ_OBJ_REMOVED_KEY;
-    return jz_true;
-  } else
-    return jz_false;
+    return cell->value;
+  } else {
+    if (found != NULL)
+      *found = jz_false;
+
+    return JZ_UNDEFINED;
+  }
 }
 
 void jz_obj_each(JZ_STATE, jz_obj* this, jz_obj_fn* fn, void* data) {

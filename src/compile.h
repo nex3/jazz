@@ -17,11 +17,15 @@ typedef struct {
   size_t locals_length;
   size_t closure_vars_length;
   size_t closure_locals_length;
+  jz_byte* param_locs;
   jz_val* consts;
   size_t consts_length;
 } jz_bytecode;
 
 JZ_DECLARE_VECTOR(jz_opcode)
+
+#define JZ_BITFIELD_SET(field, i, val) ((field)[(i) / 8] |= 1 << ((i) % 8))
+#define JZ_BITFIELD_GET(field, i)      ((field)[(i) / 8] &  1 << ((i) % 8))
 
 /* Compiles a parse tree into Jazz bytecode.
    The caller is responsible for freeing the returned bytecode

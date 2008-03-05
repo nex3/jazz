@@ -12,8 +12,6 @@ typedef struct {
   jz_val value;
 } jz_obj_cell;
 
-/* jz_obj uses Cuckoo Hashing to store and retrieve key-value pairs.
-   See http://citeseer.ist.psu.edu/pagh01cuckoo.html. */
 struct jz_obj {
   jz_gc_header gc;
   jz_proto* prototype;
@@ -45,7 +43,8 @@ void jz_obj_put(JZ_STATE, jz_obj* this, jz_str* key, jz_val val);
 #define jz_obj_put2(jz, this, key, val)                         \
   jz_obj_put(jz, this, jz_str_from_literal(jz, key), val)
 
-jz_bool jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key);
+void* jz_obj_remove_ptr(JZ_STATE, jz_obj* this, jz_str* key, jz_bool* found);
+jz_val jz_obj_remove(JZ_STATE, jz_obj* this, jz_str* key, jz_bool* found);
 void jz_obj_each(JZ_STATE, jz_obj* this, jz_obj_fn* fn, void* data);
 
 #define jz_obj_null(jz) ((jz_obj*)NULL)

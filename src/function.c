@@ -104,7 +104,23 @@ jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
 }
 
 jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
-  return jz_vm_run_frame(jz, jz_frame_new_from_func(jz, args->callee));
+  jz_frame* frame = jz_frame_new_from_func(jz, args->callee);
+  jz_byte* param_locs = JZ_FUNC_DATA(args->callee)->code->param_locs;
+  jz_val** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
+  jz_val* locals = JZ_FRAME_LOCALS(frame);
+  int i = 0;
+
+  for (; i < argc; i++, argv++) {
+    if (JZ_BITFIELD_GET(param_locs, i)) {
+      **closure_vars = *argv;
+      closure_vars++;
+    } else {
+      *locals = *argv;
+      locals++;
+    }
+  }
+
+  return jz_vm_run_frame(jz, frame);
 }
 
 jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {

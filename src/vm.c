@@ -91,6 +91,7 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
 
     case jz_oc_call: {
       jz_val obj;
+      jz_val v;
       READ_ARG_INTO(jz_index, argc);
 
       obj = stack[-argc - 1];
@@ -101,6 +102,9 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
         exit(1);
       }
 
+      v = stack[-argc];
+
+      jz->stack = (jz_byte*)stack;
       STACK_SET(-argc - 1, jz_call_arr(jz, (jz_obj*)obj, argc, stack - argc));
       stack -= argc;
       break;

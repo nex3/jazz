@@ -76,7 +76,7 @@ typedef enum {
 
 #define JZ_VAL_TAG(value) (((jz_ival)(value)) & 3)
 #define JZ_VAL_TYPE(value)                              \
-  (value == NULL                    ? jz_t_obj     :    \
+  ((value) == NULL                  ? jz_t_obj     :    \
    JZ_VAL_TAG(value) == jz_tt_void  ? jz_t_void    :    \
    JZ_VAL_TAG(value) == jz_tt_int   ? jz_t_int     :    \
    (value) == JZ_UNDEFINED          ? jz_t_undef   :    \

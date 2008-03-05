@@ -95,8 +95,8 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
              stmt_postfix_expr stmt_left_hand_expr stmt_new_expr
                   call_expr      call_or_member_expr      member_expr      primary_expr
              stmt_call_expr stmt_call_or_member_expr stmt_member_expr stmt_primary_expr
-             function_expr opt_source_elements arguments argument_list member_accessor
-             identifier literal object_literal
+             function_expr params param_list opt_source_elements arguments argument_list
+             member_accessor identifier literal object_literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
                   add_expr_op mult_expr_op unary_expr_op postfix_expr_op
@@ -371,9 +371,15 @@ member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
     $$ = jz_enum_wrap(jz, jz_parse_literal, (jz_str*)CADR($2));
  }
 
-function_expr: FUNCTION LPAREN RPAREN LCURLY opt_source_elements RCURLY {
-  $$ = jz_enum_wrap(jz, jz_parse_func, $5);
+function_expr: FUNCTION params LCURLY opt_source_elements RCURLY {
+  $$ = jz_list(jz, 3, jz_enum_new(jz, jz_parse_func), $2, $4);
  }
+
+params: LPAREN RPAREN { $$ = NULL; }
+ | LPAREN param_list RPAREN { $$ = jz_list_reverse(jz, $2); }
+
+param_list: IDENTIFIER { $$ = CONS($1, NULL); }
+  | param_list COMMA IDENTIFIER { $$ = CONS($3, $1); }
 
 opt_source_elements: source_elements
   | /* empty */ { $$ = NULL; }
