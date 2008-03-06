@@ -84,6 +84,7 @@ jz_obj* create_func(JZ_STATE, int arity) {
   data->code = NULL;
   data->arity = 0;
   data->scope = NULL;
+  data->closure_vars = NULL;
 
   jz_obj_put2(jz, obj, "length", jz_wrap_num(jz, arity));
   jz_obj_put2(jz, proto, "constructor", obj);
@@ -101,6 +102,15 @@ jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
   data->code = code;
 
   return obj;
+}
+
+void jz_func_set_scope(JZ_STATE, jz_obj* this, jz_frame* scope) {
+  jz_func_data* data = JZ_FUNC_DATA(this);
+
+  data->scope = scope->closure_locals;
+  data->closure_vars = calloc(sizeof(jz_val*), scope->bytecode->closure_vars_length);
+  memcpy(data->closure_vars, JZ_FRAME_CLOSURE_VARS(scope),
+         scope->bytecode->closure_vars_length * sizeof(jz_val*));
 }
 
 jz_val call_jazz_func(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
@@ -143,6 +153,7 @@ void jz_init_func_proto(JZ_STATE) {
 void finalizer(JZ_STATE, jz_obj* obj) {
   jz_func_data* data = (jz_func_data*)obj->data;
   jz_free_bytecode(jz, data->code);
+  free(data->closure_vars);
   free(data);
 }
 

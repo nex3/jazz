@@ -8,7 +8,7 @@
 
 static void init_locals(JZ_STATE, jz_frame* frame);
 static void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame);
-static void copy_closure_vars(JZ_STATE, jz_closure_locals* vars, jz_frame* frame);
+static void copy_closure_vars(JZ_STATE, jz_func_data* func, jz_frame* frame);
 
 jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function) {
   jz_func_data* data = JZ_FUNC_DATA(function);
@@ -16,7 +16,7 @@ jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function) {
 
   frame->function = function;
   frame->closure_locals->scope = data->scope;
-  copy_closure_vars(jz, data->scope, frame);
+  copy_closure_vars(jz, JZ_FUNC_DATA(function), frame);
 
   return frame;
 }
@@ -67,19 +67,18 @@ void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame)
     function->closure_vars_length - function->closure_locals_length;
   jz_val** top = JZ_FRAME_CLOSURE_VARS(frame) + function->closure_vars_length;
 
-  for (; closure_vars < top; closure_vars++, closure_locals++) {
+  for (; closure_vars < top; closure_vars++, closure_locals++)
     *closure_vars = closure_locals;
-  }
 }
 
-void copy_closure_vars(JZ_STATE, jz_closure_locals* vars, jz_frame* frame) {
-  jz_val* closure_locals = vars->vars;
+void copy_closure_vars(JZ_STATE, jz_func_data* func, jz_frame* frame) {
+  jz_val** old_vars = func->closure_vars;
   jz_val** closure_vars = JZ_FRAME_CLOSURE_VARS(frame);
-  jz_val** top = JZ_FRAME_CLOSURE_VARS(frame) + vars->length;
+  jz_val** top = JZ_FRAME_CLOSURE_VARS(frame)
+    + func->code->closure_vars_length - func->code->closure_locals_length;
 
-  for (; closure_vars < top; closure_vars++, closure_locals++) {
-    *closure_vars = closure_locals;
-  }
+  for (; closure_vars < top; closure_vars++, old_vars++)
+    *closure_vars = *old_vars;
 }
 
 void jz_frame_free(JZ_STATE, jz_frame* frame) {

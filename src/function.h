@@ -50,6 +50,7 @@ typedef struct jz_func_data {
   int arity;
   jz_bytecode* code;
   jz_closure_locals* scope;
+  jz_val** closure_vars;
 } jz_func_data;
 
 #define JZ_ARITY_VAR -1
@@ -60,6 +61,7 @@ typedef struct jz_func_data {
 jz_val jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_val* argv);
 
 jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity);
+void jz_func_set_scope(JZ_STATE, jz_obj* this, jz_frame* scope);
 
 #define jz_def(jz, obj, name, fn, arity)                  \
   jz_obj_put2(jz, obj, name, jz_fn_to_obj(jz, fn, arity))

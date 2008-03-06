@@ -74,13 +74,11 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     }
 
     case jz_oc_push_closure: {
-      jz_func_data* func;
       READ_ARG_INTO(jz_index, index);
       PUSH_NO_WB(consts[index]);
 
       assert(JZ_VAL_TYPE(consts[index]) == jz_t_obj);
-      func = JZ_FUNC_DATA((jz_obj*)consts[index]);
-      func->scope = frame->closure_locals;
+      jz_func_set_scope(jz, (jz_obj*)consts[index], frame);
       break;
     }
 
@@ -357,7 +355,6 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
 
       res = stack[-1];
       jz_frame_free(jz, frame);
-      jz->current_frame = NULL;
       return res;
     }
 
