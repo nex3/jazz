@@ -14,15 +14,15 @@ var k = (1 % -.3) - .1;
 var l = (-1 % -.3) + .1;
 var m = (-1 % .3) + .1;
 return (a != a) && (b != b) && (c != c) && (d != d) &&
-    (e != e) && (f != f) && (g != g) && (h != h) &&
-    (12 % Infinity == 12) &&
-    (0 % Infinity == 0) &&
-    (0 % 178 == 0) &&
-    (8 % 3 == 2) &&
-    (12 % 186 == 12) &&
-    (-8 % -3 == -2) &&
-    (i < float_error && i > -float_error) &&
-    (j < float_error && j > -float_error) &&
-    (k < float_error && k > -float_error) &&
-    (l < float_error && l > -float_error) &&
-    (m < float_error && m > -float_error);
+  (e != e) && (f != f) && (g != g) && (h != h) &&
+  (12 % Infinity == 12) &&
+  (0 % Infinity == 0) &&
+  (0 % 178 == 0) &&
+  (8 % 3 == 2) &&
+  (12 % 186 == 12) &&
+  (-8 % -3 == -2) &&
+  (i < float_error && i > -float_error) &&
+  (j < float_error && j > -float_error) &&
+  (k < float_error && k > -float_error) &&
+  (l < float_error && l > -float_error) &&
+  (m < float_error && m > -float_error);

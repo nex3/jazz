@@ -13,24 +13,24 @@ else a = 100;
 res = (a == 1) && res;
 
 if (1 == 1)
-    if (1 == -1) a = 15;
-    else a = 12;
+  if (1 == -1) a = 15;
+else a = 12;
 res = (a == 12) && res;
 
 if (1 == -1)
-    if (1 == 12) a = 1;
-    else a = 2;
+  if (1 == 12) a = 1;
+else a = 2;
 else a = 3;
 res = (a == 3) && res;
 
 if (true) {
-    var b;
-    b = 17;
+  var b;
+  b = 17;
 }
 res = (b == 17) && res;
 
 if (a = 1);
-else if (a = -1);
+  else if (a = -1);
 res = (a == 1) && res;
 
 if (1) a = 19;

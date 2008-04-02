@@ -10,8 +10,8 @@ res = (a == 30) && res;
 
 i = 0, a = 0;
 for (;i < 10;) {
-    a += 4;
-    i += 1;
+  a += 4;
+  i += 1;
 }
 res = (a == 40) && res;
 
@@ -23,8 +23,8 @@ res = (a == 50) && res;
 
 a = 0;
 for (;;) {
-    if (a > 10)
-        return res;
-    else a++;
+  if (a > 10)
+  return res;
+  else a++;
 }
 return false;
