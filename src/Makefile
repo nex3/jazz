@@ -25,7 +25,7 @@ core/core.a: core/core.o core/global.o
 	$(RANLIB) $@
 
 
-main.o: main.c state.h string.h parse.h compile.h vm.h core/core.h
+main.o: main.c state.h string.h parse.h compile.h vm.h core/core.h core/global.h
 
 value.o: value.c value.h string.h object.h num.h
 compile.o: compile.c compile.h string.h function.h state.h _cons.h traverse.h \
