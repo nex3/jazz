@@ -7,7 +7,7 @@ errors=(None)
 eindex=0
 rm -f test.errors
 
-for file in $( find test/ -name '*.js' )
+for file in $( find test/*/ -name '*.js' )
 do
     rm -f jazz.test
     errorf=`mktemp jazz.test`
