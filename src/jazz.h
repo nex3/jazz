@@ -14,6 +14,7 @@ typedef struct jz_obj jz_obj;
 typedef struct jz_str jz_str;
 typedef struct jz_proto jz_proto;
 typedef struct jz_gc_header jz_gc_header;
+typedef struct jz_frame jz_frame;
 
 #define JZ_STATE jz_state* jz
 

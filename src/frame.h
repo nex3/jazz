@@ -13,7 +13,6 @@ struct jz_closure_locals {
   jz_val vars[1];
 };
 
-typedef struct jz_frame jz_frame;
 struct jz_frame {
   jz_obj* function;
   const jz_bytecode* bytecode;

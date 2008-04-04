@@ -74,6 +74,7 @@ jz_bool jz_gc_step(JZ_STATE);
 #define jz_gc_set_pause(jz, new_pause) ((jz)->gc.pause = (new_pause))
 
 jz_bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj);
+void jz_mark_frame(JZ_STATE, jz_frame* frame);
 
 void jz_gc_init(JZ_STATE);
 
