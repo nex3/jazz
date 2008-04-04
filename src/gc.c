@@ -226,11 +226,13 @@ void jz_mark_frame(JZ_STATE, jz_frame* frame) {
   if (frame == NULL)
     return;
 
+  frame->mark = jz->gc.black_bit;
   jz_gc_mark_gray(jz, &frame->closure_locals->gc);
   jz_gc_mark_gray(jz, &frame->function->gc);
 
   next = JZ_FRAME_LOCALS(frame);
-  top = *frame->stack_top;
+  if (frame->stack_top)
+    top = *frame->stack_top;
 
   for (; next != top; next++)
     JZ_GC_MARK_VAL_GRAY(jz, *next);

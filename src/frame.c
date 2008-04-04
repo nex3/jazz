@@ -32,6 +32,7 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   jz_check_overflow(jz, NULL);
   memset(frame, 0, sizeof(jz_frame) + extra_size);
 
+  frame->mark = !jz->gc.black_bit;
   frame->function = NULL;
   frame->bytecode = function;
   frame->stack_top = NULL;
@@ -49,6 +50,12 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   frame->closure_locals->scope = NULL;
   frame->closure_locals->length = function->closure_locals_length;
   copy_closure_locals(jz, function, frame);
+
+  /* Run a write barrier on the frame
+     to make sure locals for newly-created frames
+     don't have GC errors. */
+  if (frame->upper && frame->upper->mark == jz->gc.black_bit)
+    jz_mark_frame(jz, frame);
 
   return frame;
 }

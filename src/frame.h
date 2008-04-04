@@ -14,6 +14,7 @@ struct jz_closure_locals {
 };
 
 struct jz_frame {
+  jz_bool mark;
   jz_obj* function;
   const jz_bytecode* bytecode;
   jz_frame* upper;
