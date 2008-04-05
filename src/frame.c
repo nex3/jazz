@@ -54,7 +54,8 @@ jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
   /* Run a write barrier on the frame
      to make sure locals for newly-created frames
      don't have GC errors. */
-  if (frame->upper && frame->upper->mark == jz->gc.black_bit)
+  if (frame->upper && frame->upper->mark == jz->gc.black_bit &&
+      jz_gc_write_barrier_active(jz))
     jz_mark_frame(jz, frame);
 
   return frame;
