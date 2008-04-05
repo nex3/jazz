@@ -129,7 +129,7 @@ double jz_to_num(JZ_STATE, jz_val val) {
       return 0;
     return jz_to_num(jz, jz_to_primitive(jz, val, jz_hint_number));
   default:
-    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
+    fprintf(stderr, "[jz_to_num] Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
@@ -148,7 +148,7 @@ jz_str* jz_to_str(JZ_STATE, jz_val val) {
     return jz_to_str(jz, jz_to_primitive(jz, val, jz_hint_string));
   case jz_t_undef: return jz_str_from_literal(jz, "undefined");
   default:
-    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
+    fprintf(stderr, "[jz_to_str] Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
@@ -184,7 +184,7 @@ jz_bool jz_to_bool(JZ_STATE, jz_val val) {
   case jz_t_undef: return jz_false;
   case jz_t_obj: return !JZ_VAL_IS_NULL(val);
   default:
-    fprintf(stderr, "Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
+    fprintf(stderr, "[jz_to_bool] Unknown jz_val type %d\n", JZ_VAL_TYPE(val));
     exit(1);
   }
 }
