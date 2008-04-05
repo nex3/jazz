@@ -233,11 +233,12 @@ void jz_mark_frame(JZ_STATE, jz_frame* frame) {
   jz_gc_mark_gray(jz, &frame->function->gc);
 
   next = JZ_FRAME_LOCALS(frame);
-  if (frame->stack_top)
+  if (frame->stack_top) {
     top = *frame->stack_top;
 
-  for (; next != top; next++)
-    JZ_GC_MARK_VAL_GRAY(jz, *next);
+    for (; next != top; next++)
+      JZ_GC_MARK_VAL_GRAY(jz, *next);
+  }
 
   next = frame->bytecode->consts;
   top = next + frame->bytecode->consts_length;
