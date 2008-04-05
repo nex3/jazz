@@ -376,10 +376,10 @@ function_expr: FUNCTION params LCURLY opt_source_elements RCURLY {
  }
 
 params: LPAREN RPAREN { $$ = NULL; }
- | LPAREN param_list RPAREN { $$ = jz_list_reverse(jz, $2); }
+  | LPAREN param_list RPAREN { $$ = jz_list_reverse(jz, $2); }
 
-param_list: IDENTIFIER { $$ = CONS($1, NULL); }
-  | param_list COMMA IDENTIFIER { $$ = CONS($3, $1); }
+param_list: IDENTIFIER { $$ = CONS(jz_str_deep_dup(jz, $1), NULL); }
+  | param_list COMMA IDENTIFIER { $$ = CONS(jz_str_deep_dup(jz, $3), $1); }
 
 opt_source_elements: source_elements
   | /* empty */ { $$ = NULL; }
