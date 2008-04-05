@@ -158,10 +158,10 @@ jz_obj* jz_to_obj(JZ_STATE, jz_val val) {
   case jz_t_obj:
     if (!JZ_VAL_IS_NULL(val))
       return (jz_obj*)val;
-    fprintf(stderr, "TypeError: Can't convert `null' to object");
+    fprintf(stderr, "TypeError: Can't convert `null' to object\n");
     exit(1);
   case jz_t_undef:
-    fprintf(stderr, "TypeError: Can't convert `undefined' to object");
+    fprintf(stderr, "TypeError: Can't convert `undefined' to object\n");
     exit(1);
   default:
     fprintf(stderr, "ToObject not implemented for jz_val type %d\n",
