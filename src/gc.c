@@ -57,6 +57,8 @@ jz_gc_header* jz_gc_dyn_malloc(JZ_STATE, jz_type type, size_t struct_size,
 jz_bool jz_gc_mark_gray(JZ_STATE, jz_gc_header* obj) {
   jz_gc_node* node;
 
+  assert(jz_gc_write_barrier_active(jz));
+
   if (obj == NULL)
     return jz_false;
 
@@ -98,8 +100,8 @@ jz_bool jz_gc_steps(JZ_STATE) {
 jz_bool jz_gc_step(JZ_STATE) {
   switch (jz->gc.state) {
   case jz_gcs_waiting:
-    mark_roots(jz);
     jz->gc.state = jz_gcs_marking;
+    mark_roots(jz);
     return jz_false;
 
   case jz_gcs_marking:
