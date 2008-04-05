@@ -13,7 +13,7 @@ push = function(arr, v) {
 tests = Array();
 tests.failed = Array();
 test = function(desc, fn) {
-  f.desc = desc;
+  fn.desc = desc;
   push(tests, fn);
 };
 
@@ -28,7 +28,8 @@ printFailed = function() {
 runTests = function() {
   for (var i = 0; i < tests.length; i++) {
     tests.assertFailed = false;
-    tests[i]();
+    var f = tests[i];
+    f();
     if (tests.assertFailed) {
       print("F");
       f.assertMessage = test.assertFailed;
