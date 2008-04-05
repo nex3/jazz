@@ -21,6 +21,8 @@ a = 0;
 for (var j = 0; j < 10; j++) a += 5;
 res = (a == 50) && res;
 
+for (var i = 0; i < 1; i++) res = (i == 0) && res;
+
 a = 0;
 for (;;) {
   if (a > 10)
