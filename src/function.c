@@ -162,4 +162,7 @@ void marker(JZ_STATE, jz_obj* obj) {
 
   if (data->scope)
     jz_gc_mark_gray(jz, &data->scope->gc);
+
+  if (data->code)
+    jz_mark_bytecode(jz, data->code);
 }
