@@ -70,6 +70,8 @@ void jz_func_set_scope(JZ_STATE, jz_obj* this, jz_frame* scope);
 
 jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity);
 
+jz_obj* jz_func_dup(JZ_STATE, jz_obj* this);
+
 void jz_init_func_proto(JZ_STATE);
 
 #endif

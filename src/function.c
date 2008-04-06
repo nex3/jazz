@@ -143,6 +143,14 @@ jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {
   return obj;
 }
 
+jz_obj* jz_func_dup(JZ_STATE, jz_obj* this) {
+  jz_func_data* data = JZ_FUNC_DATA(this);
+
+  if (data->code != NULL)
+    return jz_func_new(jz, data->code);
+  return jz_fn_to_obj(jz, this->call, data->arity);
+}
+
 void jz_init_func_proto(JZ_STATE) {
   jz_proto* proto = jz_proto_new(jz, "Function");
 
