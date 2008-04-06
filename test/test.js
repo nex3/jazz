@@ -54,3 +54,7 @@ assert = function(result, msg) {
 assertEqual = function(expected, actual) {
   assert(expected === actual, "Expected " + expected + ", was " + actual);
 };
+
+assertNotEqual = function(unexpected, actual) {
+  assert(unexpected !== actual, "Expected " + unexpected + " not to equal " + actual);
+};
