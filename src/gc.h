@@ -46,7 +46,8 @@ typedef enum {
 #define jz_gc_within_threshold(jz) (jz->gc.allocated < jz->gc.threshold)
 
 #define JZ_GC_WRITE_BARRIER(jz, referrer, reference)            \
-  ((jz_gc_write_barrier_active(jz) &&                           \
+  ((referrer && reference &&                                    \
+    jz_gc_write_barrier_active(jz) &&                           \
     jz_gc_is_black(jz, (jz_gc_header*)(referrer)) &&            \
     jz_gc_is_white(jz, (jz_gc_header*)(reference))) ?           \
    jz_gc_mark_gray(jz, (jz_gc_header*)(reference)) : jz_false)
