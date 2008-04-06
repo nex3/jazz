@@ -36,4 +36,6 @@ jz_bytecode* jz_compile(JZ_STATE, jz_cons* parse_tree);
    Does nothing if 'this' is NULL. */
 void jz_free_bytecode(JZ_STATE, jz_bytecode* this);
 
+void jz_mark_bytecode(JZ_STATE, const jz_bytecode* this);
+
 #endif

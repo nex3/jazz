@@ -240,10 +240,7 @@ void jz_mark_frame(JZ_STATE, jz_frame* frame) {
       JZ_GC_MARK_VAL_GRAY(jz, *next);
   }
 
-  next = frame->bytecode->consts;
-  top = next + frame->bytecode->consts_length;
-  for (; next != top; next++)
-    JZ_GC_MARK_VAL_GRAY(jz, *next);
+  jz_mark_bytecode(jz, frame->bytecode);
 
   jz_mark_frame(jz, frame->upper);
 }

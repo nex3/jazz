@@ -1136,3 +1136,10 @@ void jz_free_bytecode(JZ_STATE, jz_bytecode* this) {
   free(this->consts);
   free(this);
 }
+
+void jz_mark_bytecode(JZ_STATE, const jz_bytecode* this) {
+  jz_val* next = this->consts;
+  jz_val* top = next + this->consts_length;
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
+}
