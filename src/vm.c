@@ -74,11 +74,14 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
     }
 
     case jz_oc_push_closure: {
+      jz_obj* func;
       READ_ARG_INTO(jz_index, index);
-      PUSH_NO_WB(consts[index]);
+      func = (jz_obj*)consts[index];
 
-      assert(JZ_VAL_TYPE(consts[index]) == jz_t_obj);
-      jz_func_set_scope(jz, (jz_obj*)consts[index], frame);
+      assert(JZ_VAL_TYPE(func) == jz_t_obj);
+      func = jz_func_dup(jz, func);
+      PUSH(func);
+      jz_func_set_scope(jz, func, frame);
       break;
     }
 
