@@ -12,7 +12,7 @@
 const char* jz_oc_names[] = {
   "jump", "jump_unless", "jump_if", "store_global", "retrieve",
   "store", "closure_retrieve", "closure_store", "load_global", "call",
-  "push_literal", "push_closure", "push_global", "index",
+  "push_literal", "push_closure", "push_global", "push_obj", "index",
   "index_store", "pop", "dup", "dup2", "rot4", "bw_or", "xor",
   "bw_and", "equals", "strict_eq", "lt", "gt", "lt_eq", "gt_eq",
   "lshift", "rshift", "urshift", "add", "sub", "times", "div", "mod",
@@ -84,6 +84,11 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
 
     case jz_oc_push_global: {
       PUSH_NO_WB(jz->global_obj);
+      break;
+    }
+
+    case jz_oc_push_obj: {
+      PUSH(jz_obj_new(jz));
       break;
     }
 

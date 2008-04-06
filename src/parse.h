@@ -55,6 +55,7 @@ typedef enum {
                           
                           TODO: Would it be too inconsistent to not wrap this in a cons?
                           What would the compiler code look like? */
+  jz_parse_obj,        /* An empty object literal. */
   jz_parse_call,       /* A function call.
                           cadr.node is the function,
                           cddr.node is a list of arguments. */
