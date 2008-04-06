@@ -93,8 +93,8 @@ jz_obj* create_func(JZ_STATE, int arity) {
   return obj;
 }
 
-jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
-  jz_obj* obj = create_func(jz, arity);
+jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code) {
+  jz_obj* obj = create_func(jz, code->arity);
   jz_func_data* data = JZ_FUNC_DATA(obj);
 
   obj->call = call_jazz_func;

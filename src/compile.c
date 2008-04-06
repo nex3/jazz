@@ -164,6 +164,7 @@ jz_bytecode* compile(STATE, jz_cons* parse_tree) {
   {
     jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
 
+    bytecode->arity = state->arity;
     bytecode->locals_length = state->local_vars->size;
     bytecode->closure_vars_length = state->closure_vars_length;
     bytecode->closure_locals_length = state->closure_vars->size;
@@ -927,7 +928,7 @@ void compile_func(STATE, jz_cons* node, jz_bool value) {
 
   code = compile(jz, UNVOID(CAR(node), comp_state*), NODE(CADDR(node)));
 
-  index = add_const(jz, state, jz_func_new(jz, code, 0));
+  index = add_const(jz, state, jz_func_new(jz, code));
   PUSH_OPCODE(jz_oc_push_closure);
   PUSH_ARG(index);
 }

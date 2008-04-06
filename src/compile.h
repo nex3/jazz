@@ -13,6 +13,7 @@
 
 typedef struct {
   jz_opcode* code;
+  int arity;
   size_t code_length;
   size_t locals_length;
   size_t closure_vars_length;
