@@ -11,39 +11,21 @@ for file in $( find test/*/ -name '*.js' -a ! -name '_*.js' )
 do
     rm -f jazz.test
     errorf=`mktemp jazz.test`
-    res=`cat "$file" | ./jazz 2> $errorf`
+    filename=`echo "$file" | sed 's/^test\///'`
+    printf "%-30s " "$filename:"
+    ./jazz < $file 2> $errorf
     error=`cat $errorf`
     rm $errorf
 
-    [ -z "$res" ] && res="-1"
-
     if [ "$error" != "" ]
     then
-        echo -n 'E'
+        echo ERROR
         failures[$index]="Error: $file (details in test.errors)"
         errors[$eindex]=`echo -e "Errors for $file:\n$error"`
         let "index += 1"
         let "eindex += 1"
-    elif [ "$res" = true ]
-    then
-        echo -n '.'
-    else
-        echo -n 'F'
-        failures[$index]="Failure: $file"
-        let "index += 1"
     fi
 done
-
-echo -e "\n"
-
-if [ "${failures[0]}" = Success ]
-then echo "All tests passed!"
-else
-    for ((i = 0; i < $index; i++))
-    do
-        echo "${failures[$i]}"
-    done
-fi
 
 if [ "${errors[0]}" != None ]
 then
