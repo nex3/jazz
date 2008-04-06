@@ -405,7 +405,7 @@ bool_val: TRUE_VAL { $$ = jz_true; }
   | FALSE_VAL { $$ = jz_false; }
 
 object_literal: LCURLY RCURLY {
-  $$ = jz_enum_wrap(jz, jz_parse_literal, jz_obj_new(jz));
+  $$ = CONS(jz_enum_new(jz, jz_parse_obj), NULL);
  }
 
 %%

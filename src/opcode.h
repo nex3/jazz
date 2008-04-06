@@ -28,6 +28,7 @@ typedef enum {
 
   /* No argument */
   jz_oc_push_global,
+  jz_oc_push_obj,
   jz_oc_index,
   jz_oc_index_store,
   jz_oc_pop,

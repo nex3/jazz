@@ -81,6 +81,7 @@ static variable* compile_identifier(STATE, jz_cons* node, jz_bool value);
 static void compile_identifier_store(STATE, variable* var);
 static void compile_literal(STATE, jz_cons* node, jz_bool value);
 static void compile_this(STATE, jz_cons* node, jz_bool value);
+static void compile_obj(STATE, jz_cons* node, jz_bool value);
 static void compile_unop(STATE, jz_cons* node, jz_parse_type op, jz_bool value);
 static void compile_unit_shortcut(STATE, jz_cons* node,
                                   jz_opcode op, jz_bool pre, jz_bool value);
@@ -594,6 +595,10 @@ void compile_expr(STATE, jz_cons* node, jz_bool value) {
     compile_this(jz, state, node, value);
     break;
 
+  case jz_parse_obj:
+    compile_obj(jz, state, node, value);
+    break;
+
   case jz_parse_call:
     compile_call(jz, state, node, value);
     break;
@@ -705,6 +710,13 @@ void compile_this(STATE, jz_cons* node, jz_bool value) {
     return;
 
   PUSH_OPCODE(jz_oc_push_global);
+}
+
+void compile_obj(STATE, jz_cons* node, jz_bool value) {
+  if (!value)
+    return;
+
+  PUSH_OPCODE(jz_oc_push_obj);
 }
 
 #define SIMPLE_UNOP_CASE(operator, opcode)              \
