@@ -73,4 +73,11 @@ test("Closures should be able to get and set properties without conflicts", func
   assertEqual("bar", o1.get("foo"));
 });
 
+test("Closure vars should be initialized to `undefined'", function() {
+  var a;
+  var f = function() { a = 1; };
+
+  assertEqual(undefined, a);
+});
+
 runTests();
