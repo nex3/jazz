@@ -47,6 +47,8 @@ typedef struct jz_args {
 } jz_args;
 
 typedef struct jz_func_data {
+  /* This is the same as code->arity unless this is a native function,
+     in which case code is NULL. */
   int arity;
   jz_bytecode* code;
   jz_closure_locals* scope;
@@ -60,13 +62,15 @@ typedef struct jz_func_data {
 
 jz_val jz_call_arr(JZ_STATE, jz_obj* func, int argc, const jz_val* argv);
 
-jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity);
+jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code);
 void jz_func_set_scope(JZ_STATE, jz_obj* this, jz_frame* scope);
 
 #define jz_def(jz, obj, name, fn, arity)                  \
   jz_obj_put2(jz, obj, name, jz_fn_to_obj(jz, fn, arity))
 
 jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity);
+
+jz_obj* jz_func_dup(JZ_STATE, jz_obj* this);
 
 void jz_init_func_proto(JZ_STATE);
 

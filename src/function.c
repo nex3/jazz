@@ -93,8 +93,8 @@ jz_obj* create_func(JZ_STATE, int arity) {
   return obj;
 }
 
-jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code, int arity) {
-  jz_obj* obj = create_func(jz, arity);
+jz_obj* jz_func_new(JZ_STATE, jz_bytecode* code) {
+  jz_obj* obj = create_func(jz, code->arity);
   jz_func_data* data = JZ_FUNC_DATA(obj);
 
   obj->call = call_jazz_func;
@@ -143,6 +143,14 @@ jz_obj* jz_fn_to_obj(JZ_STATE, jz_fn* fn, int arity) {
   return obj;
 }
 
+jz_obj* jz_func_dup(JZ_STATE, jz_obj* this) {
+  jz_func_data* data = JZ_FUNC_DATA(this);
+
+  if (data->code != NULL)
+    return jz_func_new(jz, data->code);
+  return jz_fn_to_obj(jz, this->call, data->arity);
+}
+
 void jz_init_func_proto(JZ_STATE) {
   jz_proto* proto = jz_proto_new(jz, "Function");
 
@@ -152,7 +160,6 @@ void jz_init_func_proto(JZ_STATE) {
 
 void finalizer(JZ_STATE, jz_obj* obj) {
   jz_func_data* data = (jz_func_data*)obj->data;
-  jz_free_bytecode(jz, data->code);
   free(data->closure_vars);
   free(data);
 }
@@ -164,5 +171,5 @@ void marker(JZ_STATE, jz_obj* obj) {
     jz_gc_mark_gray(jz, &data->scope->gc);
 
   if (data->code)
-    jz_mark_bytecode(jz, data->code);
+    jz_gc_mark_gray(jz, &data->code->gc);
 }

@@ -162,8 +162,9 @@ jz_bytecode* compile(STATE, jz_cons* parse_tree) {
   PUSH_OPCODE(jz_oc_end);
 
   {
-    jz_bytecode* bytecode = malloc(sizeof(jz_bytecode));
+    jz_bytecode* bytecode = (jz_bytecode*)jz_gc_malloc(jz, jz_t_bytecode, sizeof(jz_bytecode));
 
+    bytecode->arity = state->arity;
     bytecode->locals_length = state->local_vars->size;
     bytecode->closure_vars_length = state->closure_vars_length;
     bytecode->closure_locals_length = state->closure_vars->size;
@@ -927,7 +928,7 @@ void compile_func(STATE, jz_cons* node, jz_bool value) {
 
   code = compile(jz, UNVOID(CAR(node), comp_state*), NODE(CADDR(node)));
 
-  index = add_const(jz, state, jz_func_new(jz, code, 0));
+  index = add_const(jz, state, jz_func_new(jz, code));
   PUSH_OPCODE(jz_oc_push_closure);
   PUSH_ARG(index);
 }
@@ -1147,11 +1148,4 @@ void jz_free_bytecode(JZ_STATE, jz_bytecode* this) {
   free(this->code);
   free(this->consts);
   free(this);
-}
-
-void jz_mark_bytecode(JZ_STATE, const jz_bytecode* this) {
-  jz_val* next = this->consts;
-  jz_val* top = next + this->consts_length;
-  for (; next != top; next++)
-    JZ_GC_MARK_VAL_GRAY(jz, *next);
 }

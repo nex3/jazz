@@ -20,6 +20,7 @@ static void blacken_str(JZ_STATE, jz_str* str);
 #define blacken_str_value(jz, val) /* String values have no references. */
 static void blacken_closure_locals(JZ_STATE, jz_closure_locals* closure_locals);
 static void blacken_proto(JZ_STATE, jz_proto* proto);
+static void blacken_bytecode(JZ_STATE, jz_bytecode* code);
 static void blacken_cons(JZ_STATE, jz_cons* node);
 #define blacken_enum(jz, val) /* Enums have no references. */
 
@@ -137,6 +138,9 @@ void blacken(JZ_STATE, jz_gc_header* obj) {
   case jz_t_proto:
     blacken_proto(jz, (jz_proto*)obj);
     break;
+  case jz_t_bytecode:
+    blacken_bytecode(jz, (jz_bytecode*)obj);
+    break;
   case jz_t_cons:
     blacken_cons(jz, (jz_cons*)obj);
     break;
@@ -192,6 +196,13 @@ void blacken_proto(JZ_STATE, jz_proto* proto) {
   jz_gc_mark_gray(jz, &proto->class->gc);
 }
 
+void blacken_bytecode(JZ_STATE, jz_bytecode* code) {
+  jz_val* next = code->consts;
+  jz_val* top = next + code->consts_length;
+  for (; next != top; next++)
+    JZ_GC_MARK_VAL_GRAY(jz, *next);
+}
+
 void blacken_cons(JZ_STATE, jz_cons* node) {
   JZ_GC_MARK_VAL_GRAY(jz, node->car);
   JZ_GC_MARK_VAL_GRAY(jz, node->cdr);
@@ -240,7 +251,7 @@ void jz_mark_frame(JZ_STATE, jz_frame* frame) {
       JZ_GC_MARK_VAL_GRAY(jz, *next);
   }
 
-  jz_mark_bytecode(jz, frame->bytecode);
+  jz_gc_mark_gray(jz, &frame->bytecode->gc);
 
   jz_mark_frame(jz, frame->upper);
 }
@@ -302,6 +313,9 @@ void gc_free(JZ_STATE, jz_gc_header* obj) {
   switch (JZ_GC_TYPE(obj)) {
   case jz_t_obj:
     jz_obj_free(jz, (jz_obj*)obj);
+    return;
+  case jz_t_bytecode:
+    jz_free_bytecode(jz, (jz_bytecode*)obj);
     return;
   default:
     free(obj);

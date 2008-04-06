@@ -21,7 +21,7 @@ jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function) {
   return frame;
 }
 
-jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function) {
+jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function) {
   /* Use calloc to ensure the frame is initially zeroed. */
   jz_frame* frame;
   size_t extra_size = function->locals_length * sizeof(jz_val) +
