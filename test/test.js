@@ -17,11 +17,15 @@ test = function(desc, fn) {
   push(tests, fn);
 };
 
+print = function(str) {
+  write(str + "\n");
+};
+
 printFailed = function() {
   for (var i = 0; i < tests.failed.length; i++) {
-    print("Failed: " + tests.failed[i].desc + "\n");
+    print("Failed: " + tests.failed[i].desc);
     if (f.assertMessage !== true)
-      print("  (" + f.assertMessage + ")\n");
+      print("  (" + f.assertMessage + ")");
   }
 };
 
@@ -30,10 +34,10 @@ runTests = function() {
     tests.assertFailed = false;
     tests[i]();
     if (tests.assertFailed) {
-      print("F");
+      write("F");
       f.assertMessage = test.assertFailed;
       push(tests.failed, f);
-    } else print(".");
+    } else write(".");
   }
 };
 

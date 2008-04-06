@@ -43,13 +43,13 @@ static jz_val load(JZ_STATE, jz_args* args, jz_val arg) {
 }
 
 /* TODO: Does this belong here? Should it be in lib/ or something? */
-static jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
+static jz_val jz_write(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
   int i;
 
   for (i = 0; i < argc; i++) {
     char* str = jz_str_to_chars(jz, jz_to_str(jz, argv[i]));
     
-    printf("%s\n", str);
+    printf("%s", str);
     free(str);
   }
 
@@ -66,5 +66,5 @@ void jz_init_global(JZ_STATE) {
 
   jz_def(jz, obj, "isNaN", is_nan, 1);
   jz_def(jz, obj, "load", load, 1);
-  jz_def(jz, obj, "print", jz_print, JZ_ARITY_VAR);
+  jz_def(jz, obj, "write", jz_write, JZ_ARITY_VAR);
 }
