@@ -44,6 +44,7 @@ runTests = function() {
     } else write(".");
   }
   print();
+  printFailed();
 };
 
 assert = function(result, msg) {
