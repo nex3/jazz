@@ -7,14 +7,14 @@
 #include <stdio.h>
 
 jz_val jz_load(JZ_STATE, UFILE* file) {
-  UChar* str = calloc(sizeof(UChar), 2000);
+  UChar* str = calloc(sizeof(UChar), 10000);
   int32_t len;
   jz_str* input;
   jz_cons* root; 
   jz_bytecode* bytecode;
   jz_val result;
 
-  len = u_file_read(str, 2000, file);
+  len = u_file_read(str, 10000, file);
   input = jz_str_external(jz, len, str);
   if (!(root = jz_parse_string(jz, input))) exit(1);
   free(str);
