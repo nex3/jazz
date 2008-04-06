@@ -67,7 +67,7 @@ const char* jz_oc_names[jz_oc_last];
 
 #define JZ_OC_ARGSIZE(oc)                               \
   ((oc) <= jz_oc_jump_if ? JZ_OCS_PTRDIFF :             \
-   ((oc) <= jz_oc_push_literal ? JZ_OCS_INDEX : 0))
+   ((oc) <= jz_oc_push_closure ? JZ_OCS_INDEX : 0))
 
 #define JZ_OCS_PTRDIFF (sizeof(ptrdiff_t)/sizeof(jz_opcode))
 #define JZ_OCS_INDEX   (sizeof(jz_index)/sizeof(jz_opcode))
