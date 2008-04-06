@@ -18,7 +18,10 @@ test = function(desc, fn) {
 };
 
 print = function(str) {
-  write(str + "\n");
+  if (str)
+    write(str + "\n");
+  else
+    write("\n");
 };
 
 printFailed = function() {
@@ -40,6 +43,7 @@ runTests = function() {
       push(tests.failed, f);
     } else write(".");
   }
+  print();
 };
 
 assert = function(result, msg) {
