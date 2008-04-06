@@ -160,7 +160,6 @@ void jz_init_func_proto(JZ_STATE) {
 
 void finalizer(JZ_STATE, jz_obj* obj) {
   jz_func_data* data = (jz_func_data*)obj->data;
-  jz_free_bytecode(jz, data->code);
   free(data->closure_vars);
   free(data);
 }
@@ -172,5 +171,5 @@ void marker(JZ_STATE, jz_obj* obj) {
     jz_gc_mark_gray(jz, &data->scope->gc);
 
   if (data->code)
-    jz_mark_bytecode(jz, data->code);
+    jz_gc_mark_gray(jz, &data->code->gc);
 }

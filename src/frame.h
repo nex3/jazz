@@ -16,7 +16,7 @@ struct jz_closure_locals {
 struct jz_frame {
   jz_bool mark;
   jz_obj* function;
-  const jz_bytecode* bytecode;
+  jz_bytecode* bytecode;
   jz_frame* upper;
   jz_closure_locals* closure_locals;
   /* This points to the stack variable in jz_vm_run.
@@ -33,7 +33,7 @@ struct jz_frame {
 
 /* Note: frames are allocated and freed on the Jazz stack. */
 jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function);
-jz_frame* jz_frame_new(JZ_STATE, const jz_bytecode* function);
+jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function);
 void jz_frame_free(JZ_STATE, jz_frame* frame);
 
 #define JZ_FRAME_STACK(frame)                                           \

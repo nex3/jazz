@@ -48,6 +48,7 @@ typedef enum {
   jz_t_closure_locals,
   jz_t_obj,
   jz_t_proto,
+  jz_t_bytecode,
 
   /* Non-GCable types */
   jz_t_void,

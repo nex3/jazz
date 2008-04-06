@@ -45,7 +45,7 @@ const char* jz_oc_names[] = {
 static void print_bytecode(const jz_bytecode* bytecode);
 #endif
 
-jz_val jz_vm_run(JZ_STATE, const jz_bytecode* bytecode) {
+jz_val jz_vm_run(JZ_STATE, jz_bytecode* bytecode) {
   return jz_vm_run_frame(jz, jz_frame_new(jz, bytecode));
 }
 

@@ -21,7 +21,6 @@ jz_val jz_load(JZ_STATE, UFILE* file) {
   if (!(bytecode = jz_compile(jz, root))) exit(1);
 
   result = jz_vm_run(jz, bytecode);
-  jz_free_bytecode(jz, bytecode);
   return result;
 }
 
