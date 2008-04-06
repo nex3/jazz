@@ -6,7 +6,7 @@
 #include "function.h"
 #include "object.h"
 
-static void init_locals(JZ_STATE, jz_frame* frame);
+static void init_locals(JZ_STATE, jz_val* locals, jz_val* top);
 static void copy_closure_locals(JZ_STATE, const jz_bytecode* function, jz_frame* frame);
 static void copy_closure_vars(JZ_STATE, jz_func_data* func, jz_frame* frame);
 
@@ -39,8 +39,6 @@ jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function) {
   frame->upper = jz->current_frame;
   jz->current_frame = frame;
 
-  init_locals(jz, frame);
-
   frame->closure_locals = (jz_closure_locals*)
     jz_gc_dyn_malloc(jz, jz_t_closure_locals, sizeof(jz_closure_locals),
                      sizeof(jz_val), function->closure_locals_length);
@@ -50,6 +48,9 @@ jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function) {
   frame->closure_locals->scope = NULL;
   frame->closure_locals->length = function->closure_locals_length;
   copy_closure_locals(jz, function, frame);
+
+  init_locals(jz, JZ_FRAME_LOCALS(frame), JZ_FRAME_STACK(frame));
+  init_locals(jz, frame->closure_locals->vars, frame->closure_locals->vars + frame->closure_locals->length);
 
   /* Run a write barrier on the frame
      to make sure locals for newly-created frames
@@ -61,10 +62,7 @@ jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function) {
   return frame;
 }
 
-void init_locals(JZ_STATE, jz_frame* frame) {
-  jz_val* locals = JZ_FRAME_LOCALS(frame);
-  jz_val* top = JZ_FRAME_STACK(frame);
-
+void init_locals(JZ_STATE, jz_val* locals, jz_val* top) {
   for (; locals < top; locals++)
     *locals = JZ_UNDEFINED;
 }
