@@ -9,8 +9,6 @@
 static void init_prototypes(JZ_STATE);
 static void init_global_object(JZ_STATE);
 
-static jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv);
-
 #define STACK_SIZE (1 << 18)
 
 jz_state* jz_init() {
@@ -44,10 +42,6 @@ void init_global_object(JZ_STATE) {
   /* This is an extension to ECMAscript.
      The specification doesn't require support for a global undefined property. */
   jz_obj_put2(jz, jz->global_obj, "undefined", JZ_UNDEFINED);
-
-  /* TODO: Move this to general lib initializer
-     (Probably not even here - in main or something) */
-  jz_def(jz, jz->global_obj, "print", jz_print, JZ_ARITY_VAR);
 }
 
 void jz_check_overflow(JZ_STATE, jz_byte* stack) {
@@ -70,19 +64,4 @@ void jz_free_state(JZ_STATE) {
   jz->prototypes = NULL;
   jz_gc_cycle(jz);
   free(jz);
-}
-
-/* TODO: This definitely doesn't belong here.
-   Move it to src/io.c? lib/io.c? */
-jz_val jz_print(JZ_STATE, jz_args* args, int argc, const jz_val* argv) {
-  int i;
-
-  for (i = 0; i < argc; i++) {
-    char* str = jz_str_to_chars(jz, jz_to_str(jz, argv[i]));
-    
-    printf("%s\n", str);
-    free(str);
-  }
-
-  return JZ_UNDEFINED;
 }
