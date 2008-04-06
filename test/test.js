@@ -1,20 +1,19 @@
 Array = function() {
   var a = {};
   a.length = 0;
+  a.push = function(v) {
+    a[a.length] = v;
+    a.length = a.length + 1;
+    return v;
+  };
   return a;
-};
-
-push = function(arr, v) {
-  arr[arr.length] = v;
-  arr.length = arr.length + 1;
-  return v;
 };
 
 tests = Array();
 tests.failed = Array();
 test = function(desc, fn) {
   fn.desc = desc;
-  push(tests, fn);
+  tests.push(fn);
 };
 
 print = function(str) {
@@ -41,7 +40,7 @@ runTests = function() {
     if (tests.assertFailed) {
       write("F");
       f.assertMessage = tests.assertFailed;
-      push(tests.failed, f);
+      tests.failed.push(f);
     } else write(".");
   }
   print();
