@@ -26,7 +26,8 @@ print = function(str) {
 
 printFailed = function() {
   for (var i = 0; i < tests.failed.length; i++) {
-    print("Failed: " + tests.failed[i].desc);
+    var f = tests.failed[i];
+    print("Failed: " + f.desc);
     if (f.assertMessage !== true)
       print("  (" + f.assertMessage + ")");
   }
@@ -39,7 +40,7 @@ runTests = function() {
     f();
     if (tests.assertFailed) {
       write("F");
-      f.assertMessage = test.assertFailed;
+      f.assertMessage = tests.assertFailed;
       push(tests.failed, f);
     } else write(".");
   }
