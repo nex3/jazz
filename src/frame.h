@@ -34,7 +34,7 @@ struct jz_frame {
 /* Note: frames are allocated and freed on the Jazz stack. */
 jz_frame* jz_frame_new_from_func(JZ_STATE, jz_obj* function);
 jz_frame* jz_frame_new(JZ_STATE, jz_bytecode* function);
-void jz_frame_free(JZ_STATE, jz_frame* frame);
+void jz_frame_free_current(JZ_STATE);
 
 #define JZ_FRAME_STACK(frame)                                           \
   ((jz_val*)((frame)->data +                                            \
