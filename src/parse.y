@@ -95,7 +95,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
              stmt_postfix_expr stmt_left_hand_expr stmt_new_expr
                   call_expr      call_or_member_expr      member_expr      primary_expr
              stmt_call_expr stmt_call_or_member_expr stmt_member_expr stmt_primary_expr
-             function_expr params param_list opt_source_elements arguments argument_list
+             function_expr params param_list arguments argument_list
              member_accessor identifier literal object_literal
 
 %type <operation> assign_expr_op eq_expr_op neq_expr_op rel_expr_op shift_expr_op
@@ -112,6 +112,7 @@ static void yyerror(JZ_STATE, jz_cons** root, jz_lex_state* state, const char* m
 program: source_elements { *root = $1; }
 
 source_elements: source_element_list { $$ = jz_list_reverse(jz, $1); }
+  | /* empty */ { $$ = NULL; }
 
 source_element_list: source_element { $$ = CONS($1, NULL); }
   | source_element_list source_element { $$ = CONS($2, $1); }
@@ -371,7 +372,7 @@ member_accessor: LSQUARE expr RSQUARE { $$ = $2; }
     $$ = jz_enum_wrap(jz, jz_parse_literal, (jz_str*)CADR($2));
  }
 
-function_expr: FUNCTION params LCURLY opt_source_elements RCURLY {
+function_expr: FUNCTION params LCURLY source_elements RCURLY {
   $$ = jz_list(jz, 3, jz_enum_new(jz, jz_parse_func), $2, $4);
  }
 
@@ -380,9 +381,6 @@ params: LPAREN RPAREN { $$ = NULL; }
 
 param_list: IDENTIFIER { $$ = CONS(jz_str_deep_dup(jz, $1), NULL); }
   | param_list COMMA IDENTIFIER { $$ = CONS(jz_str_deep_dup(jz, $3), $1); }
-
-opt_source_elements: source_elements
-  | /* empty */ { $$ = NULL; }
 
 primary_expr: stmt_primary_expr | object_literal
 stmt_primary_expr: identifier | literal
