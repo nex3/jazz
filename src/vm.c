@@ -362,13 +362,12 @@ jz_val jz_vm_run_frame(JZ_STATE, jz_frame* frame) {
       jz_val res;
 
       res = stack[-1];
-      jz_frame_free(jz, frame);
+      jz_frame_free_current(jz);
       return res;
     }
 
     case jz_oc_end:
-      jz_frame_free(jz, frame);
-      jz->current_frame = NULL;
+      jz_frame_free_current(jz);
       return JZ_UNDEFINED;
 
     default:
