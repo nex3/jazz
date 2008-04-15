@@ -72,4 +72,8 @@ test("A unary minus should perform type conversion.", function() {
   assertEqual(-1, -true);
 });
 
+test("A unary minus should convert zero to negative zero.", function() {
+  assertNegative0(-(0));
+});
+
 runTests();
