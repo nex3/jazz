@@ -58,3 +58,7 @@ assertEqual = function(expected, actual) {
 assertNotEqual = function(unexpected, actual) {
   assert(unexpected !== actual, "Expected " + unexpected + " not to equal " + actual);
 };
+
+assertNaN = function(value) {
+  assert(isNaN(value), "Expected " + value + " to be NaN");
+};
