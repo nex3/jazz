@@ -62,3 +62,11 @@ assertNotEqual = function(unexpected, actual) {
 assertNaN = function(value) {
   assert(isNaN(value), "Expected " + value + " to be NaN");
 };
+
+assertNegative0 = function(value) {
+  assert(1/value === -Infinity, "Expected " + value + " to be -0");
+};
+
+assertPositive0 = function(value) {
+  assert(1/value === Infinity, "Expected " + value + " to be +0");
+};
