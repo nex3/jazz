@@ -768,8 +768,12 @@ static void compile_unit_shortcut(STATE, jz_cons* node,
   jz_index unit_index = add_const(jz, state, jz_wrap_num(jz, 1));
   variable* var = compile_identifier(jz, state, node, jz_true);
 
-  if (!pre && value)
+  if (!pre && value) {
+    /* ++foo doesn't just return foo,
+       it returns foo converted to a number. */
+    PUSH_OPCODE(jz_oc_to_num);
     PUSH_OPCODE(jz_oc_dup);
+  }
 
   PUSH_OPCODE(jz_oc_push_literal);
   PUSH_ARG(unit_index);
