@@ -12,13 +12,17 @@
 int main(int argc, char** argv) {
   UFILE* ustdin = u_finit(stdin, NULL, NULL);
   jz_state* jz = jz_init();
-  char* result;
+  jz_val result;
+  char* result_str;
 
   jz_init_core(jz);
 
-  result = jz_str_to_chars(jz, jz_to_str(jz, jz_load(jz, ustdin)));
-  puts(result);
-  free(result);
+  result = jz_load(jz, ustdin);
+  if (result != JZ_UNDEFINED) {
+    result_str = jz_str_to_chars(jz, jz_to_str(jz, result));
+    puts(result_str);
+    free(result_str);
+  }
 
   u_fclose(ustdin);
   jz_free_state(jz);
